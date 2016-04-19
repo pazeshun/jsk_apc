@@ -1,4 +1,4 @@
 - git:
-    local-name: jsk-ros-pkg/jsk_robot
-    uri: https://github.com/jsk-ros-pkg/jsk_robot.git
-    version: 1.0.0
+    local-name: knorth55/softkinetic
+    uri: https://github.com/knorth55/softkinetic.git
+    version: jsk_apc
