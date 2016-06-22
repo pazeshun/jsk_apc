@@ -6,11 +6,12 @@ from jsk_data import download_data
 def main():
     PKG = 'jsk_2016_01_baxter_apc'
 
+    # Use gdown (url) -O filename
     download_data(
         pkg_name=PKG,
-        path='test_data/2016-04-30-16-33-54_apc2016-bin-boxes.bag',
-        url='https://drive.google.com/uc?id=0B9P1L--7Wd2vZ2xLZG55OWNYTDQ',
-        md5='79404ca882f3131361d323112443be42',
+        path='test_data/2016-06-22-17-33-53_apc2016-bin-boxes.bag.tgz',
+        url='https://drive.google.com/uc\?id\=0BxxBA3J-CunGWHkxT296MV9ONDg',
+        md5='31c955ceacef69f6fdc8afed66bbc14f',
     )
 
     download_data(
