@@ -28,107 +28,152 @@
   <xacro:property name="right_gripper_joint_offset_y" value="-0.0085" />
   <xacro:property name="right_gripper_joint_offset_z" value="0.264" />
 
-  <link name="right_gripper_base">
+  <link name="link0">
     <visual>
-      <origin rpy="${M_PI/2} 0 -${M_PI/2}" xyz="0 0 0"/>
+      <origin rpy="${M_PI/2} -${M_PI/2} 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://jsk_2016_01_baxter_apc/meshes/visual/right_gripper_base.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://jsk_2016_01_baxter_apc/meshes/visual/ideal_hand_stl/link0.stl" scale="0.001 0.001 0.001"/>
       </geometry>
-      <material name="white">
-        <color rgba="1 1 1 1"/>
+      <material name="lightgrey">
+        <color rgba=".5 .5 .5 1"/>
       </material>
     </visual>
-    <!--When using this stl file, robot_self_filter doesn't work-->
-    <!--<collision>
-      <origin rpy="${M_PI/2} 0 -${M_PI/2}" xyz="0 0 0"/>
-      <geometry>
-        <mesh filename="package://jsk_2016_01_baxter_apc/meshes/collision/right_gripper_base.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-    </collision>-->
-    <collision>
-      <origin rpy="0 0 0" xyz="0 0 ${rect_tube_l/2}"/>
-      <geometry>
-        <box size="${rect_tube_h} ${rect_tube_w} ${rect_tube_l}"/>
-      </geometry>
-    </collision>
-    <collision>
-      <origin rpy="${M_PI/2} 0 0" xyz="${cyl_tube_x} -${cyl_tube_l/2} ${cyl_tube_z}"/>
-      <geometry>
-        <cylinder radius="${cyl_tube_r}" length="${cyl_tube_l}"/>
-      </geometry>
-    </collision>
-    <collision>
-      <origin rpy="0 0 0" xyz="${cyl_tube_x} -${cyl_tube_l} ${connection_z}"/>
-      <geometry>
-        <cylinder radius="${connection_r}" length="${connection_l}"/>
-      </geometry>
-    </collision>
   </link>
-  <link name="right_gripper_vacuum_pad_base">
+  <link name="l_link1">
     <visual>
-      <origin rpy="${M_PI/2} 0 -${M_PI/2}" xyz="0 0 0"/>
+      <origin rpy="${M_PI/2} -${M_PI/2} 0" xyz="-0.00625 0 0"/>
       <geometry>
-        <mesh filename="package://jsk_2016_01_baxter_apc/meshes/visual/right_gripper_vacuum_pad_base.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://jsk_2016_01_baxter_apc/meshes/visual/ideal_hand_stl/link1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
-      <material name="gray">
-        <color rgba="0.5 0.5 0.5 1"/>
-      </material>
+      <material name="lightgrey"/>
     </visual>
-    <!--When using this stl file, robot_self_filter doesn't work-->
-    <!--<collision>
-      <origin rpy="${M_PI/2} 0 -${M_PI/2}" xyz="0 0 0"/>
-      <geometry>
-        <mesh filename="package://jsk_2016_01_baxter_apc/meshes/collision/right_gripper_vacuum_pad_base.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-    </collision>-->
-    <collision>
-      <origin rpy="0 0 0" xyz="0 0 ${pad_base_z}"/>
-      <geometry>
-        <box size="${pad_base_h} ${pad_base_w} ${pad_base_d}"/>
-      </geometry>
-    </collision>
   </link>
-  <link name="right_gripper_vacuum_pad">
+  <link name="r_link1">
     <visual>
-      <origin rpy="${M_PI/2} 0 -${M_PI/2}" xyz="0 0 0"/>
+      <origin rpy="${M_PI/2} -${M_PI/2} 0" xyz="-0.00625 0 0"/>
       <geometry>
-        <mesh filename="package://jsk_2016_01_baxter_apc/meshes/visual/right_gripper_vacuum_pad.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://jsk_2016_01_baxter_apc/meshes/visual/ideal_hand_stl/link1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
-      <material name="green">
-        <color rgba="0 1 0 1"/>
+      <material name="lightgrey"/>
+    </visual>
+  </link>
+  <link name="l_link2">
+    <visual>
+      <origin rpy="${M_PI/2} -${M_PI/2} 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://jsk_2016_01_baxter_apc/meshes/visual/ideal_hand_stl/link2.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="lightgrey"/>
+    </visual>
+  </link>
+  <link name="r_link2">
+    <visual>
+      <origin rpy="${M_PI/2} -${M_PI/2} 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://jsk_2016_01_baxter_apc/meshes/visual/ideal_hand_stl/link2.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="lightgrey"/>
+    </visual>
+  </link>
+  <link name="l_link3">
+    <visual>
+      <origin rpy="${M_PI/2} -${M_PI/2} 0" xyz="0 0 0.0125"/>
+      <geometry>
+        <mesh filename="package://jsk_2016_01_baxter_apc/meshes/visual/ideal_hand_stl/link3.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="lightgrey"/>
+    </visual>
+  </link>
+  <link name="r_link3">
+    <visual>
+      <origin rpy="${M_PI/2} -${M_PI/2} 0" xyz="0 0 0.0125"/>
+      <geometry>
+        <mesh filename="package://jsk_2016_01_baxter_apc/meshes/visual/ideal_hand_stl/link3.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="lightgrey"/>
+    </visual>
+  </link>
+  <link name="tube">
+    <visual>
+      <origin rpy="${M_PI/2} -${M_PI/2} 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://jsk_2016_01_baxter_apc/meshes/visual/ideal_hand_stl/tube.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="lightgrey"/>
+    </visual>
+  </link>
+  <link name="nozzle">
+    <visual>
+      <origin rpy="0 ${M_PI/2} 0" xyz="0 0 0.030"/>
+      <geometry>
+        <mesh filename="package://jsk_2016_01_baxter_apc/meshes/visual/ideal_hand_stl/nozzle.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0 0 0 1"/>
       </material>
     </visual>
-    <!--When using this stl file, robot_self_filter doesn't work-->
-    <!--<collision>
-      <origin rpy="${M_PI/2} 0 -${M_PI/2}" xyz="0 0 0"/>
-      <geometry>
-        <mesh filename="package://jsk_2016_01_baxter_apc/meshes/collision/right_gripper_vacuum_pad.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-    </collision>-->
-    <collision>
-      <origin rpy="0 0 0" xyz="${pad_x} ${pad_y} ${pad_z}"/>
-      <geometry>
-        <cylinder radius="${pad_r}" length="${pad_l}"/>
-      </geometry>
-    </collision>
   </link>
 
-  <joint name="right_gripper_base_fixed" type="fixed">
+  <joint name="link0_joint_fixed" type="fixed">
     <origin rpy="0 0 0" xyz="${right_hand_offset_x} 0 ${right_hand_offset_z}" />
     <parent link="right_hand"/>
-    <child link="right_gripper_base"/>
+    <child link="link0"/>
   </joint>
-  <joint name="right_gripper_vacuum_pad_joint" type="revolute">
-    <origin rpy="0 0 0" xyz="${right_gripper_joint_offset_x} ${right_gripper_joint_offset_y} ${right_gripper_joint_offset_z}" />
-    <parent link="right_gripper_base"/>
-    <child link="right_gripper_vacuum_pad_base"/>
+  <joint name="l_link1_joint" type="revolute">
+    <origin rpy="0 0 0" xyz="-0.025 0.0175 0.18" />
+    <parent link="link0"/>
+    <child link="l_link1"/>
+    <axis xyz="0 0 -1"/>
+    <limit lower="-1.58" upper="1.58" effort="0" velocity="4.5"/>
+  </joint>
+  <joint name="r_link1_joint" type="revolute">
+    <origin rpy="0 0 0" xyz="-0.025 -0.0175 0.18" />
+    <parent link="link0"/>
+    <child link="r_link1"/>
+    <axis xyz="0 0 -1"/>
+    <limit lower="-1.58" upper="1.58" effort="0" velocity="4.5"/>
+    <mimic joint="l_link1_joint" multiplier="-1" offset="0"/>
+  </joint>
+  <joint name="l_link2_joint" type="revolute">
+    <origin rpy="0 0 0" xyz="-0.0125 0 0.0145" />
+    <parent link="l_link1"/>
+    <child link="l_link2"/>
     <axis xyz="0 1 0"/>
     <limit lower="-1.58" upper="1.58" effort="0" velocity="4.5"/>
   </joint>
-  <joint name="right_gripper_vacuum_pad_fixed" type="fixed">
-    <origin rpy="0 0 0" xyz="0 0 0"/>
-    <parent link="right_gripper_vacuum_pad_base"/>
-    <child link="right_gripper_vacuum_pad"/>
+  <joint name="r_link2_joint" type="revolute">
+    <origin rpy="0 0 0" xyz="-0.0125 0 0.0145" />
+    <parent link="r_link1"/>
+    <child link="r_link2"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-1.58" upper="1.58" effort="0" velocity="4.5"/>
   </joint>
-
+  <joint name="l_link3_joint" type="revolute">
+    <origin rpy="0 0 0" xyz="0 0 0.035" />
+    <parent link="l_link2"/>
+    <child link="l_link3"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-1.58" upper="1.58" effort="0" velocity="4.5"/>
+  </joint>
+  <joint name="r_link3_joint" type="revolute">
+    <origin rpy="0 0 0" xyz="0 0 0.035" />
+    <parent link="r_link2"/>
+    <child link="r_link3"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-1.58" upper="1.58" effort="0" velocity="4.5"/>
+  </joint>
+  <joint name="tube_joint" type="prismatic">
+    <origin rpy="0 0 0" xyz="0.03 0 0" />
+    <parent link="link0"/>
+    <child link="tube"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="0" upper="0.18" effort="0" velocity="4.5"/>
+  </joint>
+  <joint name="nozzle_joint" type="revolute">
+    <origin rpy="0 0 0" xyz="0 0 0.19" />
+    <parent link="tube"/>
+    <child link="nozzle"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-1.58" upper="1.58" effort="0" velocity="4.5"/>
+  </joint>
 </robot>
