@@ -95,7 +95,7 @@
     (sethash :offset-object-h _hard-coded-variables -10)
     (sethash :offset-gripper-bin-top _hard-coded-variables 10)
     (sethash :offset-gripper-bin-side _hard-coded-variables 40)
-    (sethash :cylindrical-grasp-max _hard-coded-variables 90)
+    (sethash :cylindrical-grasp-max _hard-coded-variables 50)
     (sethash :opposed-grasp-max _hard-coded-variables 150)
     (setq _order-bin-box (make-hash-table))
     (setq _movable-region (make-hash-table))
@@ -866,8 +866,10 @@
                   (- (elt (send bin-cube-base :pos) 0) (/ (x-of-cube bin-cube-base) 2)
                      (- (send self :bin-reachable-depth arm (+ 90 (* sign_y 90)))))
                   ))
-            (when (> (elt (send target-coords-with-offset :worldpos) 0)
+            (when (and (= sign_y 0)
+              (> (elt (send target-coords-with-offset :worldpos) 0)
                      bin-reachable-limit-x)
+              )
               (ros::ros-warn
                 "[:try-to-pick-object] arm:~a  cog of object is too deep to approach with sign_y: ~a"
                 arm sign_y)
@@ -927,20 +929,22 @@
                   (list (send *baxter* arm :inverse-kinematics ec))
                   :fast nil 0 :scale 5.0)
             (send self :wait-interpolation)
-            (send *baxter* :hand-grasp-pre-pose arm _grasp-style)
-            (send self :move-hand arm
-                  (send *baxter* :hand arm :angle-vector) 1500)
             (setq _last-av-before-approach (send *baxter* :angle-vector))
             (send *baxter* :slide-gripper arm prismatic-l :relative nil)
             (send self :angle-vector-sequence
                   (list (send *baxter* arm :inverse-kinematics ec))
                   :fast nil 0 :scale 5.0)
             (send self :wait-interpolation)
+            (if (< prismatic-l 130)
+              (send *baxter* :hand-grasp-pre-pose arm _grasp-style)
+              (send *baxter* :hand-grasp-pose arm _grasp-style :angle 90))
+            (send self :move-hand arm
+                  (send *baxter* :hand arm :angle-vector) 1500)
             ;; wait until gripper movement finishes
             (send self :update-robot-state :wait-until-update t)
             (while (not (eps= (send *baxter* arm :gripper-x :joint-angle)
                               (send robot arm :gripper-x :joint-angle)
-                              2))
+                              10))
                    (send self :update-robot-state :wait-until-update t))
             ;; grasp object
             (ros::ros-info "[:try-to-pick-object] arm:~a approach to the object" arm)
@@ -1404,6 +1408,9 @@
         (send self :angle-vector-sequence
               (list (send *baxter* :angle-vector))
               :fast nil 0 :scale 5.0)
+        (send *baxter* :hand-grasp-pre-pose arm _grasp-style)
+        (send self :move-hand arm
+              (send *baxter* :hand arm :angle-vector) 1500)
         (send self :wait-interpolation)
         (unix::sleep 1)
         ;; second grasp
