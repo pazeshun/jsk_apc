@@ -761,7 +761,7 @@
     (arm bin &key (object-index 0) (offset #f(0 0 0)) (use-sib t))
     (let (avs-before-approach obj-boxes obj-box obj-coms obj-com graspingp gripper-req-l
                               bin-box bin-y-l bin-z-l target-coords-with-offset target-coords
-                              prismatic-l ec-offset-g)
+                              prismatic-l)
       ;; validate
       (cond (use-sib
               (unless
@@ -948,30 +948,14 @@
                    (send self :update-robot-state :wait-until-update t))
             ;; grasp object
             (ros::ros-info "[:try-to-pick-object] arm:~a approach to the object" arm)
-            ;; decide offset to compensate gripper gravity
-            ;; CAUTION: *baxter* and robot model of *ri* should be similar pose here
-            (let ((av (send *baxter* :angle-vector)))
-              (setq ec-offset-g #f(0 0 0))
-              (while (> (norm (v- (send *baxter* arm :end-coords :worldpos)
-                                  (send robot arm :end-coords :worldpos))) 5)
-                (setq ec-offset-g
-                      (v+ ec-offset-g (scale 0.5 (v- (send *baxter* arm :end-coords :worldpos)
-                          (send robot arm :end-coords :worldpos)))))
-                (send *baxter* :angle-vector av)
-                (send self :angle-vector
-                      (send *baxter* arm :move-end-pos ec-offset-g :world) 1000)
-                (send *baxter* :angle-vector av)
-                (send self :wait-interpolation)
-                (send self :update-robot-state :wait-until-update t)
-                )
-              )
             (if (< sign_y 0)
               ;; when gripper is straight
               ;; move arm to the target only if robot can solve IK
               (if (send *baxter* arm :inverse-kinematics target-coords-with-offset)
                 (progn
                   (send self :angle-vector
-                        (send *baxter* arm :move-end-pos ec-offset-g :world) 3000)
+                        (send *baxter* :angle-vector) :fast nil 0
+                        :scale 20.0)
                   (send self :wait-interpolation-smooth 1000)
                   )
                 (ros::ros-warn
@@ -1007,7 +991,7 @@
                 (if (send *baxter* arm :inverse-kinematics target-coords-with-offset)
                   (progn
                     (send self :angle-vector
-                          (send *baxter* arm :move-end-pos ec-offset-g :world)
+                          (send *baxter* :angle-vector)
                           (- 4000 elapsed-t))
                     (send self :wait-interpolation-smooth 1000)
                     )
@@ -1024,7 +1008,7 @@
                 (send self :start-grasp arm)
                 (unix::sleep 1)
                 (send self :angle-vector
-                      (send *baxter* arm :move-end-pos ec-offset-g :world) 3000)
+                      (send *baxter* :angle-vector) 3000)
                 (send self :wait-interpolation)
                 (setq graspingp (send self :graspingp arm))
                 (ros::ros-info "[:try-to-pick-object] arm:~a graspingp: ~a" arm graspingp)
@@ -1045,7 +1029,7 @@
                 (ros::ros-info "[:try-to-pick-object] arm:~a lift the object" arm)
                 (cond ((< sign_y 0)
                        ;; only if robot can solve IK
-                       (if (send *baxter* arm :move-end-pos #f(0 0 30) :world)
+                       (if (send *baxter* arm :move-end-pos #f(0 0 10) :world)
                          (send self :angle-vector (send *baxter* :angle-vector) 3000)
                          (ros::ros-warn
                            "[:try-to-pick-object] arm:~a fail to lift the object" arm)))
@@ -1402,8 +1386,15 @@
         (unless graspingp
           (send *baxter* :rotate-gripper arm 0 :relative nil)
           (send self :angle-vector (send *baxter* :angle-vector) 1000))
+        (setq ec (send *baxter* arm :end-coords :copy-worldcoords))
         (send *baxter* :angle-vector _last-av-before-approach)
-        (unless graspingp
+        (if graspingp
+          (let (diff-yz)
+            (setq diff-yz
+                  (v- (send ec :worldpos)
+                      (send *baxter* arm :end-coords :worldpos)))
+            (setf (elt diff-yz 0) 0)
+            (send *baxter* arm :move-end-pos diff-yz :world))
           (send *baxter* :rotate-gripper arm 0 :relative nil))
         (send self :angle-vector-sequence
               (list (send *baxter* :angle-vector))
@@ -1419,7 +1410,7 @@
               (send *baxter* :hand arm :angle-vector) 1500)
         (send self :angle-vector-sequence
               (list
-                (send *baxter* arm :move-end-pos #f(0 0 60) :world)
+                (send *baxter* arm :move-end-pos #f(0 0 50) :world)
                 (progn
                   (setq ec (send *baxter* arm :end-coords :copy-worldcoords))
                   (if (eq _grasp-style :opposed)
