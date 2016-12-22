@@ -1,3 +1,4 @@
+;; This example works with gravity compensation without gripper
 (require "package://jsk_2016_01_baxter_apc/euslisp/main.l")
 
 ;; ---------------
