@@ -22,6 +22,8 @@
   (send *ri* :gripper-servo-off *arm*)  ;; power off gripper servo not to overload it
   (send *ri* :wait-interpolation)
   (send *ri* :stop-grasp *arm*)
+  (send *ri* :move-hand *arm*
+        (send *baxter* :hand-grasp-pre-pose *arm* :opposed) 1500)
   (send *ri* :spin-off-by-wrist *arm* :times 20)
   (send *ri* :gripper-servo-on *arm*)
   (send *ri* :wait-interpolation)
