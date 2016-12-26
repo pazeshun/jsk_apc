@@ -1035,7 +1035,7 @@
                            "[:try-to-pick-object] arm:~a fail to lift the object" arm)))
                       (t
                         ;; only if robot can solve IK
-                        (if (send *baxter* arm :move-end-pos #f(0 0 30) :local)
+                        (if (send *baxter* arm :move-end-pos #f(0 0 50) :local)
                           (progn
                             (if (not (= sign 0))
                               (send *baxter* arm :move-end-pos #f(0 0 30) :world :revert-if-fail t))
@@ -1413,9 +1413,7 @@
                 (send *baxter* arm :move-end-pos #f(0 0 50) :world)
                 (progn
                   (setq ec (send *baxter* arm :end-coords :copy-worldcoords))
-                  (if (eq _grasp-style :opposed)
-                    (send ec :rotate 0.2 :y :world)
-                    (send ec :rotate -0.2 :y :world))
+                  (send ec :rotate 0.2 :y :world)
                   (send *baxter* arm :inverse-kinematics ec)))
               :fast nil 0 :scale 5.0)
         (send self :wait-interpolation)
