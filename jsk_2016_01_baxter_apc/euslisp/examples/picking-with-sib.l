@@ -23,8 +23,16 @@
   (send *ri* :wait-interpolation)
   (send *ri* :stop-grasp *arm*)
   (send *ri* :move-hand *arm*
+        (send *baxter* :hand-grasp-pre-pose *arm* (send *ri* :get-val '_grasp-style)) 1500)
+  (send *baxter* :slide-gripper *arm* 100 :relative nil)
+  (send *ri* :send-av 1000)
+  (send *ri* :wait-interpolation)
+  (send *baxter* :slide-gripper *arm* 0 :relative nil)
+  (send *ri* :send-av 1000)
+  (send *ri* :wait-interpolation)
+  (send *ri* :move-hand *arm*
         (send *baxter* :hand-grasp-pre-pose *arm* :opposed) 1500)
-  (send *ri* :spin-off-by-wrist *arm* :times 20)
+  (send *ri* :spin-off-by-wrist *arm* :times 5)
   (send *ri* :gripper-servo-on *arm*)
   (send *ri* :wait-interpolation)
   (send *baxter* :fold-pose-back *arm*)
