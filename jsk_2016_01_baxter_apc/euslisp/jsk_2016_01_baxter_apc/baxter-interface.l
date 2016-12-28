@@ -850,7 +850,7 @@
               (send target-coords-with-offset :rotate pi :z :world)
               (send target-coords-with-offset :rotate (* sign pi/2) :x :world))
             ;; add offset to grasp lower side of object
-            (send target-coords-with-offset :translate #f(0 0 -10) :world))
+            (send target-coords-with-offset :translate #f(0 0 -20) :world))
           (setq target-coords
                 (make-coords
                   :pos (send obj-coords :pos)
@@ -861,7 +861,7 @@
               (send target-coords :rotate pi :z :world)
               (send target-coords :rotate (* sign pi/2) :x :world))
             ;; add offset to grasp lower side of object
-            (send target-coords :translate #f(0 0 -10) :world))
+            (send target-coords :translate #f(0 0 -20) :world))
           (let ((bin-reachable-limit-x
                   (- (elt (send bin-cube-base :pos) 0) (/ (x-of-cube bin-cube-base) 2)
                      (- (send self :bin-reachable-depth arm (+ 90 (* sign_y 90)))))
@@ -1057,7 +1057,7 @@
                 (ros::ros-info "[:try-to-pick-object] arm:~a lift the object" arm)
                 (cond ((< sign_y 0)
                        ;; only if robot can solve IK
-                       (if (send *baxter* arm :move-end-pos #f(0 0 10) :world)
+                       (if (send *baxter* arm :move-end-pos #f(0 0 20) :world)
                          (send self :angle-vector (send *baxter* :angle-vector) 3000)
                          (ros::ros-warn
                            "[:try-to-pick-object] arm:~a fail to lift the object" arm)))
@@ -1435,17 +1435,39 @@
         (send self :wait-interpolation)
         (unix::sleep 1)
         ;; second grasp
-        (send *baxter* :hand-grasp-pose arm _grasp-style)
-        (send self :move-hand arm
-              (send *baxter* :hand arm :angle-vector) 1500)
-        (send self :angle-vector-sequence
-              (list
-                (send *baxter* arm :move-end-pos #f(0 0 50) :world)
-                (progn
-                  (setq ec (send *baxter* arm :end-coords :copy-worldcoords))
-                  (send ec :rotate 0.2 :y :world)
-                  (send *baxter* arm :inverse-kinematics ec)))
-              3000 :no-gripper-controller 0 :scale 5.0 :end-coords-interpolation t)
+        (cond ((eq _grasp-style :cylindrical)
+               (send *baxter* :hand-grasp-pose arm _grasp-style)
+               (send self :move-hand arm
+                     (send *baxter* :hand arm :angle-vector) 1500)
+               (send self :angle-vector-sequence
+                     (list
+                       (send *baxter* arm :move-end-pos #f(0 0 50) :world)
+                       (progn
+                         (setq ec (send *baxter* arm :end-coords :copy-worldcoords))
+                         (send ec :rotate 0.2 :y :world)
+                         (send *baxter* arm :inverse-kinematics ec)))
+                     3000 :no-gripper-controller 0 :scale 5.0 :end-coords-interpolation t)
+               )
+              ((eq _grasp-style :opposed)
+               (send self :angle-vector-sequence
+                     (list
+                       (send *baxter* arm :move-end-pos #f(-20 0 0) :world)
+                       (send *baxter* arm :move-end-pos #f(20 0 0) :world)
+                       (progn
+                         (setq ec (send *baxter* arm :end-coords :copy-worldcoords))
+                         (send ec :rotate 0.2 :y :world)
+                         (send *baxter* arm :inverse-kinematics ec)))
+                     3000 :no-gripper-controller 0 :scale 5.0 :end-coords-interpolation t)
+               (send self :wait-interpolation)
+               (send *baxter* :hand-grasp-pose arm _grasp-style)
+               (send self :move-hand arm
+                     (send *baxter* :hand arm :angle-vector) 1500)
+               (send self :angle-vector-sequence
+                     (list
+                       (send *baxter* arm :move-end-pos #f(0 0 50) :world))
+                     3000 :no-gripper-controller 0 :scale 5.0 :end-coords-interpolation t)
+               )
+              )
         (send self :wait-interpolation)
         (setq gripper-angle (send *baxter* arm :gripper-p :joint-angle))
         (setq prismatic-l (send *baxter* arm :gripper-x :joint-angle))
