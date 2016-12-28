@@ -1423,7 +1423,8 @@
         (send self :wait-interpolation)
         (unix::sleep 1)
         ;; second grasp
-        (cond ((eq _grasp-style :cylindrical)
+        (cond ((null graspingp) nil)
+              ((eq _grasp-style :cylindrical)
                (send *baxter* :hand-grasp-pose arm _grasp-style)
                (send self :move-hand arm
                      (send *baxter* :hand arm :angle-vector) 1500)
