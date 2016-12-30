@@ -135,7 +135,7 @@
                               ;; :object-index (send *ri* :detect-target-object-in-bin
                               ;;                     target-obj target-bin)
                               :do-stop-grasp t
-                              :target-offset #f(50 0 0)
+                              :target-offset (if (eq arm :rarm) #f(10 0 0) #f(50 0 0))
                               )
                         )
                   (pushback graspingp past-graspingps)
@@ -155,7 +155,7 @@
           ;; Avoid shelf for safety
           (send *ri* :angle-vector-sequence
                 (list (send *baxter* :avoid-shelf-pose arm target-bin))
-                :fast nil 0 :scale 5.0)
+                :fast :no-gripper-controller 0 :scale 5.0)
           (send *ri* :wait-interpolation)
           ;; Skip verification if no object is grasped
           (if graspingp
@@ -163,6 +163,7 @@
             ;; (if (or (= (length (send *ri* :get-bin-contents target-bin)) 1)
             ;;         ;; write here to skip verification like (list :a :b :c)
             ;;         (find target-bin (list nil)))
+            ;; TODO: Make verification motion for gripper-v5
             (if t
               (progn (setq state :place_object))
               (progn
@@ -181,12 +182,30 @@
               )
             (progn
               (send *ri* :stop-grasp arm)
-              (send *ri* :angle-vector-sequence
-                    (list
-                      (send *baxter* :fold-to-keep-object arm)
-                      (send *baxter* :fold-pose-back arm)
-                      )
-                    :fast nil 0 :scale 5.0)
+              (if (eq arm :rarm)
+                ;; gripper-v5
+                (progn
+                  (send *ri* :angle-vector-sequence
+                        (list (send *baxter* :fold-to-keep-object arm))
+                        :fast nil 0 :scale 5.0)
+                  (send *ri* :wait-interpolation)
+                  ;; open fingers
+                  (send *ri* :move-hand arm
+                        (send *baxter* :hand-grasp-pre-pose arm :cylindrical) 1500)
+                  (send *ri* :move-hand arm
+                        (send *baxter* :hand-grasp-pre-pose arm :opposed) 1500)
+                  (send *ri* :angle-vector-sequence
+                        (list (send *baxter* :fold-pose-back arm))
+                        :fast nil 0 :scale 5.0)
+                  (send *ri* :wait-interpolation)
+                  )
+                (send *ri* :angle-vector-sequence
+                      (list
+                        (send *baxter* :fold-to-keep-object arm)
+                        (send *baxter* :fold-pose-back arm)
+                        )
+                      :fast nil 0 :scale 5.0)
+                )
               ;; if have tried N times and N is larger than
               ;; number of bin contents, robot should abort the target
               (if (send *ri* :keep-picking-p target-bin past-graspingps object-found-p)
@@ -197,6 +216,7 @@
             )
           )
         (:return_object
+          ;; TODO: Make returning motion for gripper-v5
           (ros::set-param (format nil "~a_hand/state" (arm2str arm)) (symbol2str state))
           (ros::ros-info-blue "[main] ~a, ~a" arm state)
           (send *ri* :angle-vector-sequence (reverse avs-picked->view-pose) :fast nil 0 :scale 5.0)
@@ -252,10 +272,26 @@
           (ros::set-param (format nil "~a_hand/state" (arm2str arm)) (symbol2str state))
           (ros::ros-info-blue "[main] ~a, ~a" arm state)
           (send *ri* :gripper-servo-off arm)  ;; power off gripper servo not to overload it
-          (send *ri* :move-arm-body->order-bin arm)
+          (send *ri* :move-arm-body->order-bin arm :no-gripper-controller)
           (send *ri* :wait-interpolation)
           (send *ri* :stop-grasp arm)
-          (send *ri* :spin-off-by-wrist arm :times 20)
+          (if (eq arm :rarm)
+            (progn
+              ;; gripper-v5
+              (send *ri* :move-hand arm
+                    (send *baxter* :hand-grasp-pre-pose arm (send *ri* :get-val '_grasp-style)) 1500)
+              (send *baxter* :slide-gripper arm 100 :relative nil)
+              (send *ri* :send-av 1000)
+              (send *ri* :wait-interpolation)
+              (send *baxter* :slide-gripper arm 0 :relative nil)
+              (send *ri* :send-av 1000)
+              (send *ri* :wait-interpolation)
+              (send *ri* :move-hand arm
+                    (send *baxter* :hand-grasp-pre-pose arm :opposed) 1500)
+              (send *ri* :spin-off-by-wrist arm :times 5)
+              )
+            (send *ri* :spin-off-by-wrist arm :times 20)
+            )
           (send *ri* :gripper-servo-on arm)
           (send *ri* :wait-interpolation)
           (send *baxter* :fold-pose-back arm)
