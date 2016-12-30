@@ -1376,6 +1376,13 @@
                         ))
             :fast nil 0 :scale 5.0)
       (send self :wait-interpolation)
+      ;; open fingers
+      (send *baxter* :hand-grasp-pre-pose arm :cylindrical)
+      (send self :move-hand arm
+            (send *baxter* :hand arm :angle-vector) 1500)
+      (send *baxter* :hand-grasp-pre-pose arm :opposed)
+      (send self :move-hand arm
+            (send *baxter* :hand arm :angle-vector) 1500)
       ;; initialize _last-av-before-approach
       (setq _last-av-before-approach (send *baxter* :angle-vector))
       ;; initialize _grasp-style
@@ -1938,8 +1945,20 @@
     )
   (:move-arm-body->bin-overlook-pose
     (arm bin)
+    (send self :angle-vector-sequence
+          (list (send *baxter* :fold-to-keep-object arm)) :fast nil 0 :scale 4.0)
+    (send self :wait-interpolation)
+    (when (eq arm :rarm)
+      ;; gripper-v5
+      ;; fold fingers to avoid collision to shelf
+      (send *baxter* :hand-grasp-pre-pose arm :cylindrical)
+      (send self :move-hand arm
+            (send *baxter* :hand arm :angle-vector) 1500)
+      (send *baxter* :hand-grasp-pose arm :cylindrical)
+      (send self :move-hand arm
+            (send *baxter* :hand arm :angle-vector) 1500)
+      )
     (let (avs)
-      (pushback (send *baxter* :fold-to-keep-object arm) avs)
       (pushback (send *baxter* :avoid-shelf-pose arm bin) avs)
       (pushback (send self :ik->bin-entrance arm bin
                       :offset (float-vector
