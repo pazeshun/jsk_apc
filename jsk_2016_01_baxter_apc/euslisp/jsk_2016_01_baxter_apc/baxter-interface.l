@@ -1392,7 +1392,7 @@
       (setq _last-av-before-approach (send *baxter* :angle-vector))
       ;; initialize _grasp-style
       (setq _grasp-style :opposed)
-      (let (graspingp avs ec gripper-angle prismatic-l)
+      (let (graspingp avs ec gripper-angle prismatic-l ik-poses-orig)
         ;; abort when no objects found
         (if use-sib
           (if
@@ -1459,41 +1459,50 @@
         (send self :wait-interpolation)
         (unix::sleep 1)
         ;; second grasp
+        (setq ik-poses-orig (send *baxter* :ik-prepared-poses))
+        (send *baxter* :set-ik-prepared-poses nil)
         (cond ((null _grasp-style) (setq _grasp-style :opposed))
               ((null graspingp) nil)
               ((eq _grasp-style :cylindrical)
                (send *baxter* :hand-grasp-pose arm _grasp-style)
                (send self :move-hand arm
                      (send *baxter* :hand arm :angle-vector) 1500)
-               (send self :angle-vector-sequence
-                     (list
-                       (send *baxter* arm :move-end-pos #f(0 0 50) :world)
-                       (progn
-                         (setq ec (send *baxter* arm :end-coords :copy-worldcoords))
-                         (send ec :rotate 0.2 :y :world)
-                         (send *baxter* arm :inverse-kinematics ec)))
-                     3000 :no-gripper-controller 0 :scale 5.0 :end-coords-interpolation t)
+               (let (avs)
+                 (if (send *baxter* arm :move-end-pos #f(0 0 50) :world)
+                   (pushback (send *baxter* :angle-vector) avs))
+                 (setq ec (send *baxter* arm :end-coords :copy-worldcoords))
+                 (send ec :rotate 0.2 :y :world)
+                 (if (send *baxter* arm :inverse-kinematics ec)
+                   (pushback (send *baxter* :angle-vector) avs))
+                 (if avs
+                   (send self :angle-vector-sequence avs
+                         3000 :no-gripper-controller 0 :scale 5.0 :end-coords-interpolation t))
+                 )
                )
               ((eq _grasp-style :opposed)
-               (send self :angle-vector-sequence
-                     (list
-                       (send *baxter* arm :move-end-pos #f(-20 0 0) :world)
-                       (send *baxter* arm :move-end-pos #f(20 0 0) :world)
-                       (progn
-                         (setq ec (send *baxter* arm :end-coords :copy-worldcoords))
-                         (send ec :rotate 0.2 :y :world)
-                         (send *baxter* arm :inverse-kinematics ec)))
-                     3000 :no-gripper-controller 0 :scale 5.0 :end-coords-interpolation t)
+               (let (avs)
+                 (if (send *baxter* arm :move-end-pos #f(-20 0 0) :world)
+                   (pushback (send *baxter* :angle-vector) avs)
+                   (pushback (send *baxter* :move-end-pos #f(20 0 0) :world) avs))
+                 (setq ec (send *baxter* arm :end-coords :copy-worldcoords))
+                 (send ec :rotate 0.2 :y :world)
+                 (if (send *baxter* arm :inverse-kinematics ec)
+                   (pushback (send *baxter* :angle-vector) avs))
+                 (if avs
+                   (send self :angle-vector-sequence avs
+                         3000 :no-gripper-controller 0 :scale 5.0 :end-coords-interpolation t))
+                 )
                (send self :wait-interpolation)
                (send *baxter* :hand-grasp-pose arm _grasp-style)
                (send self :move-hand arm
                      (send *baxter* :hand arm :angle-vector) 1500)
-               (send self :angle-vector-sequence
-                     (list
-                       (send *baxter* arm :move-end-pos #f(0 0 50) :world))
-                     3000 :no-gripper-controller 0 :scale 5.0 :end-coords-interpolation t)
+               (if (send *baxter* arm :move-end-pos #f(0 0 50) :world)
+                 (send self :angle-vector-sequence
+                       (list (send *baxter* :angle-vector))
+                       3000 :no-gripper-controller 0 :scale 5.0 :end-coords-interpolation t))
                )
               )
+        (send *baxter* :set-ik-prepared-poses ik-poses-orig)
         (send self :wait-interpolation)
         (setq gripper-angle (send *baxter* arm :gripper-p :joint-angle))
         (setq prismatic-l (send *baxter* arm :gripper-x :joint-angle))
