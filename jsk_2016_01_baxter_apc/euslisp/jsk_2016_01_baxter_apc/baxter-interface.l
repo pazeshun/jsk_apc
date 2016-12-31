@@ -930,7 +930,7 @@
           (send bin-center :rotate (* sign pi/2) :x :local)
           ;; initial pose of IK
           (send *baxter* :angle-vector (car (reverse avs-before-approach)))
-          (if (null (send *baxter* arm :inverse-kinematics end-coords))
+          (if (null (send self :rotate-wrist-ik arm end-coords))
             ;(send *baxter* arm :inverse-kinematics end-coords :rotation-axis :z)
             (error "Cannot solve necessary IK~%"))
           (pushback
