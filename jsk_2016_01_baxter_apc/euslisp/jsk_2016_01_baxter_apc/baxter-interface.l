@@ -949,7 +949,7 @@
                   (send *baxter* :hand arm :angle-vector) 1500)
             ;; move in front of bin entrance
             (send self :angle-vector-sequence avs-before-approach
-                  3000 nil 0 :scale 5.0 :end-coords-interpolation t)
+                  :fast nil 0 :scale 5.0)
             (send self :wait-interpolation)
             ;; revert *baxter* before IK to object
             (send *baxter* :angle-vector (car (reverse avs-before-approach)))
@@ -1445,7 +1445,7 @@
           (send *baxter* :rotate-gripper arm 0 :relative nil))
         (send self :angle-vector-sequence
               (list (send *baxter* :angle-vector))
-              3000 nil 0 :scale 5.0 :end-coords-interpolation t)
+              :fast nil 0 :scale 5.0)
         (if (null _grasp-style)
           (send *baxter* :hand-grasp-pre-pose arm :opposed)
           (send *baxter* :hand-grasp-pre-pose arm _grasp-style))
@@ -1471,7 +1471,7 @@
                    (pushback (send *baxter* :angle-vector) avs))
                  (if avs
                    (send self :angle-vector-sequence avs
-                         3000 :no-gripper-controller 0 :scale 5.0 :end-coords-interpolation t))
+                         :fast :no-gripper-controller 0 :scale 5.0))
                  )
                )
               ((eq _grasp-style :opposed)
@@ -1485,7 +1485,7 @@
                    (pushback (send *baxter* :angle-vector) avs))
                  (if avs
                    (send self :angle-vector-sequence avs
-                         3000 :no-gripper-controller 0 :scale 5.0 :end-coords-interpolation t))
+                         2000 :no-gripper-controller 0 :scale 5.0))
                  )
                (send self :wait-interpolation)
                (send *baxter* :hand-grasp-pose arm _grasp-style)
@@ -1494,7 +1494,7 @@
                (if (send *baxter* arm :move-end-pos #f(0 0 50) :world)
                  (send self :angle-vector-sequence
                        (list (send *baxter* :angle-vector))
-                       3000 :no-gripper-controller 0 :scale 5.0 :end-coords-interpolation t))
+                       :fast :no-gripper-controller 0 :scale 5.0))
                )
               )
         (send *baxter* :set-ik-prepared-poses ik-poses-orig)
@@ -1534,7 +1534,7 @@
                   (send *baxter* :slide-gripper arm prismatic-l :relative nil)
                   )
                 )
-              3000 :no-gripper-controller 0 :scale 5.0 :end-coords-interpolation t)
+              2000 :no-gripper-controller 0 :scale 5.0)
         (send self :wait-interpolation)
         ;; move arm bin-entrance -> body
         (send *baxter* :avoid-shelf-pose arm bin)
