@@ -11,6 +11,10 @@
 (defun apc-init (&optional (ctype :default-controller) (calib-pressure t))
   (jsk_2016_01_baxter_apc::baxter-init :ctype ctype)
   (send *ri* :gripper-servo-on)
+  (send *ri* :move-hand :rarm
+        (send *baxter* :hand-grasp-pre-pose :rarm :cylindrical) 1500)
+  (send *ri* :move-hand :rarm
+        (send *baxter* :hand-grasp-pre-pose :rarm :opposed) 1500)
   (send *baxter* :fold-pose-back)
   ;; view kiva pose
   (send *baxter* :larm :shoulder-y :joint-angle 70)
