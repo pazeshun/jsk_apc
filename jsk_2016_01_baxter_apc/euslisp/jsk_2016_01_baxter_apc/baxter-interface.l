@@ -1455,6 +1455,9 @@
             (setf (elt diff-yz 0) 0)
             (send *baxter* arm :move-end-pos diff-yz :world))
           (send *baxter* :rotate-gripper arm 0 :relative nil))
+        (if (null _grasp-style)
+          ;; if second grasp is given up, prepare to leave object in bin
+          (send *baxter* :slide-gripper arm 60 :relative t))
         (send self :angle-vector-sequence
               (list (send *baxter* :angle-vector))
               :fast nil 0 :scale 5.0)
@@ -1468,7 +1471,16 @@
         ;; second grasp
         (setq ik-poses-orig (send *baxter* :ik-prepared-poses))
         (send *baxter* :set-ik-prepared-poses nil)
-        (cond ((null _grasp-style) (setq _grasp-style :opposed))
+        (cond ((null _grasp-style)
+               ;; leave object in bin
+               (send self :stop-grasp arm)
+               (unix::sleep 3)
+               (send *baxter* :slide-gripper arm -60 :relative t)
+               (send self :angle-vector-sequence
+                     (list (send *baxter* :angle-vector))
+                     :fast nil 0 :scale 5.0)
+               (setq _grasp-style :opposed)
+               )
               ((null graspingp) nil)
               ((eq _grasp-style :cylindrical)
                (send *baxter* :hand-grasp-pose arm _grasp-style)
