@@ -1500,9 +1500,8 @@
                )
               ((eq _grasp-style :opposed)
                (let (avs)
-                 (if (send *baxter* arm :move-end-pos #f(-20 0 0) :world)
-                   (pushback (send *baxter* :angle-vector) avs)
-                   (pushback (send *baxter* :move-end-pos #f(20 0 0) :world) avs))
+                 (if (send *baxter* arm :move-end-pos #f(20 0 0) :world)
+                   (pushback (send *baxter* :angle-vector) avs))
                  (setq ec (send *baxter* arm :end-coords :copy-worldcoords))
                  (send ec :rotate 0.2 :y :world)
                  (if (send *baxter* arm :inverse-kinematics ec)
@@ -1539,21 +1538,10 @@
                       :rotation-axis :z
                       :revert-if-fail nil
                       )
-                (send *baxter* arm :move-end-pos
-                      (float-vector -50 0 0)
-                      :world
-                      :rotation-axis :z
-                      :revert-if-fail nil
-                      )
-                (send *baxter* arm :move-end-pos
-                      (float-vector -50 0 0)
-                      :world
-                      :rotation-axis :z
-                      :revert-if-fail nil
-                      )
                 (progn
                   (send self :ik->bin-entrance arm bin
-                        :offset (float-vector -250 0 20))
+                        :offset (float-vector -200 0 20)
+                        :rotation-axis t)
                   (send *baxter* :rotate-gripper arm gripper-angle :relative nil)
                   (send *baxter* :slide-gripper arm prismatic-l :relative nil)
                   )
