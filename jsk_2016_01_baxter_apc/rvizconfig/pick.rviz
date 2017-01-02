@@ -257,12 +257,32 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        right_gripper_vacuum_pad:
+        right_gripper_tube:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        right_gripper_vacuum_pad_base:
+        right_gripper_pad_with_base:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_gripper_r_finger_base:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_gripper_l_finger_base:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_gripper_r_finger:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_gripper_l_finger:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -339,7 +359,7 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: false
+          Value: true
         screen:
           Alpha: 1
           Show Axes: false
