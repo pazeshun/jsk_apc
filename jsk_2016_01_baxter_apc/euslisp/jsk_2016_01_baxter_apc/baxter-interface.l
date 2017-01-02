@@ -760,8 +760,8 @@
   (:try-to-pick-object
     (arm bin &key (object-index 0) (offset #f(0 0 0)) (use-sib t))
     (let (avs-before-approach obj-boxes obj-box obj-coms obj-com graspingp gripper-req-l
-                              bin-box bin-y-l bin-z-l target-coords-with-offset target-coords
-                              prismatic-l ik-poses-orig)
+                              bin-box bin-cube-base bin-y-l bin-z-l target-coords-with-offset
+                              target-coords prismatic-l ik-poses-orig)
       ;; validate
       (cond (use-sib
               (unless
@@ -801,7 +801,7 @@
         (return-from :try-to-pick-object nil))
       ;; gripper-v5
       (when (eq arm :rarm)
-        (let (bin-cube-base obj-cube-base)
+        (let (obj-cube-base)
           (setq bin-cube-base (send self :cube->cube-parallel-to-coords
                                     (send self :bbox->cube bin-box)
                                     :included-in-original-cube)
@@ -885,62 +885,49 @@
                  (send target-coords :translate #f(0 0 -20) :world))
                 )
           )
-        (cond ((< sign_y 0)
-               (pushback
-                 (send self :ik->bin-entrance arm bin
-                       :offset #f(-30 0 0) :gripper-angle (* (+ sign_y 1) 90))
-                 avs-before-approach)
-               )
-              ((null _grasp-style)
-                (send self :ik->bin-entrance arm bin
-                      :offset (float-vector
-                                -150 0
-                                (- (/ bin-z-l 2) gripper-req-l
-                                   (gethash :offset-gripper-bin-top _hard-coded-variables)))
-                      :rotation-axis t)
-                )
-              (t
-                (pushback
-                  (send *baxter* :rotate-gripper arm 0 :relative nil)
-                  avs-before-approach)
-                (pushback
-                  (send *baxter* :rotate-gripper arm -90 :relative nil)
-                  avs-before-approach)
-                (send self :ik->bin-entrance arm bin
-                      :offset (float-vector
-                                -150 0
-                                (- (/ bin-z-l 2) gripper-req-l
-                                   (gethash :offset-gripper-bin-top _hard-coded-variables)))
-                      :gripper-angle -90
-                      :rotation-axis t)
-                )
-              )
         ;; use normal ik only
         (setq ik-poses-orig (send *baxter* :ik-prepared-poses))
         (send *baxter* :set-ik-prepared-poses nil)
-        (let (bin-center end-coords)
-          (setq bin-center (make-cascoords
-                             :pos (send (send self :tf-pose->coords
-                                              (send (send bin-box :header) :frame_id)
-                                              (send bin-box :pose)) :worldpos)))
-          (setq end-coords (make-cascoords))
-          (send end-coords :newcoords
-                (send *baxter* arm :end-coords :copy-worldcoords))
-          (send bin-center :assoc end-coords)
-          (send bin-center :rotate (* sign pi/2) :x :local)
-          ;; initial pose of IK
-          (send *baxter* :angle-vector (car (reverse avs-before-approach)))
-          (if (null (send self :rotate-wrist-ik arm end-coords))
-            ;(send *baxter* arm :inverse-kinematics end-coords :rotation-axis :z)
-            (error "Cannot solve necessary IK~%"))
+        (if (< sign_y 0)
           (pushback
-            (send *baxter* :angle-vector)
+            (send self :ik->bin-entrance arm bin
+                  :offset #f(-30 0 0) :gripper-angle (* (+ sign_y 1) 90))
             avs-before-approach)
-          )
-        (if (>= sign_y 0)
-          (pushback
-            (send *baxter* arm :move-end-pos #f(120 0 0) :world)
-            avs-before-approach)
+          (let (bin-center end-coords)
+            (setq bin-center (make-cascoords))
+            (send bin-center :newcoords
+                  (send bin-cube-base :copy-worldcoords))
+            (setq end-coords (make-cascoords))
+            (send end-coords :newcoords
+                  (send bin-center :copy-worldcoords))
+            (send end-coords :translate
+                  (v- (float-vector
+                        -150 0
+                        (- (/ bin-z-l 2) gripper-req-l
+                           (gethash :offset-gripper-bin-top _hard-coded-variables)))
+                      (float-vector (/ (x-of-cube bin-cube-base) 2) 0 0))
+                  :world)
+            (send bin-center :assoc end-coords)
+            (send bin-center :rotate (* sign pi/2) :x :local)
+            (when _grasp-style
+              (send end-coords :rotate pi :z :local)
+              (pushback
+                (send *baxter* :rotate-gripper arm 0 :relative nil)
+                avs-before-approach)
+              (pushback
+                (send *baxter* :rotate-gripper arm -90 :relative nil)
+                avs-before-approach))
+            (if (null (send self :rotate-wrist-ik arm end-coords :rthre (deg2rad 1)))
+              ;(send *baxter* arm :inverse-kinematics end-coords :rotation-axis :z)
+              (error "Cannot solve necessary IK~%"))
+            (pushback
+              (send *baxter* :angle-vector)
+              avs-before-approach)
+            (send end-coords :translate #f(120 0 0) :world)
+            (pushback
+              (send self :rotate-wrist-ik arm end-coords :rthre (deg2rad 1))
+              avs-before-approach)
+            )
           )
         (setq prismatic-l (- (elt (send target-coords-with-offset :worldpos) 0)
                              (elt (send (send *baxter* arm :end-coords) :worldpos) 0)))
