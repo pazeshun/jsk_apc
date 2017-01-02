@@ -1383,9 +1383,13 @@
     ;; gripper-v5
     (when (eq arm :rarm)
       (send self :angle-vector-sequence
-            (list (send self :ik->bin-entrance arm bin
+            (list
+              (send self :ik->bin-entrance arm bin
+                        :offset (float-vector -150 0 20))
+              (send self :ik->bin-entrance arm bin
                         :offset (float-vector -150 0 20)
-                        ))
+                        :rotation-axis t)
+              )
             :fast nil 0 :scale 5.0)
       (send self :wait-interpolation)
       ;; open fingers
