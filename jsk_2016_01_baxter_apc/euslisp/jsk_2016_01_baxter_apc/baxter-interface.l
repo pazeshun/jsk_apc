@@ -801,7 +801,7 @@
         (return-from :try-to-pick-object nil))
       ;; gripper-v5
       (when (eq arm :rarm)
-        (let (obj-cube-base)
+        (let (obj-cube-base front-to-com)
           (setq bin-cube-base (send self :cube->cube-parallel-to-coords
                                     (send self :bbox->cube bin-box)
                                     :included-in-original-cube)
@@ -810,6 +810,25 @@
                                     :include-original-cube)
                 bin-y-l (y-of-cube bin-cube-base)
                 bin-z-l (z-of-cube bin-cube-base))
+          (when (> (setq front-to-com
+                         (- (elt (v+ (send obj-coords :pos) offset) 0)
+                            (- (elt (send obj-cube-base :pos) 0)
+                               (/ (x-of-cube obj-cube-base) 2))
+                            )
+                         )
+                   50)
+            (ros::ros-warn
+              "[:try-to-pick-object] arm:~a  object com with offset is ~a mm from bbox front face"
+              arm front-to-com)
+            (ros::ros-warn
+              "[:try-to-pick-object] arm:~a  object com with offset is too deep"
+              arm)
+            (send obj-coords :translate (float-vector (- 50 front-to-com) 0 0) :world)
+            (setq front-to-com 50)
+            (ros::ros-warn
+              "[:try-to-pick-object] arm:~a  change com position to ~a"
+              arm (send obj-coords :pos))
+            )
           (let ((bin-reachable-limit-x
                   (- (elt (send bin-cube-base :pos) 0) (/ (x-of-cube bin-cube-base) 2)
                      (- (send self :bin-reachable-depth arm 90)))
@@ -859,6 +878,18 @@
             (ros::ros-warn
               "[:try-to-pick-object] arm:~a  try to pick with first grasp only"
               arm)
+            (when (> front-to-com 30)
+              (ros::ros-warn
+                "[:try-to-pick-object] arm:~a  object com with offset is ~a mm from bbox front face"
+                arm front-to-com)
+              (ros::ros-warn
+                "[:try-to-pick-object] arm:~a  object com with offset is too deep"
+                arm)
+              (send obj-coords :translate (float-vector (- 30 front-to-com 10) 0 0) :world)
+              (ros::ros-warn
+                "[:try-to-pick-object] arm:~a  change com position to ~a"
+                arm (send obj-coords :pos))
+              )
             )
           (setq target-coords-with-offset
                 (make-coords
