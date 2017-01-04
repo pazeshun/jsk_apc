@@ -957,11 +957,11 @@
           (let (ec)
             ;; prepare fingers
             (cond ((null _grasp-style)
-                    (send *baxter* :hand-grasp-pose arm :opposed :angle 150))
+                    (send *baxter* :hand-grasp-pose arm :opposed :angle 120))
                   ((< prismatic-l 130)
                    (send *baxter* :hand-grasp-pre-pose arm _grasp-style))
                   (t
-                    (send *baxter* :hand-grasp-pose arm _grasp-style :angle 150))
+                    (send *baxter* :hand-grasp-pose arm _grasp-style :angle 120))
                   )
             (send self :move-hand arm
                   (send *baxter* :hand arm :angle-vector) 1500)
