@@ -108,8 +108,52 @@
       <geometry>
         <mesh filename="package://jsk_2016_01_baxter_apc/meshes/visual/ideal_hand_stl/nozzle.stl" scale="0.001 0.001 0.001"/>
       </geometry>
-      <material name="black">
-        <color rgba="0 0 0 1"/>
+      <material name="green">
+        <color rgba="0 0.7 0 1"/>
+      </material>
+    </visual>
+  </link>
+  <link name="ver_cyl">
+    <visual>
+      <origin rpy="0 ${M_PI/2} 0" xyz="-0.040 0 0.040"/>
+      <geometry>
+        <cylinder radius="0.040" length="0.100"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+  </link>
+  <link name="box">
+    <visual>
+      <origin rpy="0 0 0" xyz="0.020 0 0.020"/>
+      <geometry>
+        <box size="0.100 0.080 0.040"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+  </link>
+  <link name="hor_cyl">
+    <visual>
+      <origin rpy="${M_PI/2} 0 0" xyz="-0.010 0 0.050"/>
+      <geometry>
+        <cylinder radius="0.030" length="0.100"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+  </link>
+  <link name="sphere">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0.035"/>
+      <geometry>
+        <sphere radius="0.035"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
       </material>
     </visual>
   </link>
@@ -175,5 +219,25 @@
     <child link="nozzle"/>
     <axis xyz="0 1 0"/>
     <limit lower="-1.58" upper="1.58" effort="0" velocity="4.5"/>
+  </joint>
+  <joint name="fixed_to_ver_cyl" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0.030" />
+    <parent link="nozzle"/>
+    <child link="ver_cyl"/>
+  </joint>
+  <joint name="fixed_to_box" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0.030" />
+    <parent link="nozzle"/>
+    <child link="box"/>
+  </joint>
+  <joint name="fixed_to_hor_cyl" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0.180" />
+    <parent link="link0"/>
+    <child link="hor_cyl"/>
+  </joint>
+  <joint name="fixed_to_sphere" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0.030" />
+    <parent link="nozzle"/>
+    <child link="sphere"/>
   </joint>
 </robot>
