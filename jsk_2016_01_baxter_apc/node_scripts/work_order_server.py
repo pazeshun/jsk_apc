@@ -93,7 +93,7 @@ class WorkOrderServer(object):
             ]
         # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # TODO: PLEASE FILL ABANDON BINS
-        abandon_bins = ''
+        abandon_bins = ['h', 'i']
         # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
         for bin_, target_object in work_order:
             if bin_ in abandon_bins:
