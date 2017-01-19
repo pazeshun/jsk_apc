@@ -91,7 +91,7 @@
       )
     (sethash :bin-reachable-depth-gripper-90 _hard-coded-variables (make-hash-table))
     (sethash :larm (gethash :bin-reachable-depth-gripper-90 _hard-coded-variables) 200)
-    (sethash :rarm (gethash :bin-reachable-depth-gripper-90 _hard-coded-variables) 100)
+    (sethash :rarm (gethash :bin-reachable-depth-gripper-90 _hard-coded-variables) 80)
     (sethash :offset-object-h _hard-coded-variables -10)
     (sethash :offset-gripper-bin-top _hard-coded-variables 10)
     (sethash :offset-gripper-bin-side _hard-coded-variables 40)
@@ -922,7 +922,7 @@
         (if (< sign_y 0)
           (pushback
             (send self :ik->bin-entrance arm bin
-                  :offset #f(-30 0 0) :gripper-angle (* (+ sign_y 1) 90))
+                  :offset #f(-40 0 0) :gripper-angle (* (+ sign_y 1) 90))
             avs-before-approach)
           (let (bin-center end-coords)
             (setq bin-center (make-cascoords))
@@ -954,7 +954,7 @@
             (pushback
               (send *baxter* :angle-vector)
               avs-before-approach)
-            (send end-coords :translate #f(120 0 0) :world)
+            (send end-coords :translate #f(110 0 0) :world)
             (pushback
               (send self :rotate-wrist-ik arm end-coords :rthre (deg2rad 1))
               avs-before-approach)
