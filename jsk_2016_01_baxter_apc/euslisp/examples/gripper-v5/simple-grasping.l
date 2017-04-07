@@ -214,7 +214,8 @@
   (send *ri* :stop-grasp *arm*)
   (send *ri* :move-hand *arm* (send *baxter* :hand-grasp-pre-pose *arm* :opposed) 1500)
   )
-(defun pick-dumbbell-on-table ()
+(defun pick-dumbbell-on-table
+  (&key slide-l)
   (setq av-before-approach
         #f(0.153809 84.7925 11.3379 -100.745 137.483 60.5347 26.7847 34.7607 0.0
            -80.3979 -3.80127 97.4487 132.144 -82.9687 89.3848 8.04199 55.0 0.178926)
@@ -232,10 +233,15 @@
   (send *ri* :angle-vector (send *baxter* :rotate-gripper *arm* -90 :relative nil) 2000)
   (send *ri* :move-hand *arm* (send *baxter* :hand-grasp-pose *arm* :cylindrical) 1500)
   (send *ri* :wait-interpolation)
+  (if slide-l
+    (send *ri* :angle-vector (send *baxter* :slide-gripper *arm* slide-l :relative nil) 3000))
   (unix::sleep 1)
   (send *ri* :angle-vector (send *baxter* *arm* :move-end-pos (float-vector 0 0 100) :world) 6000)
   (send *ri* :wait-interpolation)
-  (send *ri* :angle-vector (send *baxter* :angle-vector av-after-approach) 6000)
+  (send *baxter* :angle-vector av-after-approach)
+  (if slide-l
+    (send *baxter* :slide-gripper *arm* slide-l :relative nil))
+  (send *ri* :angle-vector (send *baxter* :angle-vector) 6000)
   (send *ri* :wait-interpolation)
   (unix::sleep 1)
   (send *ri* :spin-off-by-wrist *arm* :times 5)
