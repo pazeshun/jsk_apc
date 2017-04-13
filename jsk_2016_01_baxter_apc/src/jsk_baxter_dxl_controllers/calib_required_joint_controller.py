@@ -2,6 +2,7 @@ import rospy
 from dynamixel_controllers.joint_position_controller import (
     JointPositionController,
 )
+from dynamixel_msgs.msg import MotorStateList
 
 
 class CalibRequiredJointController(JointPositionController):
@@ -25,6 +26,8 @@ class CalibRequiredJointController(JointPositionController):
 
         # Initialize joint position
 
+        self.motor_states_for_init = {}
+        motor_states_sub_for_init = rospy.Subscriber('motor_states/%s' % self.port_namespace, MotorStateList, self.get_motor_states_for_init)
         self.set_speed(0.0)
         # Backup current angle limits
         prev_limits = self.__get_angle_limits()
@@ -37,16 +40,21 @@ class CalibRequiredJointController(JointPositionController):
             self.__set_speed_wheel(-self.calib_speed)
         rate = rospy.Rate(50)
         while not rospy.is_shutdown():
-            init_pos = self.__get_feedback()['position']
-            if abs(self.__get_feedback()['load']) > self.detect_limit_load:
-                break
+            try:
+                init_pos = self.motor_states_for_init['position']
+                if abs(self.motor_states_for_init['load']) > self.detect_limit_load:
+                    break
+            except KeyError:
+                pass
             rate.sleep()
         self.__set_speed_wheel(0.0)
+        self.set_torque_enable(False)
         # Change to previous mode
         self.__set_angle_limits(prev_limits['min'], prev_limits['max'])
         self.set_speed(self.joint_speed)
         if self.torque_limit is not None:
             self.set_torque_limit(self.torque_limit)
+        motor_states_sub_for_init.unregister()
 
         # Remember initial joint position
         diff = init_pos - self.initial_position_raw
@@ -82,8 +90,12 @@ class CalibRequiredJointController(JointPositionController):
     def __get_angle_limits(self):
         return self.dxl_io.get_angle_limits(self.motor_id)
 
-    def __get_feedback(self):
-        return self.dxl_io.get_feedback(self.motor_id)
+    def get_motor_states_for_init(self, state_list):
+        state = filter(lambda state: state.id == self.motor_id, state_list.motor_states)
+        if state:
+            state = state[0]
+            self.motor_states_for_init['position'] = state.position
+            self.motor_states_for_init['load'] = state.load
 
     def __spd_rad_to_raw_wheel(self, spd_rad):
         if spd_rad < -self.joint_max_speed:
