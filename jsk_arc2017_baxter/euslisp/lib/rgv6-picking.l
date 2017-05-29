@@ -9,6 +9,56 @@
             std_msgs::UInt16)
           :data)
     )
+  (:get-finger-load
+    (arm)
+    (send (one-shot-subscribe
+            (format nil "/gripper_front/limb/~a/dxl/finger_tendon_controller/state"
+                    (arm2str arm))
+            dynamixel_msgs::JointState)
+          :load)
+    )
+  (:wait-interpolation-until
+    (arm &key grasp finger-motion finger-load)
+    ;; grasp -> nil or t
+    ;; :finger-motion -> nil or :flexion or :extension
+    ;; :finger-load -> nil or :increase or :decrease
+    (when (send self :simulation-modep)
+      (send self :wait-interpolation)
+      (return-from :wait-interpolation-until nil))
+    (let (r-flex-thre l-flex-thre flex-opr load-thre load-opr)
+      (cond ((eq finger-motion :flexion)
+             (setq flex-opr #'> r-flex-thre (+ (send self :get-finger-flexion arm :r) 20)
+                   l-flex-thre (+ (send self :get-finger-flexion arm :l) 20)))
+            ((eq finger-motion :extension)
+             (setq flex-opr #'< r-flex-thre (- (send self :get-finger-flexion arm :r) 30)
+                   l-flex-thre (- (send self :get-finger-flexion arm :l) 30)))
+            ((null finger-motion) nil)
+            (t (error ":wait-interpolation-until wrong finger-motion: ~a~%" finger-motion)))
+      (cond ((eq finger-load :increase)
+             (setq load-opr #'> load-thre (+ (send self :get-finger-load arm) 0.01)))
+            ((eq finger-load :decrease)
+             (setq load-opr #'< load-thre (- (send self :get-finger-load arm) 0.01)))
+            ((null finger-load) nil)
+            (t (error ":wait-interpolation-until wrong finger-load: ~a~%" finger-load)))
+      (ros::ros-info
+        "[:wait-interpolation-until] Flex threshold:  r: ~a l: ~a" r-flex-thre l-flex-thre)
+      (ros::ros-info
+        "[:wait-interpolation-until] Load threshold: ~a" load-thre)
+      (while (send self :interpolatingp)
+             (if
+               (or
+                 (if grasp (send self :graspingp arm))
+                 (if flex-opr
+                   (or (funcall flex-opr (send self :get-finger-flexion arm :r) r-flex-thre)
+                       (funcall flex-opr (send self :get-finger-flexion arm :l) l-flex-thre)))
+                 (if load-opr (funcall load-opr (send self :get-finger-load arm) load-thre)))
+               (progn
+                 (send self :cancel-angle-vector)
+                 (ros::ros-info
+                   "[:wait-interpolation-until] Cancel angle vector: ~a"
+                   arm)
+                 (return-from :wait-interpolation-until t)))))
+    nil)
   (:wait-interpolation-until-finger-moves
     (arm direction)
     (when (not (or (eq direction :flexion) (eq direction :extension)))
@@ -44,7 +94,7 @@
           :joint-angle))
   )
 
-(setq *ec-above-bin* (make-coords :pos #f(700 -150 50) :rpy (float-vector (deg2rad 90) 0 0)))
+(setq *ec-above-bin* (make-coords :pos #f(650 -150 50) :rpy (float-vector (deg2rad 90) 0 0)))
 
 (defun demo-init ()
   (jsk_2016_01_baxter_apc::baxterrgv5-init)
@@ -292,9 +342,8 @@
     (send ec :rotate (deg2rad -90) :z :world)
     (send *baxter* :avoid-shelf-pose :rarm :f)
     (send *baxter* :rotate-gripper :rarm 0 :relative nil)
-    (send *baxter* :rarm :inverse-kinematics ec)
     (send *ri* :angle-vector
-          (send *baxter* :rotate-gripper :rarm 90 :relative nil)
+          (send *baxter* :rarm :inverse-kinematics ec)
           :fast nil 0 :scale 15.0)
     (send *ri* :wait-interpolation)
     (send *ri* :move-hand :rarm
@@ -311,16 +360,16 @@
     ;; open fingers
     (send *ri* :move-hand :rarm
           (send *baxter* :hand-grasp-pre-pose :rarm :opposed) 1500)
-    ;; push hand to object
+    (send *ri* :move-hand :rarm
+          (send *baxter* :hand-grasp-pose :rarm :opposed :angle 80) 1500)
+    ;; push hand to object or bottom
+    (send *ri* :start-grasp :rarm)
     (send *ri* :angle-vector
           (send *baxter* :rarm :move-end-pos #f(0 0 -280) :world)
           :fast nil 0 :scale 15.0)
-    (send *ri* :wait-interpolation)
+    (send *ri* :wait-interpolation-until :rarm
+          :grasp t :finger-motion :flexion :finger-load :increase)
     (send *baxter* :angle-vector (send *ri* :state :potentio-vector))
-    (send *ri* :angle-vector
-          (send *baxter* :rarm :move-end-pos #f(0 0 20) :world)
-          :fast nil 0 :scale 3.0)
-    (send *ri* :wait-interpolation)
     ;; close fingers
     (send *ri* :move-hand :rarm
           (send *baxter* :hand-grasp-pose :rarm :opposed) 1500)
@@ -334,7 +383,32 @@
       (setq curr-f-roll (send *ri* :get-real-finger-roll-angle :rarm))
       (if (< (- curr-f-roll prev-f-roll) 5) (return))
       )
-    ;; This is not good motion. Stop developing this.
+    ;; suction grasp
+    (send *ri* :angle-vector
+          (send *baxter* :slide-gripper :rarm 120 :relative nil)
+          :fast nil 0 :scale 3.0)
+    (send *ri* :wait-interpolation-until :rarm :grasp t)
+    (send *baxter* :angle-vector (send *ri* :state :potentio-vector))
+    ;; lift object
+    (setq ec (send *ec-above-bin* :copy-worldcoords))
+    (send ec :rotate (deg2rad -90) :z :world)
+    (send *ri* :angle-vector
+          (send *baxter* :rarm :inverse-kinematics ec)
+          :fast nil 0 :scale 15.0)
+    (send *ri* :wait-interpolation)
+    (unless (y-or-n-p "Release object?") (return-from suction-opposed-pinch-first nil))
+    (send *ri* :angle-vector
+          (send *baxter* :rarm :move-end-pos #f(0 0 -150) :world)
+          :fast nil 0 :scale 15.0)
+    (send *ri* :wait-interpolation)
+    (send *ri* :stop-grasp)
+    (send *ri* :move-hand :rarm
+          (send *baxter* :hand-grasp-pre-pose :rarm :opposed) 1500)
+    (unix::sleep 2)
+    (send *ri* :angle-vector
+          (send *baxter* :rarm :inverse-kinematics ec)
+          :fast nil 0 :scale 15.0)
+    (send *ri* :wait-interpolation)
     )
   )
 
@@ -356,13 +430,20 @@
           :fast nil 0 :scale 3.0)
     (send *ri* :wait-interpolation)
     (send *ri* :update-robot-state :wait-until-update t)
+    (send *ri* :move-hand :rarm
+          (send *baxter* :hand-grasp-pose :rarm :cylindrical :angle 70) 1500)
     ;; grasp object
     (send *ri* :start-grasp :rarm)
     (send *ri* :angle-vector
           (send *baxter* :rarm :move-end-pos #f(0 0 -270) :world)
           :fast nil 0 :scale 15.0)
-    (send *ri* :wait-interpolation-until-grasp :rarm)
+    (send *ri* :wait-interpolation-until :rarm
+          :grasp t :finger-motion :flexion :finger-load :increase)
     (send *baxter* :angle-vector (send *ri* :state :potentio-vector))
+    (send *ri* :angle-vector
+          (send *baxter* :slide-gripper :rarm 120 :relative nil)
+          :fast nil 0 :scale 3.0)
+    (send *ri* :wait-interpolation-until :rarm :grasp t)
     (send *ri* :move-hand :rarm
           (send *baxter* :hand-grasp-pose :rarm :cylindrical) 1500)
     (send *ri* :angle-vector
@@ -418,7 +499,7 @@
     ;; suction grasp
     (send *ri* :start-grasp :rarm)
     (send *ri* :angle-vector
-          (send *baxter* :rarm :move-end-pos #f(0 0 -270) :world)
+          (send *baxter* :rarm :move-end-pos #f(0 0 -280) :world)
           :fast nil 0 :scale 15.0)
     (send *ri* :wait-interpolation-until-grasp :rarm)
     ;; lift object
