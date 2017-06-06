@@ -48,6 +48,7 @@ finger_tendon_controller:
   joint_name: right_gripper_finger_tendon_winder
   joint_speed: 3.0
   joint_torque_limit: 0.4
+  ignored_errors: ['DXL_OVERLOAD_ERROR']
   motor:
     id: 3
     init: 3530
