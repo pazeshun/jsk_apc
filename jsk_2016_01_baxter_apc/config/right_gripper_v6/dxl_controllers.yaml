@@ -4,7 +4,7 @@ prismatic_joint_controller:
     module: calib_required_joint_controller
     type: CalibRequiredJointController
   joint_name: right_gripper_prismatic_joint_motor
-  joint_speed: 2.0
+  joint_speed: 5.5
   joint_torque_limit: 0.3
   calib_speed: 1.0
   calib_torque_limit: 0.3
@@ -20,7 +20,7 @@ vacuum_pad_tendon_controller:
     module: joint_position_controller
     type: JointPositionController
   joint_name: right_gripper_vacuum_pad_tendon_winder
-  joint_speed: 3.0
+  joint_speed: 5.5
   joint_torque_limit: 0.4
   motor:
     id: 4
@@ -33,7 +33,7 @@ finger_yaw_joint_controller:
     module: joint_position_controller
     type: JointPositionController
   joint_name: right_gripper_finger_yaw_joint_motor
-  joint_speed: 1.0
+  joint_speed: 5.5
   joint_torque_limit: 0.15
   motor:
     id: 2
@@ -46,8 +46,8 @@ finger_tendon_controller:
     module: joint_position_controller
     type: JointPositionController
   joint_name: right_gripper_finger_tendon_winder
-  joint_speed: 3.0
-  joint_torque_limit: 0.4
+  joint_speed: 5.5
+  joint_torque_limit: 0.6
   ignored_errors: ['DXL_OVERLOAD_ERROR']
   motor:
     id: 3
