@@ -57,6 +57,8 @@
   <xacro:property name="finger_base_offset_x" value="-0.014" />
   <xacro:property name="l_finger_base_offset_y" value="0.026" />
   <xacro:property name="r_finger_base_offset_y" value="-0.026" />
+  <xacro:property name="palm_offset_x" value="0.015" />
+  <xacro:property name="palm_offset_z" value="0.28" />
 
   <!--Link bodies-->
   <link name="right_gripper_base">
@@ -280,6 +282,7 @@
       <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
     </inertial>
   </link>
+  <link name="right_gripper_palm_endpoint"/>
 
   <!--Joints-->
   <joint name="right_gripper_base_fixed" type="fixed">
@@ -330,6 +333,11 @@
     <mimic joint="right_gripper_finger_roll_joint" multiplier="1"/>
     <axis xyz="-1 0 0"/>
     <limit lower="0" upper="3.14" effort="0" velocity="3.0"/>
+  </joint>
+  <joint name="right_gripper_palm_endpoint_fixed" type="fixed">
+    <origin rpy="0 ${M_PI} 0" xyz="${palm_offset_x} 0 ${palm_offset_z}" />
+    <parent link="right_gripper_base"/>
+    <child link="right_gripper_palm_endpoint"/>
   </joint>
 
   <!--Transmission-->
