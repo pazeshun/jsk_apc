@@ -13,6 +13,7 @@
 #include <controller_manager/controller_manager.h>
 
 #include <std_msgs/Float64.h>
+#include <std_msgs/UInt16.h>
 #include <dynamixel_msgs/JointState.h>
 
 class GripperRosControl : public hardware_interface::RobotHW
@@ -26,6 +27,9 @@ private:
   const std::vector<std::string> actr_names_;
   const std::vector<std::string> jnt_names_;
   const std::vector<std::string> controller_names_;
+  const std::vector<std::string> flex_names_;
+  const std::vector<int> flex_thre_;
+  const std::vector<double> wind_offset_flex_;
 
   // Actuator raw data
   std::map<std::string, double> actr_curr_pos_;
@@ -53,8 +57,10 @@ private:
 
   // ROS subscribers
   std::map<std::string, ros::Subscriber> actr_state_sub_;
+  std::map<std::string, ros::Subscriber> flex_sub_;
 
   std::map<std::string, dynamixel_msgs::JointState> received_actr_states_;
+  std::map<std::string, int> received_flex_;
 
   // For multi-threaded spinning
   boost::shared_ptr<ros::AsyncSpinner> subscriber_spinner_;
@@ -62,10 +68,15 @@ private:
 
 public:
   GripperRosControl(const std::vector<std::string>& actr_names, const std::vector<std::string>& jnt_names,
-                    const std::vector<std::string>& controller_names, const std::vector<double>& reducers)
+                    const std::vector<std::string>& controller_names, const std::vector<double>& reducers,
+                    const std::vector<std::string>& flex_names,
+                    const std::vector<int>& flex_thre, const std::vector<double>& wind_offset_flex)
     : actr_names_(actr_names)
     , jnt_names_(jnt_names)
     , controller_names_(controller_names)
+    , flex_names_(flex_names)
+    , flex_thre_(flex_thre)
+    , wind_offset_flex_(wind_offset_flex)
   {
     for (int i = 0; i < jnt_names_.size(); i++)
     {
@@ -114,6 +125,13 @@ public:
     registerInterface(&jnt_state_interface_);
     registerInterface(&pos_jnt_interface_);
 
+    // Subscribers for flex
+    for (std::vector<std::string>::const_iterator itr = flex_names_.begin(); itr != flex_names_.end(); ++itr)
+    {
+      flex_sub_[*itr] =
+          nh_.subscribe<std_msgs::UInt16>("flex/" + *itr + "/state", 1, boost::bind(&GripperRosControl::flexCallback, this, _1, *itr));
+    }
+
     // Start spinning
     nh_.setCallbackQueue(&subscriber_queue_);
     subscriber_spinner_.reset(new ros::AsyncSpinner(1, &subscriber_queue_));
@@ -132,6 +150,18 @@ public:
     {
       actr_curr_pos_[actr_names_[i]] = received_actr_states_[actr_names_[i]].current_pos;
       actr_curr_vel_[actr_names_[i]] = received_actr_states_[actr_names_[i]].velocity;
+
+      // If fingers flex, add offset angle to finger tendon winder
+      if (actr_names_[i].find("finger_tendon_winder") != std::string::npos)
+      {
+        for (int j = 0; j < flex_names_.size(); j++)
+        {
+          if (received_flex_[flex_names_[j]] > flex_thre_[j])
+          {
+            actr_curr_pos_[actr_names_[i]] -= wind_offset_flex_[j];
+          }
+        }
+      }
     }
 
     // Propagate current actuator state to joints
@@ -146,6 +176,18 @@ public:
     // Publish command to actuator
     for (int i = 0; i < actr_names_.size(); i++)
     {
+      // If fingers flex, add offset angle to finger tendon winder
+      if (actr_names_[i].find("finger_tendon_winder") != std::string::npos)
+      {
+        for (int j = 0; j < flex_names_.size(); j++)
+        {
+          if (received_flex_[flex_names_[j]] > flex_thre_[j])
+          {
+            actr_cmd_pos_[actr_names_[i]] += wind_offset_flex_[j];
+          }
+        }
+      }
+
       std_msgs::Float64 msg;
       msg.data = actr_cmd_pos_[actr_names_[i]];
       actr_cmd_pub_[actr_names_[i]].publish(msg);
@@ -155,6 +197,11 @@ public:
   void actrStateCallback(const dynamixel_msgs::JointStateConstPtr& dxl_actr_state)
   {
     received_actr_states_[dxl_actr_state->name] = *dxl_actr_state;
+  }
+
+  void flexCallback(const std_msgs::UInt16ConstPtr& flex, const std::string& name)
+  {
+    received_flex_[name] = flex->data;
   }
 };  // end class GripperRosControl
 
@@ -167,16 +214,20 @@ int main(int argc, char** argv)
   std::vector<std::string> controller_names;
   std::vector<double> reducers;
   int rate_hz;
+  std::vector<std::string> flex_names;
+  std::vector<int> flex_thre;
+  std::vector<double> wind_offset_flex;
 
   if (!(ros::param::get("~actuator_names", actr_names) && ros::param::get("~joint_names", jnt_names) &&
         ros::param::get("~controller_names", controller_names) && ros::param::get("~mechanical_reduction", reducers) &&
-        ros::param::get("~control_rate", rate_hz)))
+        ros::param::get("~control_rate", rate_hz) && ros::param::get("~flex_names", flex_names) &&
+        ros::param::get("~flex_thresholds", flex_thre) && ros::param::get("~wind_offset_flex", wind_offset_flex)))
   {
     ROS_ERROR("Couldn't get necessary parameters");
     return 0;
   }
 
-  GripperRosControl gripper(actr_names, jnt_names, controller_names, reducers);
+  GripperRosControl gripper(actr_names, jnt_names, controller_names, reducers, flex_names, flex_thre, wind_offset_flex);
   controller_manager::ControllerManager cm(&gripper);
 
   // For non-realtime spinner thread

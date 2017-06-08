@@ -53,4 +53,4 @@ finger_tendon_controller:
     id: 3
     init: 3530
     min: 3530
-    max: 1480
+    max: 1000
