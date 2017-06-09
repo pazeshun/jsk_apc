@@ -4,7 +4,7 @@
   (:get-finger-flexion
     (arm side)
     (send (one-shot-subscribe
-            (format nil "/gripper_front/limb/~a/~a_finger_flex/state"
+            (format nil "/gripper_front/limb/~a/flex/~a/state"
                     (arm2str arm) (symbol2str side))
             std_msgs::UInt16)
           :data)
@@ -27,11 +27,11 @@
       (return-from :wait-interpolation-until nil))
     (let (r-flex-thre l-flex-thre flex-opr load-thre load-opr)
       (cond ((eq finger-motion :flexion)
-             (setq flex-opr #'> r-flex-thre (+ (send self :get-finger-flexion arm :r) 20)
-                   l-flex-thre (+ (send self :get-finger-flexion arm :l) 20)))
+             (setq flex-opr #'> r-flex-thre (+ (send self :get-finger-flexion arm :right) 20)
+                   l-flex-thre (+ (send self :get-finger-flexion arm :left) 20)))
             ((eq finger-motion :extension)
-             (setq flex-opr #'< r-flex-thre (- (send self :get-finger-flexion arm :r) 30)
-                   l-flex-thre (- (send self :get-finger-flexion arm :l) 30)))
+             (setq flex-opr #'< r-flex-thre (- (send self :get-finger-flexion arm :right) 30)
+                   l-flex-thre (- (send self :get-finger-flexion arm :left) 30)))
             ((null finger-motion) nil)
             (t (error ":wait-interpolation-until wrong finger-motion: ~a~%" finger-motion)))
       (cond ((eq finger-load :increase)
@@ -49,8 +49,8 @@
                (or
                  (if grasp (send self :graspingp arm))
                  (if flex-opr
-                   (or (funcall flex-opr (send self :get-finger-flexion arm :r) r-flex-thre)
-                       (funcall flex-opr (send self :get-finger-flexion arm :l) l-flex-thre)))
+                   (or (funcall flex-opr (send self :get-finger-flexion arm :right) r-flex-thre)
+                       (funcall flex-opr (send self :get-finger-flexion arm :left) l-flex-thre)))
                  (if load-opr (funcall load-opr (send self :get-finger-load arm) load-thre)))
                (progn
                  (send self :cancel-angle-vector)
@@ -67,8 +67,8 @@
     (when (send self :simulation-modep)
       (send self :wait-interpolation)
       (return-from :wait-interpolation-until-finger-moves nil))
-    (let ((r_init (send self :get-finger-flexion arm :r))
-          (l_init (send self :get-finger-flexion arm :l))
+    (let ((r_init (send self :get-finger-flexion arm :right))
+          (l_init (send self :get-finger-flexion arm :left))
           r_thre l_thre opr)
       (ros::ros-info
         "[:wait-interpolation-until-finger-moves] Initial flex:  r: ~a l: ~a"
@@ -77,8 +77,8 @@
         (setq opr #'> r_thre (+ r_init 20) l_thre (+ l_init 20))
         (setq opr #'< r_thre (- r_init 30) l_thre (- l_init 30)))
       (while (send self :interpolatingp)
-             (if (or (funcall opr (send self :get-finger-flexion arm :r) r_thre)
-                     (funcall opr (send self :get-finger-flexion arm :l) l_thre))
+             (if (or (funcall opr (send self :get-finger-flexion arm :right) r_thre)
+                     (funcall opr (send self :get-finger-flexion arm :left) l_thre))
                (progn
                  (send self :cancel-angle-vector)
                  (ros::ros-info
