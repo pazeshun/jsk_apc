@@ -11,6 +11,7 @@
     <node name="ros_control_node" pkg="jsk_2016_01_baxter_apc" type="gripper_v5_ros_control_node" output="screen">
       <rosparam file="$(find jsk_2016_01_baxter_apc)/config/right_gripper_v5/ros_control.yaml" command="load"/>
       <remap from="joint_states" to="/robot/joint_states"/>
+      <remap from="vacuum" to="/vacuum_gripper/limb/right"/>
     </node>
 
     <!-- Start the joint state controller -->

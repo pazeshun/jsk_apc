@@ -12,9 +12,12 @@
 #include <transmission_interface/transmission_interface.h>
 #include <controller_manager/controller_manager.h>
 
+#include <std_msgs/Bool.h>
 #include <std_msgs/Float64.h>
 #include <std_msgs/UInt16.h>
 #include <dynamixel_msgs/JointState.h>
+#include <baxter_core_msgs/AssemblyState.h>
+#include <dynamixel_controllers/TorqueEnable.h>
 
 class GripperRosControl : public hardware_interface::RobotHW
 {
@@ -54,13 +57,19 @@ private:
 
   // ROS publishers
   std::map<std::string, ros::Publisher> actr_cmd_pub_;
+  ros::Publisher vacuum_pub_;
 
   // ROS subscribers
   std::map<std::string, ros::Subscriber> actr_state_sub_;
   std::map<std::string, ros::Subscriber> flex_sub_;
+  ros::Subscriber robot_state_sub_;
 
   std::map<std::string, dynamixel_msgs::JointState> received_actr_states_;
   std::map<std::string, int> received_flex_;
+  bool is_gripper_enabled_;
+
+  // ROS service clients
+  std::map<std::string, ros::ServiceClient> torque_enable_client_;
 
   // For multi-threaded spinning
   boost::shared_ptr<ros::AsyncSpinner> subscriber_spinner_;
@@ -69,14 +78,15 @@ private:
 public:
   GripperRosControl(const std::vector<std::string>& actr_names, const std::vector<std::string>& jnt_names,
                     const std::vector<std::string>& controller_names, const std::vector<double>& reducers,
-                    const std::vector<std::string>& flex_names,
-                    const std::vector<int>& flex_thre, const std::vector<double>& wind_offset_flex)
+                    const std::vector<std::string>& flex_names, const std::vector<int>& flex_thre,
+                    const std::vector<double>& wind_offset_flex)
     : actr_names_(actr_names)
     , jnt_names_(jnt_names)
     , controller_names_(controller_names)
     , flex_names_(flex_names)
     , flex_thre_(flex_thre)
     , wind_offset_flex_(wind_offset_flex)
+    , is_gripper_enabled_(true)
   {
     for (int i = 0; i < jnt_names_.size(); i++)
     {
@@ -125,11 +135,25 @@ public:
     registerInterface(&jnt_state_interface_);
     registerInterface(&pos_jnt_interface_);
 
+    // Publisher for vacuum
+    vacuum_pub_ = nh_.advertise<std_msgs::Bool>("vacuum", 10);
+
     // Subscribers for flex
     for (std::vector<std::string>::const_iterator itr = flex_names_.begin(); itr != flex_names_.end(); ++itr)
     {
-      flex_sub_[*itr] =
-          nh_.subscribe<std_msgs::UInt16>("flex/" + *itr + "/state", 1, boost::bind(&GripperRosControl::flexCallback, this, _1, *itr));
+      flex_sub_[*itr] = nh_.subscribe<std_msgs::UInt16>("flex/" + *itr + "/state", 1,
+                                                        boost::bind(&GripperRosControl::flexCallback, this, _1, *itr));
+    }
+
+    // Subscriber for robot state
+    robot_state_sub_ = nh_.subscribe("/robot/state", 1, &GripperRosControl::robotStateCallback, this);
+
+    // Service clients for torque enabling
+    for (std::vector<std::string>::const_iterator itr = controller_names_.begin(); itr != controller_names_.end();
+         ++itr)
+    {
+      torque_enable_client_[*itr] =
+          nh_.serviceClient<dynamixel_controllers::TorqueEnable>("dxl/" + *itr + "/torque_enable");
     }
 
     // Start spinning
@@ -170,28 +194,52 @@ public:
 
   void write()
   {
-    // Propagate joint commands to actuators
-    jnt_to_actr_pos_.propagate();
-
-    // Publish command to actuator
-    for (int i = 0; i < actr_names_.size(); i++)
+    if (is_gripper_enabled_)
     {
-      // If fingers flex, add offset angle to finger tendon winder
-      if (actr_names_[i].find("finger_tendon_winder") != std::string::npos)
+      // Propagate joint commands to actuators
+      jnt_to_actr_pos_.propagate();
+
+      // Publish command to actuator
+      for (int i = 0; i < actr_names_.size(); i++)
       {
-        for (int j = 0; j < flex_names_.size(); j++)
+        // If fingers flex, add offset angle to finger tendon winder
+        if (actr_names_[i].find("finger_tendon_winder") != std::string::npos)
         {
-          if (received_flex_[flex_names_[j]] > flex_thre_[j])
+          for (int j = 0; j < flex_names_.size(); j++)
           {
-            actr_cmd_pos_[actr_names_[i]] += wind_offset_flex_[j];
+            if (received_flex_[flex_names_[j]] > flex_thre_[j])
+            {
+              actr_cmd_pos_[actr_names_[i]] += wind_offset_flex_[j];
+            }
           }
         }
-      }
 
-      std_msgs::Float64 msg;
-      msg.data = actr_cmd_pos_[actr_names_[i]];
-      actr_cmd_pub_[actr_names_[i]].publish(msg);
+        std_msgs::Float64 msg;
+        msg.data = actr_cmd_pos_[actr_names_[i]];
+        actr_cmd_pub_[actr_names_[i]].publish(msg);
+      }
     }
+    else
+    {
+      // Switch off vacuum
+      std_msgs::Bool vacuum;
+      vacuum.data = false;
+      vacuum_pub_.publish(vacuum);
+
+      // Gripper servo off
+      dynamixel_controllers::TorqueEnable srv;
+      srv.request.torque_enable = false;
+      for (std::vector<std::string>::const_iterator itr = controller_names_.begin(); itr != controller_names_.end();
+           ++itr)
+      {
+        torque_enable_client_[*itr].call(srv);
+      }
+    }
+  }
+
+  bool isGripperEnabled()
+  {
+    return is_gripper_enabled_;
   }
 
   void actrStateCallback(const dynamixel_msgs::JointStateConstPtr& dxl_actr_state)
@@ -202,6 +250,11 @@ public:
   void flexCallback(const std_msgs::UInt16ConstPtr& flex, const std::string& name)
   {
     received_flex_[name] = flex->data;
+  }
+
+  void robotStateCallback(const baxter_core_msgs::AssemblyStateConstPtr& state)
+  {
+    is_gripper_enabled_ = state->enabled;
   }
 };  // end class GripperRosControl
 
@@ -237,16 +290,19 @@ int main(int argc, char** argv)
   // Control loop
   ros::Rate rate(rate_hz);
   ros::Time prev_time = ros::Time::now();
+  bool prev_gripper_enabled = true;
 
   while (ros::ok())
   {
     const ros::Time now = ros::Time::now();
     const ros::Duration elapsed_time = now - prev_time;
+    const bool gripper_enabled = gripper.isGripperEnabled();
 
     gripper.read();
-    cm.update(now, elapsed_time);
+    cm.update(now, elapsed_time, !prev_gripper_enabled && gripper_enabled);
     gripper.write();
     prev_time = now;
+    prev_gripper_enabled = gripper_enabled;
 
     rate.sleep();
   }
