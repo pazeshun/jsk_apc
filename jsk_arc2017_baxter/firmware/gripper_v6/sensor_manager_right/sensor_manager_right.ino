@@ -30,8 +30,8 @@ std_msgs::UInt16 l_finger_flex_msg;
 
 ros::Publisher pressure_pub("gripper_front/limb/right/pressure/state", &pressure_msg);
 ros::Publisher state_pub("gripper_front/limb/right/pressure/grabbed/state", &bool_msg);
-ros::Publisher r_finger_flex_pub("gripper_front/limb/right/r_finger_flex/state", &r_finger_flex_msg);
-ros::Publisher l_finger_flex_pub("gripper_front/limb/right/l_finger_flex/state", &l_finger_flex_msg);
+ros::Publisher r_finger_flex_pub("gripper_front/limb/right/flex/right/state", &r_finger_flex_msg);
+ros::Publisher l_finger_flex_pub("gripper_front/limb/right/flex/left/state", &l_finger_flex_msg);
 
 unsigned long  publisher_timer = 0;
 
