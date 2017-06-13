@@ -168,15 +168,43 @@
   (:gripper-servo-on
     (&optional (arm :arms))
     (dolist (l/r (if (eq arm :arms) (list "left" "right") (list (arm2str arm))))
-      (ros::publish
-        (format nil "/gripper_front/limb/~a/servo/torque" l/r)
-        (instance std_msgs::Bool :init :data t))))
+      (if (equal l/r "left")
+        (ros::publish
+          (format nil "/gripper_front/limb/~a/servo/torque" l/r)
+          (instance std_msgs::Bool :init :data t))
+        (progn
+          (ros::service-call
+            (format nil "/gripper_front/limb/~a/dxl/prismatic_joint_controller/torque_enable" l/r)
+            (instance dynamixel_controllers::TorqueEnable :init :torque_enable t))
+          (ros::service-call
+            (format nil "/gripper_front/limb/~a/dxl/vacuum_pad_tendon_controller/torque_enable" l/r)
+            (instance dynamixel_controllers::TorqueEnable :init :torque_enable t))
+          (ros::service-call
+            (format nil "/gripper_front/limb/~a/dxl/finger_yaw_joint_controller/torque_enable" l/r)
+            (instance dynamixel_controllers::TorqueEnable :init :torque_enable t))
+          (ros::service-call
+            (format nil "/gripper_front/limb/~a/dxl/finger_tendon_controller/torque_enable" l/r)
+            (instance dynamixel_controllers::TorqueEnable :init :torque_enable t))))))
   (:gripper-servo-off
     (&optional (arm :arms))
     (dolist (l/r (if (eq arm :arms) (list "left" "right") (list (arm2str arm))))
-      (ros::publish
-        (format nil "/gripper_front/limb/~a/servo/torque" l/r)
-        (instance std_msgs::Bool :init :data nil))))
+      (if (equal l/r "left")
+        (ros::publish
+          (format nil "/gripper_front/limb/~a/servo/torque" l/r)
+          (instance std_msgs::Bool :init :data nil))
+        (progn
+          (ros::service-call
+            (format nil "/gripper_front/limb/~a/dxl/prismatic_joint_controller/torque_enable" l/r)
+            (instance dynamixel_controllers::TorqueEnable :init :torque_enable nil))
+          (ros::service-call
+            (format nil "/gripper_front/limb/~a/dxl/vacuum_pad_tendon_controller/torque_enable" l/r)
+            (instance dynamixel_controllers::TorqueEnable :init :torque_enable nil))
+          (ros::service-call
+            (format nil "/gripper_front/limb/~a/dxl/finger_yaw_joint_controller/torque_enable" l/r)
+            (instance dynamixel_controllers::TorqueEnable :init :torque_enable nil))
+          (ros::service-call
+            (format nil "/gripper_front/limb/~a/dxl/finger_tendon_controller/torque_enable" l/r)
+            (instance dynamixel_controllers::TorqueEnable :init :torque_enable nil))))))
   (:graspingp
     (arm)
     (let (topic)
