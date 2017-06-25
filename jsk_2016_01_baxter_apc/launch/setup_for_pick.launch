@@ -85,7 +85,7 @@
       <arg name="GPU" value="0" />
       <arg name="BACKEND" value="chainer" />
       <arg name="MODEL_NAME" value="fcn32s" />
-      <arg name="MODEL_FILE" value="$(find jsk_apc2016_common)/trained_data/fcn32s_v2_148000.chainermodel" />
+      <arg name="MODEL_FILE" value="$(find jsk_apc2016_common)/trained_data/fcn32s_6000.chainermodel" />
       <arg name="LABEL_YAML" value="$(find jsk_apc2016_common)/config/label_names.yaml" />
     </include>
   </group>

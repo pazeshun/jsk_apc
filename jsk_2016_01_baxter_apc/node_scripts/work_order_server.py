@@ -94,7 +94,7 @@ class WorkOrderServer(object):
         # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         # TODO: PLEASE FILL ABANDON BINS
         if self.gripper == 'gripper_v5':
-            abandon_bins = ['h', 'i']
+            abandon_bins = ['f', 'h', 'i', 'k', 'l']
         else:
             abandon_bins = ''
         # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
