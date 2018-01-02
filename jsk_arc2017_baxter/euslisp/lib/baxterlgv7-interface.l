@@ -209,7 +209,9 @@
   (:set-proximities
     (arm msg)
     (sethash :left (gethash arm proximities-) (send (elt (send msg :proximities) 0) :average))
-    (sethash :right (gethash arm proximities-) (send (elt (send msg :proximities) 1) :average)))
+    (sethash :right (gethash arm proximities-) (send (elt (send msg :proximities) 1) :average))
+    (if (eq arm :larm)
+      (sethash :palm (gethash arm proximities-) (send (elt (send msg :proximities) 2) :average))))
 
   ;; Hand interface
   ;; based on naoqi-interface and fetch-interface
@@ -265,18 +267,23 @@
     (send self :spin-once)
     (let ((l-init (gethash :left (gethash arm proximity-init-values-)))
           (r-init (gethash :right (gethash arm proximity-init-values-)))
+          (p-init (gethash :palm (gethash arm proximity-init-values-)))
           (l (gethash :left (gethash arm proximities-)))
-          (r (gethash :right (gethash arm proximities-))))
+          (r (gethash :right (gethash arm proximities-)))
+          (p (gethash :palm (gethash arm proximities-))))
       (if (null raw)
         (cond
           ;; for sparkfun proximity sensor
           ((eq side :left)
            (/ (- l l-init) (expt (/ l-init 2500.0) 1.5)))
           ((eq side :right)
-           (/ (- r r-init) (expt (/ r-init 2500.0) 1.5))))
+           (/ (- r r-init) (expt (/ r-init 2500.0) 1.5)))
+          ((eq side :palm)
+           (/ (- p p-init) (expt (/ p-init 2500.0) 1.5))))
         (cond
           ((eq side :left) l)
-          ((eq side :right) r)))))
+          ((eq side :right) r)
+          ((eq side :palm) p)))))
   (:get-real-finger-av (arm)
     (send self :update-robot-state :wait-until-update t)
     (if (eq arm :rarm)
@@ -644,6 +651,9 @@
                (send self :get-proximity l/r :left :raw t))
       (sethash :right (gethash l/r proximity-init-values-)
                (send self :get-proximity l/r :right :raw t))
+      (if (eq l/r :larm)
+        (sethash :palm (gethash l/r proximity-init-values-)
+                 (send self :get-proximity l/r :palm :raw t)))
       ;; TODO: decide proper threshold 100 -> ???
       (setq proximity-threshold- 100)))
   )
