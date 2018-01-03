@@ -25,6 +25,27 @@
         (send *baxter* :hand-grasp-pre-pose :larm :opposed) 1000)
   )
 
+(defun grasp-with-avoiding-extra-obj ()
+  (let ((finger-av (send *ri* :get-real-finger-av :larm)))
+    (while (< (aref finger-av (- (length finger-av) 1)) 90)
+      (while (> (max (send *ri* :get-proximity :larm :right) (send *ri* :get-proximity :larm :left))
+                (send *ri* :get-val 'proximity-threshold-))
+        (if (send *ri* :hand-interpolatingp :larm)
+          (send *ri* :cancel-move-hand :larm))
+        (unix::usleep 1000))
+      (send *ri* :move-hand :larm
+            (send *baxter* :hand-grasp-pose :larm :cylindrical) 1000 :wait nil)
+      (unix::usleep 1000)
+      (setq finger-av (send *ri* :get-real-finger-av :larm))
+      )
+    ;; wait for :interpolatingp
+    (dotimes (x 100)
+      (if (send *ri* :hand-interpolatingp :larm) (return))
+      (unix::usleep 1000))
+    (while (send *ri* :hand-interpolatingp :larm) (unix::usleep 1000))
+    )
+  )
+
 (defun edge-picking-in-wide-space ()
   (let ((init-coords (make-coords :pos #f(521.756 341.054 -160) :rpy (float-vector pi 0 0))))
     (send *ri* :angle-vector (send *baxter* :larm :inverse-kinematics init-coords) 2000)
@@ -96,12 +117,8 @@
                 5000 (send *ri* :get-arm-controller :larm) 0)
           (send *ri* :wait-interpolation-until :larm :grasp)
           ;; lift up
-          (send *ri* :angle-vector (send *baxter* :larm :move-end-pos #f(0 0 120) :local) 2000)
-          (send *ri* :wait-interpolation)
-          (send *ri* :move-hand :larm
-                (send *baxter* :hand-grasp-pose :larm :cylindrical) 1000)
-          (unix::sleep 1)
-          (send *ri* :angle-vector (send *baxter* :larm :inverse-kinematics init-coords) 2000)
+          (send *ri* :angle-vector (send *baxter* :larm :inverse-kinematics init-coords) 5000)
+          (grasp-with-avoiding-extra-obj)
           (send *ri* :wait-interpolation)
           )
         )
