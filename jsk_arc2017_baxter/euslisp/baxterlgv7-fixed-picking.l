@@ -67,16 +67,11 @@
       (if (< palm-prox 1000)
         (progn
           (ros::ros-info "Already picked edge. Proximity: ~a" palm-prox)
-          (send *ri* :angle-vector (send *baxter* :larm :move-end-pos #f(0 0 70) :local) 1000)
+          ;; release object
+          (send *ri* :stop-grasp :larm)
+          (send *ri* :angle-vector (send *baxter* :larm :move-end-pos #f(0 0 -10) :local) 1000)
           (send *ri* :wait-interpolation)
-          (send *ri* :move-hand :larm
-                (send *baxter* :hand-grasp-pre-pose :larm :cylindrical) 1000)
-          (send *ri* :move-hand :larm
-                (send *baxter* :hand-grasp-pose :larm :cylindrical) 1000)
-          (unix::sleep 1)
-          (send *ri* :angle-vector (send *baxter* :larm :inverse-kinematics init-coords) 2000)
-          (send *ri* :wait-interpolation)
-          )
+          (unix::sleep 1))
         (progn
           (ros::ros-info "Picked center. Proximity: ~a" palm-prox)
           (send *ri* :stop-grasp :larm)
@@ -101,29 +96,27 @@
               (send *ri* :cancel-angle-vector
                     :controller-type (send *ri* :get-arm-controller :larm)))
             (unix::usleep 1000))
-          ;; lift up gripper to rotate fingers
-          (send *baxter* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
-          (setq end-pos (copy-object (send *baxter* :larm :end-coords :worldpos)))
-          (setf (elt end-pos 2) (aref (send init-coords :worldpos) 2))
-          (send *ri* :angle-vector
-                (send *baxter* :larm :inverse-kinematics
-                      (make-coords :pos end-pos :rpy (car (send init-coords :rpy-angle))))
-                2000)
-          (send *ri* :wait-interpolation)
-          (send *ri* :start-grasp :larm)
-          ;; rotate fingers
-          (send *ri* :move-hand :larm
-                (send *baxter* :hand-grasp-pre-pose :larm :cylindrical) 1000)
-          ;; grasp again
-          (send *ri* :angle-vector (send *baxter* :larm :move-end-pos #f(0 0 -250) :local)
-                3000 (send *ri* :get-arm-controller :larm) 0)
-          (send *ri* :wait-interpolation-until :larm :grasp)
-          ;; lift up
-          (send *ri* :angle-vector (send *baxter* :larm :inverse-kinematics init-coords) 8000)
-          (grasp-with-avoiding-extra-obj)
-          (send *ri* :wait-interpolation)
-          )
-        )
+          (send *baxter* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))))
+      ;; lift up gripper to rotate fingers
+      (setq end-pos (copy-object (send *baxter* :larm :end-coords :worldpos)))
+      (setf (elt end-pos 2) (aref (send init-coords :worldpos) 2))
+      (send *ri* :angle-vector
+            (send *baxter* :larm :inverse-kinematics
+                  (make-coords :pos end-pos :rpy (car (send init-coords :rpy-angle))))
+            2000)
+      (send *ri* :wait-interpolation)
+      (send *ri* :start-grasp :larm)
+      ;; rotate fingers
+      (send *ri* :move-hand :larm
+            (send *baxter* :hand-grasp-pre-pose :larm :cylindrical) 1000)
+      ;; grasp again
+      (send *ri* :angle-vector (send *baxter* :larm :move-end-pos #f(0 0 -250) :local)
+            3000 (send *ri* :get-arm-controller :larm) 0)
+      (send *ri* :wait-interpolation-until :larm :grasp)
+      ;; lift up
+      (send *ri* :angle-vector (send *baxter* :larm :inverse-kinematics init-coords) 8000)
+      (grasp-with-avoiding-extra-obj)
+      (send *ri* :wait-interpolation)
       )
     )
   )
