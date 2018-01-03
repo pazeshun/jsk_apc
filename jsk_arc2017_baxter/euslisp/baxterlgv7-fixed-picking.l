@@ -73,6 +73,10 @@
               (ros::ros-info "Detected edge. Cancel angle vector. Proximity: ~a" palm-prox)
               (send *ri* :cancel-angle-vector
                     :controller-type (send *ri* :get-arm-controller :larm)))
+            (when (> palm-prox 200)  ;; very unstable value
+              (ros::ros-info "Collide to object. Cancel angle vector. Proximity: ~a" palm-prox)
+              (send *ri* :cancel-angle-vector
+                    :controller-type (send *ri* :get-arm-controller :larm)))
             (unix::usleep 1000))
           ;; grasp again
           (send *ri* :start-grasp :larm)
