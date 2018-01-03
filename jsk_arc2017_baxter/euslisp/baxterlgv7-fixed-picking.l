@@ -59,10 +59,11 @@
     (send *ri* :angle-vector (send *baxter* :larm :move-end-pos #f(0 0 -250) :local)
           5000 (send *ri* :get-arm-controller :larm) 0)
     (send *ri* :wait-interpolation-until :larm :grasp)
-    (send *ri* :angle-vector (send *baxter* :larm :move-end-pos #f(0 0 50) :local) 1000)
+    (send *baxter* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
+    (send *ri* :angle-vector (send *baxter* :larm :move-end-pos #f(0 0 40) :local) 1000)
     (send *ri* :wait-interpolation)
     (let ((palm-prox (send *ri* :get-proximity :larm :palm)) end-pos)
-      (if (< palm-prox 600)
+      (if (< palm-prox 1000)
         (progn
           (ros::ros-info "Already picked edge. Proximity: ~a" palm-prox)
           (send *ri* :angle-vector (send *baxter* :larm :move-end-pos #f(0 0 70) :local) 1000)
