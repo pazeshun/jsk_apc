@@ -33,8 +33,9 @@
         (if (send *ri* :hand-interpolatingp :larm)
           (send *ri* :cancel-move-hand :larm))
         (unix::usleep 1000))
-      (send *ri* :move-hand :larm
-            (send *baxter* :hand-grasp-pose :larm :cylindrical) 1000 :wait nil)
+      (if (not (send *ri* :hand-interpolatingp :larm))
+        (send *ri* :move-hand :larm
+              (send *baxter* :hand-grasp-pose :larm :cylindrical) 1000 :wait nil))
       (unix::usleep 1000)
       (setq finger-av (send *ri* :get-real-finger-av :larm))
       )
@@ -115,10 +116,10 @@
                 (send *baxter* :hand-grasp-pre-pose :larm :cylindrical) 1000)
           ;; grasp again
           (send *ri* :angle-vector (send *baxter* :larm :move-end-pos #f(0 0 -250) :local)
-                5000 (send *ri* :get-arm-controller :larm) 0)
+                3000 (send *ri* :get-arm-controller :larm) 0)
           (send *ri* :wait-interpolation-until :larm :grasp)
           ;; lift up
-          (send *ri* :angle-vector (send *baxter* :larm :inverse-kinematics init-coords) 5000)
+          (send *ri* :angle-vector (send *baxter* :larm :inverse-kinematics init-coords) 8000)
           (grasp-with-avoiding-extra-obj)
           (send *ri* :wait-interpolation)
           )
