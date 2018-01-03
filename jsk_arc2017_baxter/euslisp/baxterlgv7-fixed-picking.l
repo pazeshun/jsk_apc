@@ -108,7 +108,7 @@
           (send *ri* :angle-vector
                 (send *baxter* :larm :inverse-kinematics
                       (make-coords :pos end-pos :rpy (car (send init-coords :rpy-angle))))
-                5000)
+                2000)
           (send *ri* :wait-interpolation)
           (send *ri* :start-grasp :larm)
           ;; rotate fingers
