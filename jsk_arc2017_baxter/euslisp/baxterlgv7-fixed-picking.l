@@ -78,10 +78,10 @@
           )
         (progn
           (ros::ros-info "Picked center. Proximity: ~a" palm-prox)
-          (send *ri* :angle-vector (send *baxter* :larm :move-end-pos #f(0 0 -20) :local) 1000)
           (send *ri* :stop-grasp :larm)
+          (send *ri* :angle-vector (send *baxter* :larm :move-end-pos #f(0 0 -10) :local) 1000)
           (send *ri* :wait-interpolation)
-          (unix::sleep 2)
+          (unix::sleep 3)
           (send *ri* :calib-proximity-threshold :larm)
           (send *ri* :angle-vector (send *baxter* :larm :move-end-pos #f(100 0 0) :world)
                 5000 (send *ri* :get-arm-controller :larm) 0)
@@ -91,11 +91,11 @@
             (unix::usleep 1000))
           (while (send *ri* :interpolatingp)
             (setq palm-prox (send *ri* :get-proximity :larm :palm))
-            (when (< palm-prox -300)  ;; very unstable value
+            (when (< palm-prox -100)  ;; very unstable value
               (ros::ros-info "Detected edge. Cancel angle vector. Proximity: ~a" palm-prox)
               (send *ri* :cancel-angle-vector
                     :controller-type (send *ri* :get-arm-controller :larm)))
-            (when (> palm-prox 200)  ;; very unstable value
+            (when (> palm-prox 700)  ;; very unstable value
               (ros::ros-info "Collide to object. Cancel angle vector. Proximity: ~a" palm-prox)
               (send *ri* :cancel-angle-vector
                     :controller-type (send *ri* :get-arm-controller :larm)))
