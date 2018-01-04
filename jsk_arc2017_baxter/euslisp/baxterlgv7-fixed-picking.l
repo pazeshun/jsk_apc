@@ -123,3 +123,73 @@
       )
     )
   )
+
+(defun pinch-with-palm-sensor ()
+  (let ((init-coords (make-coords :pos #f(571.758 271.054 -130) :rpy (float-vector -pi/2 0 0)))
+        palm-prox pre-coords av)
+    (send *ri* :angle-vector (send *baxter* :larm :inverse-kinematics init-coords) 2000)
+    (send *ri* :wait-interpolation)
+    (send *ri* :start-grasp :larm)
+    (send *ri* :move-hand :larm (send *baxter* :hand-grasp-pose :larm :cylindrical :angle 30) 1000)
+    (unix::sleep 1)
+    (send *ri* :calib-proximity-threshold :larm)
+    ;; approach object top
+    (send *ri* :angle-vector (send *baxter* :larm :move-end-pos #f(0 0 -250) :local)
+          5000 (send *ri* :get-arm-controller :larm) 0)
+    (send *ri* :wait-interpolation-until :larm
+          ;:grasp :finger-flexion :flex-thre-offset 50 :finger-loaded :finger-proximity)
+          ;:grasp :finger-flexion :flex-thre-offset 50 :finger-proximity)
+          :grasp :finger-flexion :flex-thre-offset 50)
+    (send *baxter* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
+    (send *ri* :move-hand :larm
+          (send *baxter* :hand-grasp-pre-pose :larm :cylindrical) 1000 :wait nil)
+    ;; slide gripper to cage object
+    (send *baxter* :larm :move-end-pos #f(0 0 30) :world)
+    (send *ri* :angle-vector
+          (send *baxter* :slide-gripper :larm 206 :relative nil)
+          3000 (send *ri* :get-arm-controller :larm) 0)
+    (send *ri* :wait-interpolation-until :larm :grasp :prismatic-loaded)
+    (send *baxter* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
+    ;; grope to cage object inside hand
+    (send *ri* :stop-grasp :larm)
+    (send *ri* :angle-vector (send *baxter* :larm :move-end-pos #f(-100 0 0) :local)
+          5000 (send *ri* :get-arm-controller :larm) 0)
+    ;; wait for :interpolatingp
+    (dotimes (x 100)
+      (if (send *ri* :interpolatingp) (return))
+      (unix::usleep 1000))
+    (while (send *ri* :interpolatingp)
+      (setq palm-prox (send *ri* :get-proximity :larm :palm))
+      (when (> palm-prox 500)  ;; very unstable value
+        (ros::ros-info "Object is in hand. Cancel angle vector. Proximity: ~a" palm-prox)
+        (send *ri* :cancel-angle-vector
+              :controller-type (send *ri* :get-arm-controller :larm)))
+      (unix::usleep 1000))
+    (send *baxter* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
+    (send *ri* :start-grasp :larm :pinch)
+    (send *ri* :start-grasp :larm)
+    (send *baxter* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
+    ;; lift a little
+    ;; (setq pre-coords (send (send *baxter* :larm :end-coords) :copy-worldcoords))
+    ;; (send pre-coords :translate #f(0 0 200) :world)
+    ;; (setq av (send *baxter* :larm :inverse-kinematics pre-coords :rotation-axis t))
+    ;; (if (null av)
+    ;;   (setq av
+    ;;         (send *baxter* :larm :inverse-kinematics pre-coords :rotation-axis :z)))
+    ;; (send *ri* :angle-vector av 3000 (send *ri* :get-arm-controller :larm :gripper nil) 0)
+    ;; (send *ri* :wait-interpolation)
+    ;; slide gripper to grasp tightly
+    ;; (send *baxter* :rotate-gripper :larm -90 :relative nil)
+    ;; (send *baxter* :slide-gripper :larm 0 :relative nil)
+    ;; (send *ri* :angle-vector (send *baxter* :angle-vector)
+    ;;       :fast (send *ri* :get-arm-controller :larm) 0 :scale 3.0)
+    ;; (send *ri* :wait-interpolation)
+    ;; (send *baxter* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
+    ;; lift up
+    (send *baxter* :rotate-gripper :larm 0 :relative nil)
+    (send *baxter* :slide-gripper :larm 0 :relative nil)
+    (send *ri* :angle-vector (send *baxter* :larm :inverse-kinematics init-coords) 2000
+          (send *ri* :get-arm-controller :larm :gripper nil) 0)
+    (send *ri* :wait-interpolation)
+    )
+  )
