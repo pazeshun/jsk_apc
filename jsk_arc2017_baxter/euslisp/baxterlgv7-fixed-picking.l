@@ -25,13 +25,16 @@
         (send *baxter* :hand-grasp-pre-pose :larm :opposed) 1000)
   )
 
-(defun grasp-with-avoiding-extra-obj ()
-  (let ((finger-av (send *ri* :get-real-finger-av :larm)))
+(defun grasp-with-avoiding-extra-obj (timeout)
+  (let ((start (ros::time-now)) (finger-av (send *ri* :get-real-finger-av :larm)))
     (while (< (aref finger-av (- (length finger-av) 1)) 90)
       (while (> (max (send *ri* :get-proximity :larm :right) (send *ri* :get-proximity :larm :left))
                 (send *ri* :get-val 'proximity-threshold-))
         (if (send *ri* :hand-interpolatingp :larm)
           (send *ri* :cancel-move-hand :larm))
+        (when (> (send (ros::time- (ros::time-now) start) :to-sec) timeout)
+          (ros::ros-warn "Cannot support object by finger in ~a sec. Give up pinching" timeout)
+          (return-from grasp-with-avoiding-extra-obj))
         (unix::usleep 1000))
       (if (not (send *ri* :hand-interpolatingp :larm))
         (send *ri* :move-hand :larm
@@ -115,7 +118,7 @@
       (send *ri* :wait-interpolation-until :larm :grasp)
       ;; lift up
       (send *ri* :angle-vector (send *baxter* :larm :inverse-kinematics init-coords) 8000)
-      (grasp-with-avoiding-extra-obj)
+      (grasp-with-avoiding-extra-obj 8)
       (send *ri* :wait-interpolation)
       )
     )
