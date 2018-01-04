@@ -152,20 +152,52 @@
     (send *baxter* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
     ;; grope to cage object inside hand
     (send *ri* :stop-grasp :larm)
-    (send *ri* :angle-vector (send *baxter* :larm :move-end-pos #f(-100 0 0) :local)
-          5000 (send *ri* :get-arm-controller :larm) 0)
-    ;; wait for :interpolatingp
-    (dotimes (x 100)
-      (if (send *ri* :interpolatingp) (return))
-      (unix::usleep 1000))
-    (while (send *ri* :interpolatingp)
-      (setq palm-prox (send *ri* :get-proximity :larm :palm))
-      (when (> palm-prox 500)  ;; very unstable value
-        (ros::ros-info "Object is in hand. Cancel angle vector. Proximity: ~a" palm-prox)
-        (send *ri* :cancel-angle-vector
-              :controller-type (send *ri* :get-arm-controller :larm)))
-      (unix::usleep 1000))
-    (send *baxter* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
+    (if (> (send *baxter* :larm :gripper-x :joint-angle) 30) ;; TODO re-define this value when fixed
+      (progn
+        (ros::ros-info "Object is not under suction finger")
+        ;; put suction finger close to object
+        (send *ri* :angle-vector (send *baxter* :larm :move-end-pos #f(-100 0 0) :local)
+              5000 (send *ri* :get-arm-controller :larm) 0)
+        ;; wait for :interpolatingp
+        (dotimes (x 100)
+          (if (send *ri* :interpolatingp) (return))
+          (unix::usleep 1000))
+        (while (send *ri* :interpolatingp)
+          (setq palm-prox (send *ri* :get-proximity :larm :palm))
+          (when (> palm-prox 500)  ;; very unstable value
+            (ros::ros-info "Object is in hand. Cancel angle vector. Proximity: ~a" palm-prox)
+            (send *ri* :cancel-angle-vector
+                  :controller-type (send *ri* :get-arm-controller :larm)))
+          (unix::usleep 1000))
+        (send *baxter* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t)))
+      (let ((end-coords (send *baxter* :larm :end-coords :copy-worldcoords)))
+        (ros::ros-info "Object is under suction finger")
+        ;; shift suction finger to object side
+        (send *baxter* :slide-gripper :larm 0 :relative nil)
+        (send *ri* :angle-vector (send *baxter* :larm :inverse-kinematics end-coords) 1000)
+        (send *ri* :wait-interpolation)
+        (send *ri* :angle-vector (send *baxter* :larm :move-end-pos #f(100 0 0) :local)
+              5000 (send *ri* :get-arm-controller :larm) 0)
+        ;; wait for :interpolatingp
+        (dotimes (x 100)
+          (if (send *ri* :interpolatingp) (return))
+          (unix::usleep 1000))
+        (while (send *ri* :interpolatingp)
+          (setq palm-prox (send *ri* :get-proximity :larm :palm))
+          (when (<= palm-prox 500)  ;; very unstable value
+            (ros::ros-info "Detected edge. Cancel angle vector. Proximity: ~a" palm-prox)
+            (send *ri* :cancel-angle-vector
+                  :controller-type (send *ri* :get-arm-controller :larm)))
+          (unix::usleep 1000))
+        (send *ri* :start-grasp :larm)
+        (send *baxter* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
+        (send *baxter* :larm :move-end-pos #f(-10 0 0) :local)  ;; offset between palm sensor and suction finger
+        (send *ri* :angle-vector
+              (send *baxter* :slide-gripper :larm 206 :relative nil)
+              3000 (send *ri* :get-arm-controller :larm) 0)
+        (send *ri* :wait-interpolation-until :larm :grasp :prismatic-loaded)
+        (send *ri* :stop-grasp :larm)
+        (send *baxter* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))))
     (send *ri* :start-grasp :larm :pinch)
     (send *ri* :start-grasp :larm)
     (send *baxter* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
