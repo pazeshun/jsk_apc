@@ -276,6 +276,17 @@
     (send *ri* :wait-interpolation)
     (if (eq grasp-style- :pinch)
       (send self :resolve-collision-between-fingers arm)))
+  (:blacklisted-target-p ()
+    (setq picking-fail-count- 0)
+    (if (eq target-cardboard- :shelf)
+      (progn
+        (ros::ros-info "[main] blacklisted object, return to shelf")
+        t)
+      (progn
+        (ros::set-param (format nil "~a_hand/target_box" (arm2str arm)) (symbol2str target-cardboard-))
+        ;; logging
+        (ros::ros-info "[main] target-cardboard: ~a" target-cardboard-)
+        nil)))
   (:verify-object (arm)
     (when moving-object-p-
       (setq moving-object-p- nil)
@@ -288,7 +299,7 @@
       (ros::ros-info-green "[main] arm ~a: scale candidates ~a" arm scale-candidates-)
       (unless scale-candidates- (return-from :verify-object nil))
       (if (find target-obj- scale-candidates- :test #'string=)
-        t  ;; scale can classify the grasped object
+        (not (send self :blacklisted-target-p))  ;; scale can classify the grasped object
         (progn  ;; scale narrows down candidate objects
           (let (msg (proba-thre 0.80) new-order)
             (if (eq (length scale-candidates-) 1)
@@ -313,7 +324,7 @@
                 (setq target-cardboard- (str2symbol (send new-order :box)))
                 (ros::ros-info-blue "[~a] [main] :verify-object, overwrite target, target-obj: ~a"
                                     (ros::get-name) target-obj-)
-                t)
+                (not (send self :blacklisted-target-p)))
               nil))))))
   (:check-picking-fail-count (arm &key (count-limit 2))
     (incf picking-fail-count-)
@@ -322,17 +333,6 @@
       (setq picking-failp (null (> count-limit picking-fail-count-)))
       (if picking-failp (setq picking-fail-count- 0))
       picking-failp))
-  (:set-target-cardboard (arm)
-    (setq picking-fail-count- 0)
-    (if (eq target-cardboard- :shelf)
-      (progn
-        (ros::ros-info "[main] blacklisted object, return to shelf")
-        nil)
-      (progn
-        (ros::set-param (format nil "~a_hand/target_box" (arm2str arm)) (symbol2str target-cardboard-))
-        ;; logging
-        (ros::ros-info "[main] target-cardboard: ~a" target-cardboard-)
-        t)))
   (:return-object (arm)
     (send self :add-postponed-object arm target-obj- target-bin-)
     (when moveit-p- (send self :delete-bin-scene target-bin-))
