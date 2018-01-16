@@ -2,7 +2,7 @@
 
 (ros::roseus "robot_main")
 
-(require "package://jsk_arc2017_baxter/euslisp/lib/stow-interface.l")
+(require "package://jsk_arc2017_baxter/euslisp/lib/stow-kiva-pod-interface.l")
 ;; smach
 (require :state-machine "package://roseus_smach/src/state-machine.l")
 (require :state-machine-ros "package://roseus_smach/src/state-machine-ros.l")
@@ -140,7 +140,7 @@
 
 
 (defun stow-init (&key (ctype :default-controller) (calib-pressure t) (moveit nil))
-  (jsk_arc2017_baxter::stow-init :ctype ctype :moveit moveit)
+  (jsk_arc2017_baxter::stow-kiva-pod-init :ctype ctype :moveit moveit)
   (when moveit
     (send *ti* :wipe-all-scene)
     (send *ti* :add-workspace-scene)
