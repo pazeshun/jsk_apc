@@ -2,7 +2,7 @@
 
 (ros::roseus "robot_main")
 
-(require "package://jsk_arc2017_baxter/euslisp/lib/pick-interface.l")
+(require "package://jsk_arc2017_baxter/euslisp/lib/pick-kiva-pod-interface.l")
 ;; smach
 (require :state-machine "package://roseus_smach/src/state-machine.l")
 (require :state-machine-ros "package://roseus_smach/src/state-machine-ros.l")
@@ -146,7 +146,7 @@
 
 
 (defun pick-init (&key (ctype :default-controller) (calib-pressure t) (moveit nil))
-  (jsk_arc2017_baxter::pick-init :ctype ctype :moveit moveit)
+  (jsk_arc2017_baxter::pick-kiva-pod-init :ctype ctype :moveit moveit)
   (when moveit
     (send *ti* :wipe-all-scene)
     (send *ti* :add-workspace-scene)

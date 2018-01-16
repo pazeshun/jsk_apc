@@ -9,7 +9,7 @@
 (unless (find-package "JSK_ARC2017_BAXTER")
   (make-package "JSK_ARC2017_BAXTER"))
 
-(defclass jsk_arc2017_baxter::pick-interface
+(defclass jsk_arc2017_baxter::pick-kiva-pod-interface
   :super jsk_arc2017_baxter::arc-interface
   :slots (bins-
           grasp-style-
@@ -26,7 +26,7 @@
           target-obj-
           trial-fail-count-))
 
-(defmethod jsk_arc2017_baxter::pick-interface
+(defmethod jsk_arc2017_baxter::pick-kiva-pod-interface
   (:init (&key (moveit nil))
     (send-super :init)
     (setq picking-fail-count- 0)
@@ -465,7 +465,7 @@
       (setq grasp-style- nil))))
 
 
-(defun jsk_arc2017_baxter::pick-init (&key (ctype :default-controller) (moveit nil))
+(defun jsk_arc2017_baxter::pick-kiva-pod-init (&key (ctype :default-controller) (moveit nil))
   (let (mvit-env mvit-rb)
     (when moveit
       (setq mvit-env (instance jsk_arc2017_baxter::baxter-moveit-environment))
@@ -479,6 +479,6 @@
     (unless (boundp '*co*)
       (setq *co* (when moveit (instance collision-object-publisher :init))))
     (unless (boundp '*ti*)
-      (setq *ti* (instance jsk_arc2017_baxter::pick-interface :init :moveit moveit)))
+      (setq *ti* (instance jsk_arc2017_baxter::pick-kiva-pod-interface :init :moveit moveit)))
     (send *baxter* :angle-vector (send *ri* :state :potentio-vector))
     (send *ri* :calib-grasp :arms)))
