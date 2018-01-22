@@ -33,7 +33,7 @@
     (setq trial-fail-count- 0)
     (setq recognize-fail-count- 0)
     (setq start-picking-fail-count- 0)
-    (setq bins- (list :a :b :c))
+    (setq bins- (list :a :b :c :d :e :f :g :h :i :j :k :l))
     (setq moveit-p- moveit)
     (setq grasp-style- nil))
   (:recognize-bboxes ()
