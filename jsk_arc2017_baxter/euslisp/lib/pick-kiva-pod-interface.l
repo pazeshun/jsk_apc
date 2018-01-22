@@ -39,8 +39,8 @@
   (:recognize-bboxes ()
     (ros::ros-info "[main] recognizing shelf bin boxes")
     (send self :recognize-bin-boxes :stamp (ros::time-now))
-    (ros::ros-info "[main] recognizing cardboard boxes")
-    (send self :recognize-cardboard-boxes :stamp (ros::time-now))
+    (ros::ros-info "[main] recognizing tote")
+    (send self :recognize-tote-boxes :stamp (ros::time-now))
     ;; XXX: movable region will be set in :pick-object
     ;; (send self :set-movable-region-for-bin :offset (list 80 120 0))
     )
