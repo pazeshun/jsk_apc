@@ -842,7 +842,7 @@
       (send bin-coords :translate
             (float-vector 0.0 0.0 (/ (z-of-cube bin-cube) 2.0))
             :local)
-      (send bin-coords :translate offset :world)
+      (send bin-coords :translate offset :local)
       (send bin-coords :rotate (aref rpy 0) :z)
       (send bin-coords :rotate (aref rpy 1) :y)
       (send bin-coords :rotate (aref rpy 2) :x)
@@ -904,7 +904,7 @@
             (float-vector 0 pi/2 (if (eq arm :larm) pi/2 -pi/2)))
       (send self :ik->bin-center arm bin
             :offset offset :rpy rpy :use-gripper nil)
-      (send *ri* :angle-vector-raw (send *baxter* :angle-vector) 3000
+      (send *ri* :angle-vector (send *baxter* :angle-vector) 3000
             (send *ri* :get-arm-controller arm) 0)))
   (:move-arm-body->tote-overlook-pose
     (arm &key (gripper-angle 90))
