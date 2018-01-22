@@ -2,7 +2,7 @@
 
 (require "package://jsk_2015_05_baxter_apc/euslisp/lib/util.l")
 (require "package://jsk_2016_01_baxter_apc/euslisp/lib/util.l")
-(require "package://jsk_arc2017_baxter/euslisp/lib/arc-interface.l")
+(require "package://jsk_arc2017_baxter/euslisp/lib/arc-kiva-pod-interface.l")
 
 (ros::load-ros-manifest "jsk_arc2017_baxter")
 
@@ -10,7 +10,7 @@
   (make-package "JSK_ARC2017_BAXTER"))
 
 (defclass jsk_arc2017_baxter::pick-kiva-pod-interface
-  :super jsk_arc2017_baxter::arc-interface
+  :super jsk_arc2017_baxter::arc-kiva-pod-interface
   :slots (bins-
           grasp-style-
           label-names-
