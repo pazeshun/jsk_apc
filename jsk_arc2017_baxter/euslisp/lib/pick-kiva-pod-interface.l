@@ -148,7 +148,7 @@
     (send self :add-postponed-object arm target-obj- target-bin-)
     (setq start-picking-fail-count- 0)
     (ros::ros-info "[main] arm: ~a, failed to recognize object ~a" arm target-obj-)
-    (send *ri* :angle-vector-sequence-raw
+    (send *ri* :angle-vector-sequence
           (list (send *baxter* :fold-to-keep-object arm)
                 (send *baxter* :arc-reset-pose arm))
           :fast (send *ri* :get-arm-controller arm) 0 :scale 3.0)
