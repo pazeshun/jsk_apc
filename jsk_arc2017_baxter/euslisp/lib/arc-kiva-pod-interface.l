@@ -271,7 +271,7 @@
         (progn
           (ros::ros-info "[~a] [:recognize-bin-boxes] recognize bin boxes" (ros::get-name))
           (setq box-list (send box-msg :boxes))
-          (setq bin-list (list :a :b :c))
+          (setq bin-list (list :a :b :c :d :e :f :g :h :i :j :k :l))
           (dolist (bin bin-list)
             (sethash bin bin-cubes- (send self :bbox->cube (car box-list)))
             (setq box-list (cdr box-list))))
