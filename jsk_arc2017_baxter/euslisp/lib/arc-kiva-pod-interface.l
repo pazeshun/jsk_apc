@@ -81,7 +81,7 @@
     (&key (offset (list 0 0 0)))
     (let (cube)
         (progn
-          (dolist (bin (list :a :b :c))
+          (dolist (bin (list :a :b :c :d :e :f :g :h :i :j :k :l))
                (setq cube (gethash bin bin-cubes-))
                (sethash bin bin-movable-regions-
                         (send self :cube->movable-region cube :offset offset))))))
