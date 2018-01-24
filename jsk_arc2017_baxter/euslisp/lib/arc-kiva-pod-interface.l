@@ -68,14 +68,21 @@
       bx))
   (:cube->movable-region
     (cube &key (offset (list 0 0 0)))
-    (let (movable-region vertex-values)
-      (send cube :worldcoords)
-      (dotimes (i 3)
-        (setq vertex-values (mapcar #'(lambda (x) (aref x i)) (send cube :vertices)))
-        (pushback (list
-                    (+ (apply #'min vertex-values) (elt offset i))
-                    (- (apply #'max vertex-values) (elt offset i)))
-                  movable-region))
+    ;; movable-region: ((min-of-x max-of-x) (min-of-y max-of-y) (min-of-z max-of-z) center-coords)
+    (let (movable-region)
+      (pushback (list
+                  (+ (/ (x-of-cube cube) -2) (elt offset i))
+                  (- (/ (x-of-cube cube) 2) (elt offset i)))
+                movable-region)
+      (pushback (list
+                  (+ (/ (y-of-cube cube) -2) (elt offset i))
+                  (- (/ (y-of-cube cube) 2) (elt offset i)))
+                movable-region)
+      (pushback (list
+                  (+ (/ (z-of-cube cube) -2) (elt offset i))
+                  (- (/ (z-of-cube cube) 2) (elt offset i)))
+                movable-region)
+      (pushback (send cube :copy-worldcoords) movable-region)
       movable-region))
   (:set-movable-region-for-bin
     (&key (offset (list 0 0 0)))
@@ -468,13 +475,15 @@
     "Return value: :grasp-succeeded, :grasp-failed or :ik-failed"
     (send *ri* :stop-grasp arm :pinch)
     (send *ri* :calib-proximity-threshold arm)
-    (let (pick-result avs object-index obj-pos obj-cube pinch-yaw suction-yaw near-walls)
+    (let (pick-result avs object-index obj-local-pos obj-cube pinch-yaw suction-yaw near-walls
+                      approach-rpy)
       ;; pick largest bounding box
       (setq object-index 0)
-      (setq obj-pos
+      ;; obj-local-pos: relative position to movable-region coords
+      (setq obj-local-pos
             (send self :get-object-position arm movable-region :object-index object-index))
       (setq obj-cube (send self :bbox->cube (elt (gethash arm object-boxes-) object-index)))
-      (setq near-walls (send self :check-near-walls obj-pos movable-region :range 100))
+      (setq near-walls (send self :check-near-walls obj-local-pos movable-region :range 100))
       (if (< (length near-walls) 2)
         (cond
           ((eq (car near-walls) :rear) (setq pinch-yaw 0) (setq suction-yaw 0))
@@ -502,28 +511,36 @@
            (setq pinch-yaw (/ (* 3 -pi) 4)) (setq suction-yaw (/ (* 3 -pi) 4)))
           (t nil)))
       (ros::ros-info "[:pick-object-with-movable-region] arm:~a approach to the object" arm)
-      (ros::ros-info "[:pick-object-with-movable-region] arm:~a obj-pos: ~a" arm obj-pos)
+      (ros::ros-info "[:pick-object-with-movable-region] arm:~a obj-local-pos: ~a"
+                     arm obj-local-pos)
       (send *ri* :gripper-servo-on arm)
       ;; Setup arm for picking
-      (let (next-avs target-poss)
+      (let (next-avs target-poss (approach-coords (send (elt movable-region 3) :copy-worldcoords)))
+        ;; target-poss: worldpos
         (send *baxter* :rotate-gripper arm 0 :relative nil)
         (send *baxter* :slide-gripper arm 0 :relative nil)
-        (let ((target-pos (copy-object obj-pos)))
-          ;; movable-region: ((min-of-x max-of-x) (min-of-y max-of-y) (min-of-z max-of-z))
-          (setf (elt target-pos 2) (+ (cadr (elt movable-region 2)) 100))
-          (pushback target-pos target-poss)  ;; location above of the target object in z axis
+        (let ((target-local-pos (copy-object obj-local-pos)))
+          ;; target-local-pos: relative to movable-region coords
+          ;; movable-region: ((min-of-x max-of-x) (min-of-y max-of-y) (min-of-z max-of-z) center-coords)
+          (setf (elt target-local-pos 2) (+ (cadr (elt movable-region 2)) 100))
+          ;; location above of the target object in local z axis
+          (pushback (send (elt movable-region 3) :transform-vector target-local-pos) target-poss)
           ;; Go to a little inside of the bin/tote, 300 (30cm) is the z length of bins
           ;; and smaller than that of tote. TODO: Fix the hard coded offset.
-          (setf (elt target-pos 2) (+ (car (elt movable-region 2)) 300))
-          (pushback target-pos target-poss))
+          (setf (elt target-local-pos 2) (+ (car (elt movable-region 2)) 300))
+          (pushback (send (elt movable-region 3) :transform-vector target-local-pos) target-poss))
         (if (eq grasp-style :suction)
           ;; suction
           (progn
+            (ros::ros-info "[:pick-object-with-movable-region] arm:~a suction-yaw: ~a"
+                           arm suction-yaw)
+            (send approach-coords :rotate (or suction-yaw 0) :z :local)
+            (setq approach-rpy (car (send approach-coords :rpy-angle)))
             (dolist (target-pos target-poss)
               (pushback
                 (send *baxter* :rotate-wrist-ik arm
                       (make-coords :pos target-pos
-                                   :rpy (float-vector (or suction-yaw 0) 0 0))
+                                   :rpy approach-rpy)
                       :move-palm-end nil
                       :rotation-axis (if (null suction-yaw) :z t))
                 next-avs)
@@ -537,11 +554,14 @@
                   :wait t))
           ;; pinch
           (progn
+            (ros::ros-info "[:pick-object-with-movable-region] arm:~a pinch-yaw: ~a" arm pinch-yaw)
+            (send approach-coords :rotate pinch-yaw :z :local)
+            (setq approach-rpy (car (send approach-coords :rpy-angle)))
             (dolist (target-pos target-poss)
               (pushback
                 (send *baxter* :rotate-wrist-ik arm
                       (make-coords :pos target-pos
-                                  :rpy (float-vector pinch-yaw 0 0))
+                                   :rpy approach-rpy)
                       :move-palm-end t
                       :rotation-axis t)
                 next-avs))
@@ -562,11 +582,13 @@
         (dotimes (j n-trial-same-pos)
           (when (or (null pick-result) (eq pick-result :grasp-failed))
             (setq pick-result
-                  (send self :try-to-pick-object arm obj-pos
+                  (send self :try-to-pick-object arm
+                        (make-coords
+                          :pos (send (elt movable-region 3) :transform-vector obj-local-pos)
+                          :rpy approach-rpy)
                         :offset (float-vector 0 0 (- (* i -30) 30))
                         :grasp-style grasp-style
-                        :suction-yaw suction-yaw
-                        :pinch-yaw pinch-yaw)))))
+                        :rotation-axis (if (null suction-yaw) :z t))))))
       (when do-stop-grasp
         (unless (eq pick-result :grasp-succeeded)
           (send *ri* :stop-grasp arm)
@@ -581,25 +603,27 @@
       pick-result))
   (:get-object-position
     (arm movable-region &key (object-index 0))
-    (let (obj-box obj-coords obj-pos)
+    (let (obj-box obj-coords obj-local-pos)
       (setq obj-box (elt (gethash arm object-boxes-) object-index))
       (setq obj-coords (elt (gethash arm object-coords-) object-index))
-      (setq obj-pos (send obj-coords :worldpos))
+      ;; relative position to movable-region coords
+      (setq obj-local-pos
+            (send (send (elt movable-region 3) :transformation obj-coords :local) :pos))
       (dolist (i (list 0 1))
-        (cond ((> (elt (elt movable-region i) 0) (aref obj-pos i))
+        (cond ((> (elt (elt movable-region i) 0) (aref obj-local-pos i))
                (ros::ros-error "[:get-object-position] object is out of movable region. ~a > ~a < ~a"
                                (elt (elt movable-region i) 1)
-                               (elt (send obj-coords :pos) i)
+                               (aref obj-local-pos i)
                                (elt (elt movable-region i) 0))
-               (setf (aref obj-pos i) (elt (elt movable-region i) 0)))
-              ((> (aref obj-pos i) (elt (elt movable-region i) 1))
+               (setf (aref obj-local-pos i) (elt (elt movable-region i) 0)))
+              ((> (aref obj-local-pos i) (elt (elt movable-region i) 1))
                (ros::ros-error "[:get-object-position] object is out of movable region. ~a < ~a > ~a"
                                (elt (elt movable-region i) 1)
-                               (elt (send obj-coords :pos) i)
+                               (aref obj-local-pos i)
                                (elt (elt movable-region i) 0))
-               (setf (aref obj-pos i) (elt (elt movable-region i) 1)))
+               (setf (aref obj-local-pos i) (elt (elt movable-region i) 1)))
               (t nil)))
-      obj-pos))
+      obj-local-pos))
   (:check-near-walls
     (obj-pos movable-region &key (range 100))
     (let (near-walls)
@@ -617,14 +641,14 @@
         (ros::ros-info-cyan "[:check-near-walls] Object is near left wall"))
       near-walls))
   (:try-to-pick-object
-    (arm obj-pos &key (offset #f(0 0 0)) (grasp-style :suction) suction-yaw
-         (pinch-yaw (if (eq grasp-style :pinch) 0)))
+    (arm obj-coords &key (offset #f(0 0 0)) (grasp-style :suction)
+         (rotation-axis :z))
       (if (eq grasp-style :suction)
-        (send self :try-to-suction-object arm obj-pos suction-yaw :offset offset)
-        (send self :try-to-pinch-object arm obj-pos pinch-yaw :offset offset)))
+        (send self :try-to-suction-object arm obj-coords rotation-axis :offset offset)
+        (send self :try-to-pinch-object arm obj-coords :offset offset)))
   (:try-to-suction-object
-    (arm obj-pos suction-yaw &key (offset #f(0 0 0)))
-    (send self :try-to-suction-object-with-gripper-v6 arm obj-pos suction-yaw :offset offset))
+    (arm obj-coords rotation-axis &key (offset #f(0 0 0)))
+    (send self :try-to-suction-object-with-gripper-v6 arm obj-coords rotation-axis :offset offset))
   (:try-to-suction-object-with-gripper-v4
     (arm obj-pos &key (offset #f(0 0 0)))
     "Return value: :grasp-succeeded or :grasp-failed"
@@ -673,22 +697,20 @@
       (ros::ros-info "[:try-to-suction-object-with-gripper-v4] arm:~a graspingp: ~a" arm graspingp)
       (if graspingp :grasp-succeeded :grasp-failed)))
   (:try-to-suction-object-with-gripper-v6
-    (arm obj-pos suction-yaw &key (offset #f(0 0 0)))
+    (arm obj-coords rotation-axis &key (offset #f(0 0 0)))
     "Return value: :grasp-succeeded or :grasp-failed"
     (let (graspingp av
           (coords-before-approach (send *baxter* arm :end-coords :copy-worldcoords)))
-      (send coords-before-approach :locate (v+ obj-pos #f(0 0 300)) :world)
-      (ros::ros-info "[:try-to-suction-object-with-gripper-v6] arm:~a suction-yaw: ~a" arm suction-yaw)
+      (send coords-before-approach :locate #f(0 0 300) obj-coords)
       ;; start the vacuum gripper before approaching to the object
       (ros::ros-info "[:try-to-suction-object-with-gripper-v6] arm:~a start vacuum gripper" arm)
       (send *ri* :start-grasp arm)
       ;; suction: prismatic-based approach
       (send *baxter* :slide-gripper arm 120 :relative nil)
       (send *baxter* arm :inverse-kinematics
-            (make-coords :pos (v+ obj-pos offset)
-                         :rpy (float-vector (or suction-yaw 0) 0 0))
+            (send (send obj-coords :copy-worldcoords) :locate offset :local)
             :use-gripper t
-            :rotation-axis (if suction-yaw t :z))
+            :rotation-axis rotation-axis)
       (let ((prismatic-angle (send *baxter* arm :gripper-x :joint-angle)))
         (send *baxter* :slide-gripper arm 0 :relative nil)
         (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
@@ -736,9 +758,11 @@
       ;; lift object
       (ros::ros-info "[:try-to-suction-object-with-gripper-v6] arm:~a lift the object" arm)
       (send *ri* :gripper-servo-off arm)
-      (let ((tc (send *baxter* arm :end-coords :copy-worldcoords)))
-        ;; overwrite only world-z
-        (setf (aref (send tc :worldpos) 2) (elt (send coords-before-approach :worldpos) 2))
+      (let ((tc (send *baxter* arm :end-coords :copy-worldcoords)) trans-vec)
+        ;; overwrite only local-z
+        (setq trans-vec
+              (send tc :inverse-transform-vector (send coords-before-approach :worldpos)))
+        (send tc :translate (float-vector 0 0 (aref trans-vec 2)) :local)
         (send *baxter* arm :inverse-kinematics tc :rotation-axis :z)
         )
       (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
@@ -748,10 +772,9 @@
       (ros::ros-info "[:try-to-suction-object-with-gripper-v6] arm:~a graspingp: ~a" arm graspingp)
       (if graspingp :grasp-succeeded :grasp-failed)))
   (:try-to-pinch-object
-    (arm obj-pos pinch-yaw &key (offset #f(0 0 0)))
+    (arm obj-coords &key (offset #f(0 0 0)))
     "Return value: :grasp-succeeded, :grasp-failed or :ik-failed"
     (let (av graspingp pre-coords)
-      (ros::ros-info "[:try-to-pinch-object] arm:~a pinch-yaw: ~a" arm pinch-yaw)
       ;; Initialize finger
       (send *ri* :move-hand arm
             (send *baxter* :hand-grasp-pose arm :cylindrical :angle 40) 1000)
@@ -760,15 +783,13 @@
       (send *ri* :start-grasp arm)
       (setq av
             (send *baxter* arm :inverse-kinematics
-                  (make-coords :pos (v+ obj-pos offset)
-                               :rpy (float-vector pinch-yaw 0 0))
+                  (send (send obj-coords :copy-worldcoords) :locate offset :local)
                   :move-palm-end t
                   :rotation-axis t))
       (if (null av)
         (setq av
               (send *baxter* arm :inverse-kinematics
-                    (make-coords :pos (v+ obj-pos offset)
-                                 :rpy (float-vector pinch-yaw 0 0))
+                    (send (send obj-coords :copy-worldcoords) :locate offset :local)
                     :move-palm-end t
                     :rotation-axis :z)))
       (unless av
@@ -783,15 +804,13 @@
             :grasp :finger-flexion :finger-loaded :prismatic-loaded :finger-proximity)
       (setq av
             (send *baxter* arm :inverse-kinematics
-                  (make-coords :pos obj-pos
-                               :rpy (float-vector pinch-yaw 0 0))
+                  obj-coords
                   :move-palm-end t
                   :rotation-axis t))
       (if (null av)
         (setq av
               (send *baxter* arm :inverse-kinematics
-                    (make-coords :pos obj-pos
-                                 :rpy (float-vector pinch-yaw 0 0))
+                    obj-coords
                     :move-palm-end t
                     :rotation-axis :z)))
       (unless av
@@ -801,7 +820,7 @@
       (send *ri* :wait-interpolation-until arm
             :grasp :finger-flexion :finger-loaded :prismatic-loaded :finger-proximity)
       (send *baxter* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
-      (send *baxter* arm :move-end-pos #f(0 0 -20) :world)
+      (send *baxter* arm :move-end-pos #f(0 0 -20) :local :move-palm-end t)
       (send *ri* :angle-vector-raw
             (send *baxter* :slide-gripper arm 120 :relative nil)
             3000 (send *ri* :get-arm-controller arm) 0)
@@ -815,12 +834,14 @@
       (ros::ros-info "[:try-to-pinch-object] arm:~a graspingp: ~a" arm graspingp)
       ;; lift object
       (ros::ros-info "[:try-to-pinch-object] arm:~a lift the object" arm)
-      (setq pre-coords (send (send *baxter* arm :end-coords) :copy-worldcoords))
-      (send pre-coords :translate #f(0 0 200) :world)
-      (setq av (send *baxter* arm :inverse-kinematics pre-coords :rotation-axis t))
+      (setq pre-coords (send (send *baxter* arm :palm-endpoint) :copy-worldcoords))
+      (send pre-coords :translate #f(0 0 200) :local)
+      (setq av (send *baxter* arm :inverse-kinematics pre-coords
+                     :move-palm-end t :rotation-axis t))
       (if (null av)
         (setq av
-              (send *baxter* arm :inverse-kinematics pre-coords :rotation-axis :z)))
+              (send *baxter* arm :inverse-kinematics pre-coords
+                    :move-palm-end t :rotation-axis :z)))
       (send *ri* :angle-vector-raw av 3000 (send *ri* :get-arm-controller arm :gripper nil) 0)
       (send *ri* :wait-interpolation)
       ;; slide gripper to grasp tightly
