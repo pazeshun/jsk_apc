@@ -28,6 +28,7 @@
           tote-cubes-
           tote-movable-regions-
           unfinished-objects-
+          gripper-dims-
           ))
 
 (defmethod jsk_arc2017_baxter::arc-kiva-pod-interface
@@ -46,7 +47,25 @@
     (setq postponed-objects- (make-hash-table))
     (setq rack-leg-cubes- (make-hash-table))
     (setq finished-objects- (make-hash-table))
-    (setq unfinished-objects- (make-hash-table)))
+    (setq unfinished-objects- (make-hash-table))
+    ;; dimensions of grippers
+    ;; TODO: decide values
+    (setq gripper-dims- (make-hash-table))
+    (sethash :pad-r gripper-dims- (make-hash-table))
+    (sethash :larm (gethash :pad-r gripper-dims-) 15)
+    (sethash :rarm (gethash :pad-r gripper-dims-) 15)
+    (sethash :pad-link-l gripper-dims- (make-hash-table))
+    (sethash :larm (gethash :pad-link-l gripper-dims-) 45)
+    (sethash :rarm (gethash :pad-link-l gripper-dims-) 45)
+    (sethash :tube-t gripper-dims- (make-hash-table))
+    (sethash :larm (gethash :tube-t gripper-dims-) 28)
+    (sethash :rarm (gethash :tube-t gripper-dims-) 28))
+    (sethash :cylindrical-max-t gripper-dims- (make-hash-table))
+    (sethash :larm (gethash :cylindrical-max-t gripper-dims-) 50)
+    (sethash :rarm (gethash :cylindrical-max-t gripper-dims-) 50)
+    (sethash :opposed-max-w gripper-dims- (make-hash-table))
+    (sethash :larm (gethash :opposed-max-w gripper-dims-) 150)
+    (sethash :rarm (gethash :opposed-max-w gripper-dims-) 150)
   (:arc-reset-pose
     (&optional (arm :arms) &rest args)
     (dolist (tmp-arm (if (eq arm :arms) (list :rarm :larm) (list arm)))
@@ -69,6 +88,7 @@
   (:cube->movable-region
     (cube &key (offset (list 0 0 0)))
     ;; movable-region: ((min-of-x max-of-x) (min-of-y max-of-y) (min-of-z max-of-z) center-coords)
+    ;; rule of coords: z is direction from center to entrance
     (let (movable-region)
       (pushback (list
                   (+ (/ (x-of-cube cube) -2) (elt offset 0))
@@ -489,6 +509,8 @@
       (setq obj-local-pos
             (send self :get-object-position arm movable-region :object-index object-index))
       (setq obj-cube (send self :bbox->cube (elt (gethash arm object-boxes-) object-index)))
+      ;; convert object cube from world to local
+      ;; (send obj-local-cube :move-to (send (elt movable-region 3) :transformation (send obj-local-cube :worldcoords) :local) :world)
       (setq near-walls (send self :check-near-walls obj-local-pos movable-region :range 100))
       (if (< (length near-walls) 2)
         (cond
@@ -646,6 +668,229 @@
         (pushback :left near-walls)
         (ros::ros-info-cyan "[:check-near-walls] Object is near left wall"))
       near-walls))
+  (:decide-approach-and-support
+    (arm obj-local-pos obj-local-cube movable-region grasp-style)
+    "Return value: hash table of :support-style, :yaw-angle, :gripper-angle and :approach-pos.
+    support-style is nil, :cylindrical, :opposed or :scrape-out.
+    yaw-angle is nil, -pi/2 ~ pi/2 or pi.
+    gripper-angle is 0 or -pi/2.
+    approach-pos is float-vector of local pos
+    CAUTION: This algorithm depends on PCA in ClusterPointIndicesDecomposer"
+    (let (return-table support-style yaw-angle gripper-angle approach-pos
+                       approach-candidates approach-idx
+                       max-dist-bw-obj-bin
+                       (region-coords (elt movable-region 3))
+                       (gravity-vec #f(0 0 -1))
+                       (gripper-req-l (+ (gethash arm (gethash :pad-link-l gripper-dims-))
+                                         (/ (gethash arm (gethash :tube-t gripper-dims-)) 2))))
+      ;; initialize approach-candidates
+      ;; each approach candidate is (index of direction (x: 0, y: 1, z: 2), sign of direction)
+      ;; (list 2 1) is impossible as that direction is from region center to entrance
+      (setq approach-candidates
+            (if (eq grasp-style :suction)
+              (list (list)  ;; best candidate
+                    ;; middle candidates
+                    (list (list 0 1) (list 0 -1) (list 1 1) (list 1 -1))
+                    ;; worst candidate in common as it pushes object to back of bin
+                    (list (list 2 -1)))
+              (list (list (list 2 -1))  ;; best candidate as scraping is unstable
+                    ;; middle candidates
+                    (list)
+                    ;; worst candidate
+                    (list (list 0 1) (list 0 -1) (list 1 1) (list 1 -1)))))
+      ;; convert gravity vector from world to local
+      (setq gravity-vec (send region-coords :inverse-transform-vector
+                              (v+ gravity-vec (send region-coords :worldpos))))
+      ;; decide best or middle approach direction based on gravity direction
+      (let (max-idx max-sign (max-val 0))
+        (dotimes (i 3)
+          (when (> (abs (aref gravity-vec i)) max-val)
+            (setq max-idx i)
+            (setq max-val (abs (aref gravity-vec i)))
+            (if (< (aref gravity-vec i) 0) (setq max-sign -1) (setq max-sign 1))))
+        ;; remove unnecessary approach candidates
+        (dotimes (i 3)
+          (dolist (candidate (list (list max-idx max-sign)
+                                   ;; direction opposite to gravity
+                                   (list max-idx (- max-sign))))
+            (setf (elt approach-candidates i)
+                  (remove candidate (elt approach-candidates i) :test #'equal))))
+        (setf (elt approach-candidates (if (eq grasp-style :suction) 0 1))
+              (list max-idx max-sign)))
+      ;; check which approach can be performed
+      (dolist (candidate-list approach-candidates)
+        (setq max-dist-bw-obj-bin gripper-req-l)
+        (dolist (candidate candidate-list)
+          (let ((idx (elt candidate 0))
+                (sign (elt candidate 1))
+                (approach-coords (make-coords))
+                (obj-approach-cube (copy-object obj-local-cube))
+                vertex-values dist-bw-obj-bin object-t object-w
+                obj-pos-to-walls)
+            (cond ((and (= idx 0) (< sign 0))
+                   (send approach-coords :rotate pi/2 :y :local))
+                  ((and (= idx 0) (> sign 0))
+                   (send approach-coords :rotate pi :z :local)
+                   (send approach-coords :rotate pi/2 :y :local))
+                  ((and (= idx 1) (< sign 0))
+                   (send approach-coords :rotate pi/2 :z :local)
+                   (send approach-coords :rotate pi/2 :y :local))
+                  ((and (= idx 1) (> sign 0))
+                   (send approach-coords :rotate -pi/2 :z :local)
+                   (send approach-coords :rotate pi/2 :y :local))
+                  ((and (= idx 2) (< sign 0)) t)
+                  (t (ros::ros-fatal
+                       "[:decide-approach-and-support] Gravity draws objects outside bin")
+                     (return-from :decide-approach-and-support nil)))
+            ;; transform cube
+            (send obj-approach-cube :move-to
+                  (send approach-coords :transformation
+                        (send obj-approach-cube :worldcoords) :local) :world)
+            ;; update vertices
+            (send obj-approach-cube :worldcoords)
+            ;; decide support-style and yaw-angle
+            (if (and (= idx 2) (< sign 0))
+              (progn
+                (setq vertex-values (mapcar #'(lambda (x) (aref x 0))
+                                            (send obj-approach-cube :vertices)))
+                (setq object-t (- (apply #'max vertex-values) (apply #'min vertex-values)))
+                (setq vertex-values (mapcar #'(lambda (x) (aref x 1))
+                                            (send obj-approach-cube :vertices)))
+                (setq object-w (- (apply #'max vertex-values) (apply #'min vertex-values)))
+                (dotimes (i 2)
+                  (pushback (- (elt (elt movable-region i) 1) (aref obj-local-pos i))
+                            obj-pos-to-walls)
+                  (pushback (- (aref obj-local-pos i) (elt (elt movable-region i) 0))
+                            obj-pos-to-walls))
+                (if (eq grasp-style :suction)
+                  ;; suction
+                  ;; check if object is big enough to suction
+                  (when (and (> object-t (* (gethash arm (gethash :pad-r gripper-dims-)) 2))
+                             (> object-w (* (gethash arm (gethash :pad-r gripper-dims-)) 2)))
+                    (setq gripper-angle 0)
+                    (setq approach-pos (copy-object obj-local-pos))
+                    (setq approach-idx idx)
+                    ;; decide support style depending on object size
+                    (cond ((<= object-w (gethash arm (gethash :opposed-max-w gripper-dims-)))
+                           (setq support-style :opposed)
+                           (setq yaw-angle 0))
+                          ((<= object-t (gethash arm (gethash :opposed-max-w gripper-dims-)))
+                           (setq support-style :opposed)
+                           (setq yaw-angle -pi/2))
+                          (t (setq support-style nil)
+                             (setq yaw-angle nil)))
+                    ;; check and avoid near walls
+                    ;; TODO: fix hard coded value
+                    (let (near-walls forced-yaw-angle)
+                      (when (< (elt obj-pos-to-walls 0) 50)
+                        (pushback :front near-walls))
+                      (when (< (elt obj-pos-to-walls 1) 50)
+                        (pushback :rear near-walls))
+                      (when (< (elt obj-pos-to-walls 2) 50)
+                        (pushback :left near-walls))
+                      (when (< (elt obj-pos-to-walls 3) 50)
+                        (pushback :right near-walls))
+                      (if (< (length near-walls) 2)
+                        (cond
+                          ((eq (car near-walls) :rear) (setq forced-yaw-angle 0))
+                          ((eq (car near-walls) :front) (setq forced-yaw-angle pi))
+                          ((eq (car near-walls) :right) (setq forced-yaw-angle pi/2))
+                          ((eq (car near-walls) :left) (setq forced-yaw-angle -pi/2)))
+                        (cond
+                          ((and (member :rear near-walls) (member :right near-walls))
+                           (setq forced-yaw-angle (/ pi 4)))
+                          ((and (member :rear near-walls) (member :left near-walls))
+                           (setq forced-yaw-angle (/ -pi 4)))
+                          ((and (member :front near-walls) (member :right near-walls))
+                           (setq forced-yaw-angle (/ (* 3 pi) 4)))
+                          ((and (member :front near-walls) (member :left near-walls))
+                           (setq forced-yaw-angle (/ (* 3 -pi) 4)))))
+                      (if (and yaw-angle (not (= yaw-angle (abs forced-yaw-angle))))
+                        (setq support-style nil))
+                      (setq yaw-angle forced-yaw-angle)))
+                  ;; pinch
+                  ;; TODO: consider object size instead of considering object centroid only
+                  ;; TODO: fix hard coded value
+                  (when
+                    (= (length obj-pos-to-walls)
+                       (length (remove nil (mapcar #'(lambda (x) (if (> x 50)))
+                                                   obj-pos-to-walls))))
+                    (setq support-style :cylindrical)
+                    (setq gripper-angle 0)
+                    (setq approach-pos (copy-object obj-local-pos))
+                    (setq approach-idx idx)
+                    ;; decide wrist angle by longest side of projected obj cube
+                    (let (sides vec proj-vec max-proj-vec (max-l 0))
+                      (pushback (x-of-cube obj-approach-cube) sides)
+                      (pushback (y-of-cube obj-approach-cube) sides)
+                      (pushback (z-of-cube obj-approach-cube) sides)
+                      (dotimes (i 3)
+                        (setq vec (float-vector 0 0 0))
+                        (setf (aref vec i) 1)
+                        (setq vec (scale (elt sides i) vec))
+                        (setq proj-vec (send obj-approach-cube :transform-vector vec))
+                        (setq proj-vec (v- proj-vec (send obj-approach-cube :worldpos)))
+                        (setf (aref proj-vec 2) 0)
+                        (when (> (norm proj-vec) max-l)
+                          (setq max-proj-vec (copy-object proj-vec))
+                          (setq max-l (norm proj-vec))))
+                      (setq max-proj-vec (normalize-vector max-proj-vec))
+                      (if (>= (aref max-proj-vec 0) 0)
+                        (setq yaw-angle (- (acos (v. max-proj-vec #f(0 1 0)))))
+                        (setq yaw-angle (acos (v. max-proj-vec #f(0 1 0)))))
+                      (if (> yaw-angle pi/2)
+                        (setq yaw-angle (- yaw-angle pi)))
+                      (if (< yaw-angle -pi/2)
+                        (setq yaw-angle (+ yaw-angle pi)))))))
+              (progn
+                (setq vertex-values (mapcar #'(lambda (x) (aref x 1))
+                                            (send obj-approach-cube :vertices)))
+                (setq object-w (- (apply #'max vertex-values) (apply #'min vertex-values)))
+                (setq vertex-values (mapcar #'(lambda (x) (aref x 2))
+                                            (send obj-approach-cube :vertices)))
+                (setq dist-bw-obj-bin (- (elt (elt movable-region idx) 1)
+                                         (apply #'max vertex-values)))
+                (setq object-t (- (apply #'max vertex-values) (apply #'min vertex-values)))
+                ;; check if gripper can enter
+                ;; TODO: dismiss concern about little point cloud in bin
+                ;;       and add size check like above
+                (when (> dist-bw-obj-bin max-dist-bw-obj-bin)
+                  ;; decide support style depending on object size
+                  (setq gripper-angle -pi/2)
+                  (cond ((eq grasp-style :pinch)
+                         (setq support-style :scrape-out))
+                        ((<= object-t (gethash arm (gethash :cylindrical-max-t gripper-dims-)))
+                         (setq support-style :cylindrical))
+                        ((<= object-w (gethash arm (gethash :opposed-max-w gripper-dims-)))
+                         (setq support-style :opposed))
+                        (t (setq support-style nil)))
+                  ;; decide yaw-angle
+                  (cond ((and (= idx 0) (< sign 0))
+                         (setq yaw-angle pi))
+                        ((and (= idx 0) (> sign 0))
+                         (setq yaw-angle 0))
+                        ((and (= idx 1) (< sign 0))
+                         (setq yaw-angle -pi/2))
+                        ((and (= idx 1) (> sign 0))
+                         (setq yaw-angle pi/2)))
+                  (setq approach-pos (copy-object obj-local-pos))
+                  (setq approach-pos
+                        (send approach-coords :inverse-transform-vector obj-local-pos))
+                  (setf (elt approach-pos 2) (apply #'max vertex-values))
+                  (setq approach-pos
+                        (send approach-coords :transform-vector approach-pos))
+                  (setq approach-idx idx)
+                  (setq max-dist-bw-obj-bin dist-bw-obj-bin))))))
+        (if approach-idx (return)))
+      (if (null approach-idx)
+        (progn
+          (ros::ros-fatal "[:decide-approach-and-support] There is no possible grasping")
+          nil)
+        (progn
+          (setq return-table (make-hash-table))
+          (sethash :support-style return-table support-style)
+          (sethash :yaw-angle return-table yaw-angle)
+          (sethash :gripper-angle return-table gripper-angle)))))
   (:try-to-pick-object
     (arm obj-coords &key (offset #f(0 0 0)) (grasp-style :suction)
          (rotation-axis :z))
