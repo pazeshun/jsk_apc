@@ -17,6 +17,7 @@
           moveit-p-
           moving-object-p-
           picking-fail-count-
+          place-target-  ;; (list label cube)
           prev-target-obj-
           recognize-fail-count-
           start-picking-fail-count-
@@ -258,24 +259,13 @@
     (send *ri* :wait-interpolation)
     (if (eq grasp-style- :pinch)
       (send self :resolve-collision-between-fingers arm)))
-  (:blacklisted-target-p ()
-    (setq picking-fail-count- 0)
-    (if (eq target-cardboard- :shelf)
-      (progn
-        (ros::ros-info "[main] blacklisted object, return to shelf")
-        t)
-      (progn
-        (ros::set-param (format nil "~a_hand/target_box" (arm2str arm)) (symbol2str target-cardboard-))
-        ;; logging
-        (ros::ros-info "[main] target-cardboard: ~a" target-cardboard-)
-        nil)))
   (:verify-object (arm)
     (when moving-object-p-
       (setq moving-object-p- nil)
       (ros::ros-info "moving object in bin")
       (return-from :verify-object nil))
     ;; skip verify because we have neither external camera or scale
-    (not (send self :blacklisted-target-p)))
+    t)
   (:check-picking-fail-count (arm &key (count-limit 2))
     (incf picking-fail-count-)
     (ros::ros-info "[main] arm: ~a, picking fail count: ~a" arm picking-fail-count-)
@@ -283,6 +273,19 @@
       (setq picking-failp (null (> count-limit picking-fail-count-)))
       (if picking-failp (setq picking-fail-count- 0))
       picking-failp))
+  (:set-place-target (arm)
+    (setq picking-fail-count- 0)
+    (if (eq target-cardboard- :shelf)
+      (progn
+        (ros::ros-info "[main] blacklisted object, return to shelf")
+        nil)
+      (progn
+        (setq place-target- nil)
+        (pushback :tote place-target-)
+        (pushback (gethash arm tote-cubes-) place-target-)
+        ;; logging
+        (ros::ros-info "[main] place-target: ~a, ~a" (elt place-target- 0) (elt place-target- 1))
+        t)))
   (:return-object (arm)
     (send self :add-postponed-object arm target-obj- target-bin-)
     (when moveit-p- (send self :delete-bin-scene target-bin-))

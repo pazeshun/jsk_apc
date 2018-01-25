@@ -102,6 +102,7 @@ class StateServer(threading.Thread):
                         or opposite_state == 'change-grasp-style' \
                         or opposite_state == 'verify-object' \
                         or opposite_state == 'set-target-cardboard' \
+                        or opposite_state == 'set-place-target' \
                         or opposite_state == 'place-object' \
                         or opposite_state == 'return-object':
                     can_start = False
