@@ -233,22 +233,17 @@
           (progn
             (send self :ik->bin-center arm target-bin-
                   :offset #f(0 0 300)
-                  :rotation-axis :z :use-gripper t)
-            (setq end-pos (send (send *baxter* arm :end-coords :copy-worldcoords) :worldpos))
-            (send *baxter* :rotate-wrist-ik arm
-                  (make-coords :pos end-pos
-                               :rpy (float-vector (if (eq arm :larm) -pi/2 pi/2) 0 0))
-                  :rotate-axis t))
+                  :rpy (float-vector (if (eq arm :larm) -pi/2 pi/2) 0 0)
+                  :rotation-axis t
+                  :use-gripper t
+                  :use-rotate-wrist-ik t))
           (progn
             (send self :ik->bin-center arm target-bin-
                   :offset #f(0 0 300)
-                  :rotation-axis :z :move-palm-end t)
-            (setq end-pos (send (send *baxter* arm :palm-endpoint :copy-worldcoords) :worldpos))
-            (send *baxter* :rotate-wrist-ik arm
-                  (make-coords :pos end-pos
-                               :rpy (float-vector (if (eq arm :larm) -pi/2 pi/2) 0 0))
+                  :rpy (float-vector (if (eq arm :larm) -pi/2 pi/2) 0 0)
+                  :rotation-axis t
                   :move-palm-end t
-                  :rotate-axis t)))
+                  :use-rotate-wrist-ik t)))
         (send *ri* :angle-vector-raw (send *baxter* :angle-vector) 3000
               (send *ri* :get-arm-controller arm :gripper nil) 0)
         (send *ri* :wait-interpolation))
