@@ -306,7 +306,7 @@
     (send *ri* :wait-interpolation)
     (ros::ros-info "[main] ~a, return object in shelf" arm)
     (send *ri* :angle-vector-raw
-          (send *baxter* arm :move-end-pos #f(0 0 200) :world :rotation-axis :z)
+          (send *baxter* arm :move-end-pos #f(0 0 200) :local :move-palm-end t :rotation-axis :z)
           :fast (send *ri* :get-arm-controller arm) 0 :scale 5.0)
     (send *ri* :wait-interpolation)
     (when moveit-p- (send self :add-bin-scene target-bin-))
