@@ -856,7 +856,7 @@
       (if graspingp :grasp-succeeded :grasp-failed)))
   (:ik->bin-center
     (arm bin &key (offset #f(0 0 0)) (rpy #f(0 0 0))
-         (rotation-axis t) (use-gripper nil) (move-palm-end nil))
+         (rotation-axis t) (use-gripper nil) (move-palm-end nil) (use-rotate-wrist-ik nil))
     (let (bin-cube bin-coords)
       (setq bin-cube (gethash bin bin-cubes-))
       (setq bin-coords (send bin-cube :copy-worldcoords))
@@ -867,10 +867,15 @@
       (send bin-coords :rotate (aref rpy 0) :z)
       (send bin-coords :rotate (aref rpy 1) :y)
       (send bin-coords :rotate (aref rpy 2) :x)
-      (send *baxter* arm :inverse-kinematics bin-coords
-            :rotation-axis rotation-axis
-            :use-gripper use-gripper
-            :move-palm-end move-palm-end)))
+      (if use-rotate-wrist-ik
+        (send *baxter* :rotate-wrist-ik arm bin-coords
+              :rotation-axis rotation-axis
+              :use-gripper use-gripper
+              :move-palm-end move-palm-end)
+        (send *baxter* arm :inverse-kinematics bin-coords
+              :rotation-axis rotation-axis
+              :use-gripper use-gripper
+              :move-palm-end move-palm-end))))
   (:ik->cardboard-center
     (arm cardboard &key (offset #f(0 0 0)) (rpy #f(0 0 0))
          (rotation-axis t) (use-gripper nil) (move-palm-end nil))
