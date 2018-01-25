@@ -45,10 +45,10 @@
 
 
   <!-- picking source location: shelf/tote -->
-  <include file="$(find jsk_arc2017_baxter)/launch/setup/include/setup_source_location.xml">
+  <include file="$(find jsk_arc2017_baxter)/launch/setup/include/setup_source_location.xml" unless="$(arg kiva_pod)">
     <arg name="pick" value="$(arg pick)" />
-    <arg name="kiva_pod" value="$(arg kiva_pod)" />
   </include>
+  <include file="$(find jsk_arc2017_baxter)/launch/setup/include/setup_source_location_kiva_pod.xml" if="$(arg kiva_pod)" />
 
   <node name="desktop_bg_publisher"
         pkg="jsk_perception" type="image_publisher.py">
