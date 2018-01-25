@@ -22,7 +22,7 @@
           recognize-fail-count-
           start-picking-fail-count-
           target-bin-
-          target-cardboard-
+          target-box-
           target-obj-
           trial-fail-count-))
 
@@ -109,7 +109,7 @@
           (setq is-recognized
             (when order
               (setq target-obj- (send order :item))
-              (setq target-cardboard- (str2symbol (send order :box)))
+              (setq target-box- (str2symbol (send order :box)))
               (ros::set-param
                 (format nil "~a_hand/target_object" (arm2str arm)) target-obj-)
               (ros::set-dynparam
@@ -274,7 +274,7 @@
       picking-failp))
   (:set-place-target (arm)
     (setq picking-fail-count- 0)
-    (if (eq target-cardboard- :shelf)
+    (if (eq target-box- :shelf)
       (progn
         (ros::ros-info "[main] blacklisted object, return to shelf")
         nil)
