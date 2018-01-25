@@ -854,69 +854,39 @@
       (setq graspingp (send *ri* :graspingp arm :pinch))
       (ros::ros-info "[:try-to-pinch-object] arm:~a graspingp: ~a" arm graspingp)
       (if graspingp :grasp-succeeded :grasp-failed)))
-  (:ik->bin-center
-    (arm bin &key (offset #f(0 0 0)) (rpy #f(0 0 0))
+  (:ik->cube-center
+    (arm cube &key (offset #f(0 0 0)) (rpy #f(0 0 0))
          (rotation-axis t) (use-gripper nil) (move-palm-end nil) (use-rotate-wrist-ik nil))
-    (let (bin-cube bin-coords)
-      (setq bin-cube (gethash bin bin-cubes-))
-      (setq bin-coords (send bin-cube :copy-worldcoords))
-      (send bin-coords :translate
-            (float-vector 0.0 0.0 (/ (z-of-cube bin-cube) 2.0))
+    (let (cube-coords)
+      (setq cube-coords (send cube :copy-worldcoords))
+      (send cube-coords :translate
+            (float-vector 0.0 0.0 (/ (z-of-cube cube) 2.0))
             :local)
-      (send bin-coords :translate offset :local)
-      (send bin-coords :rotate (aref rpy 0) :z)
-      (send bin-coords :rotate (aref rpy 1) :y)
-      (send bin-coords :rotate (aref rpy 2) :x)
+      (send cube-coords :translate offset :local)
+      (send cube-coords :rotate (aref rpy 0) :z)
+      (send cube-coords :rotate (aref rpy 1) :y)
+      (send cube-coords :rotate (aref rpy 2) :x)
       (if use-rotate-wrist-ik
-        (send *baxter* :rotate-wrist-ik arm bin-coords
+        (send *baxter* :rotate-wrist-ik arm cube-coords
               :rotation-axis rotation-axis
               :use-gripper use-gripper
               :move-palm-end move-palm-end)
-        (send *baxter* arm :inverse-kinematics bin-coords
+        (send *baxter* arm :inverse-kinematics cube-coords
               :rotation-axis rotation-axis
               :use-gripper use-gripper
               :move-palm-end move-palm-end))))
+  (:ik->bin-center
+    (arm bin &rest args)
+    (send* self :ik->cube-center arm (gethash bin bin-cubes-) args))
   (:ik->cardboard-center
-    (arm cardboard &key (offset #f(0 0 0)) (rpy #f(0 0 0))
-         (rotation-axis t) (use-gripper nil) (move-palm-end nil))
-    (let (cardboard-cube cardboard-coords)
-      (setq cardboard-cube (gethash cardboard cardboard-cubes-))
-      (setq cardboard-coords (send cardboard-cube :copy-worldcoords))
-      (send cardboard-coords :translate
-            (float-vector 0.0 0.0 (/ (z-of-cube cardboard-cube) 2.0))
-            :local)
-      (send cardboard-coords :translate offset :world)
-      (send cardboard-coords :rotate (aref rpy 0) :z)
-      (send cardboard-coords :rotate (aref rpy 1) :y)
-      (send cardboard-coords :rotate (aref rpy 2) :x)
-
-      ;; use prismatic joint as much as possible
-      (let ((jnt (send *baxter* :joint (format nil "~a_gripper_prismatic_joint" (arm2str arm)))))
-        (send jnt :joint-angle (send jnt :max-angle))
-        )
-      (send *baxter* arm :inverse-kinematics cardboard-coords
-            :rotation-axis nil :use-gripper nil)
-      (send *baxter* arm :inverse-kinematics cardboard-coords
-            :rotation-axis rotation-axis
-            :use-gripper use-gripper
-            :move-palm-end move-palm-end)))
+    (arm cardboard &rest args)
+    ;; use prismatic joint as much as possible
+    (let ((jnt (send *baxter* arm :gripper-x)))
+      (send jnt :joint-angle (send jnt :max-angle)))
+    (send* self :ik->cube-center arm (gethash cardboard cardboard-cubes-) args))
   (:ik->tote-center
-    (arm &key (offset #f(0 0 0)) (rpy #f(0 0 0))
-         (rotation-axis t) (use-gripper nil) (move-palm-end nil))
-    (let (tote-cube tote-coords)
-      (setq tote-cube (gethash arm tote-cubes-))
-      (setq tote-coords (send tote-cube :copy-worldcoords))
-      (send tote-coords :translate
-            (float-vector 0.0 0.0 (/ (z-of-cube tote-cube) 2.0))
-            :local)
-      (send tote-coords :translate offset :world)
-      (send tote-coords :rotate (aref rpy 0) :z)
-      (send tote-coords :rotate (aref rpy 1) :y)
-      (send tote-coords :rotate (aref rpy 2) :x)
-      (send *baxter* arm :inverse-kinematics tote-coords
-            :rotation-axis rotation-axis
-            :use-gripper use-gripper
-            :move-palm-end move-palm-end)))
+    (arm &rest args)
+    (send* self :ik->cube-center arm (gethash arm tote-cubes-) args))
   (:move-arm-body->bin-overlook-pose
     (arm bin &key (gripper-angle 90))
     (let (avs offset rpy
@@ -976,10 +946,14 @@
   (:get-bin-contents (bin)
     (ros::get-param
       (format nil "/bin_contents/~A" (symbol-string bin))))
+  (:add-labeled-obj-scene (obj str-label)
+    (let ((base-name (send (send *baxter* :base_lk) :name)))
+      (send *co* :add-object obj :frame-id base-name
+            :relative-pose (send obj :copy-worldcoords)
+            :object-id str-label)))
   (:add-workspace-scene
     ()
-    (let ((base-name (send (send *baxter* :base_lk) :name))
-          (dimensions (list '(2500 10 2000) '(2500 10 2000)))
+    (let ((dimensions (list '(2500 10 2000) '(2500 10 2000)))
           (positions (list (float-vector 500 1200 0) (float-vector 500 -1200 0)))
           (names (list "workspace_left" "workspace_right")))
       (dotimes (i (length positions))
@@ -987,18 +961,14 @@
               (pos (elt positions i))
               (name (elt names i)))
           (send cube :locate pos :world)
-          (send *co* :add-object cube :frame-id base-name
-                :relative-pose (send cube :copy-worldcoords)
-                :object-id name)
+          (send self :add-labeled-obj-scene cube name)
           )
         )
       ))
   (:add-bin-scene (bin)
-    (let ((cube (gethash bin bin-cubes-))
-          (base-name (send (send *baxter* :base_lk) :name)))
-      (send *co* :add-object cube :frame-id base-name
-            :relative-pose (send cube :copy-worldcoords)
-            :object-id (format nil "bin_~A" (symbol-string bin)))))
+    (let ((cube (gethash bin bin-cubes-)))
+      (send self :add-labeled-obj-scene cube
+            (format nil "bin_~A" (symbol-string bin)))))
   (:delete-bin-scene (bin)
     (send *co* :delete-object (gethash bin bin-cubes-)))
   (:add-shelf-scene ()
@@ -1008,11 +978,10 @@
     (dolist (bin (list :a :b :c))
       (send self :delete-bin-scene bin)))
   (:add-cardboard-scene (cardboard)
-    (let (cardboard-cube (base-name (send (send *baxter* :base_lk) :name)))
+    (let (cardboard-cube)
       (setq cardboard-cube (gethash cardboard cardboard-cubes-))
-      (send *co* :add-object cardboard-cube :frame-id base-name
-            :relative-pose (send cardboard-cube :copy-worldcoords)
-            :object-id (format nil "cardboard_~A" (symbol-string cardboard)))))
+      (send self :add-labeled-obj-scene cardboard-cube
+            (format nil "cardboard_~A" (symbol-string cardboard)))))
   (:delete-cardboard-scene (cardboard)
     (let (cardboard-cube)
       (setq cardboard-cube (gethash cardboard cardboard-cubes-))
@@ -1020,7 +989,6 @@
   (:add-cardboad-rack-leg-scene (side)
     (let* ((cardboard-c-cube (gethash :c cardboard-cubes-))
            (cardboard-c-coords (send cardboard-c-cube :copy-worldcoords))
-           (base-name (send (send *baxter* :base_lk) :name))
            rack-leg-cube offset)
       (setq offset
             (float-vector
@@ -1029,9 +997,8 @@
               (elt (send cardboard-c-coords :worldpos) 2)))
       (setq rack-leg-cube (make-cube 300 20 1200))
       (send rack-leg-cube :translate offset :world)
-      (send *co* :add-object rack-leg-cube :frame-id base-name
-            :relative-pose (send rack-leg-cube :copy-worldcoords)
-            :object-id (format nil "rack_leg_~a" (symbol2str side)))
+      (send self :add-labeled-obj-scene rack-leg-cube
+            (format nil "rack_leg_~a" (symbol2str side)))
       (sethash side rack-leg-cubes- rack-leg-cube)))
   (:delete-cardboard-rack-leg-scene (side)
     (send *co* :delete-object (gethash side rack-leg-cubes-)))
@@ -1047,11 +1014,9 @@
       (send self :delete-cardboad-rack-leg-scene side)))
   (:add-tote-scene (arm)
     (dolist (tmp-arm (if (eq arm :arms) (list :rarm :larm) (list arm)))
-      (let ((cube (gethash tmp-arm tote-cubes-))
-            (base-name (send (send *baxter* :base_lk) :name)))
-        (send *co* :add-object cube :frame-id base-name
-              :relative-pose (send cube :copy-worldcoords)
-              :object-id (format nil "~A_tote" (arm2str tmp-arm))))))
+      (let ((cube (gethash tmp-arm tote-cubes-)))
+        (send self :add-labeled-obj-scene cube
+              (format nil "~A_tote" (arm2str tmp-arm))))))
   (:delete-tote-scene (arm)
     (dolist (tmp-arm (if (eq arm :arms) (list :rarm :larm) (list arm)))
       (send *co* :delete-object (gethash tmp-arm tote-cubes-))))
@@ -1122,12 +1087,18 @@
     (let ((service-name (format nil "/json_saver/update_json"))
           (req (instance jsk_arc2017_common::UpdateJSONRequest :init)))
       (ros::wait-for-service service-name)
-      (if (consp src)
-        (setq src (format nil "~a_~a" (symbol2str (car src)) (symbol-string (cdr src))))
-        (setq src (symbol2str src)))
-      (if (consp dst)
-        (setq dst (format nil "~a_~a" (symbol2str (car dst)) (symbol-string (cdr dst))))
-        (setq dst (symbol2str dst)))
+      (cond ((consp src)
+             (setq src (format nil "~a_~a" (symbol2str (car src)) (symbol-string (cdr src)))))
+            ((symbolp src) (setq src (symbol2str src)))
+            ((stringp src) nil)
+            (t (ros::ros-fatal "[:update-json] invaild src")
+               (return-from :update-json nil)))
+      (cond ((consp dst)
+             (setq dst (format nil "~a_~a" (symbol2str (car dst)) (symbol-string (cdr dst)))))
+            ((symbolp dst) (setq dst (symbol2str dst)))
+            ((stringp dst) nil)
+            (t (ros::ros-fatal "[:update-json] invaild dst")
+               (return-from :update-json nil)))
       (send req :src src)
       (send req :dst dst)
       (send req :item object)

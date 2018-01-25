@@ -17,7 +17,8 @@
           moveit-p-
           moving-object-p-
           picking-fail-count-
-          place-target-  ;; (list label cube)
+          place-target-cube-
+          place-target-label-
           prev-target-obj-
           recognize-fail-count-
           start-picking-fail-count-
@@ -280,11 +281,11 @@
         (ros::ros-info "[main] blacklisted object, return to shelf")
         nil)
       (progn
-        (setq place-target- nil)
-        (pushback :tote place-target-)
-        (pushback (gethash arm tote-cubes-) place-target-)
+        (setq place-target-label- (format nil "~A_tote" (arm2str arm)))
+        (setq place-target-cube- (gethash arm tote-cubes-))
         ;; logging
-        (ros::ros-info "[main] place-target: ~a, ~a" (elt place-target- 0) (elt place-target- 1))
+        (ros::ros-info "[main] place-target: label: ~a, cube: ~a"
+                       place-target-label- place-target-cube-)
         t)))
   (:return-object (arm)
     (send self :add-postponed-object arm target-obj- target-bin-)
@@ -333,9 +334,10 @@
       ;;                                  :orientation_constraints (list orientation-constraint)))
 
       (send *ri* :speak
-            (format nil "~a arm is placing ~a into box ~a."
-                    (arm2str arm) (underscore-to-space target-obj-) target-cardboard-))
-      (ros::ros-info "[main] ~a, place object in bin ~a" arm target-cardboard-)
+            (format nil "~a arm is placing ~a into ~a."
+                    (arm2str arm) (underscore-to-space target-obj-)
+                    (underscore-to-space place-target-label-)))
+      (ros::ros-info "[main] ~a, place object in ~a" arm place-target-label-)
       ;; (when moveit-p- (send self :add-object-in-hand-scene arm target-obj-))
 
       ;; FIXME: moveit cannot solve path
@@ -347,7 +349,7 @@
       (let (avs (offsets (list #f(-50 0 500) #f(-50 0 200) #f(0 0 200) #f(30 0 200))))
         (dolist (offset offsets)
           (pushback
-            (send self :ik->cardboard-center arm target-cardboard-
+            (send self :ik->cube-center arm place-target-cube-
                   :offset offset
                   :rotation-axis (if (eq grasp-style- :suction) :z nil)
                   :use-gripper (if (eq grasp-style- :suction) t nil)
@@ -378,15 +380,17 @@
           (send *ri* :wait-interpolation)
           (send self :add-postponed-object arm target-obj- target-bin-))
         (let (av)
-          (ros::ros-info-green "[main] arm ~a: place object ~a in cardboard ~a" arm target-obj- target-cardboard-)
+          (ros::ros-info-green "[main] arm ~a: place object ~a in ~a"
+                               arm target-obj- place-target-label-)
           (send self :update-json target-obj-
-                :src (cons :bin target-bin-) :dst (cons :cardboard target-cardboard-))
+                :src (cons :bin target-bin-) :dst place-target-label-)
           (send self :add-finished-object arm target-obj- target-bin-)
-          (when moveit-p- (send self :delete-cardboard-scene target-cardboard-))
+          (when moveit-p- (send *co* :delete-object place-target-cube-))
           (setq av (if (eq grasp-style- :suction)
-                     (send *baxter* arm :move-end-pos (float-vector 0 0 (- place-z)) :world)
-                     (send *baxter* arm :move-end-pos
-                       (float-vector 0 0 (- place-z)) :world :rotation-axis nil)))
+                     (send *baxter* arm :move-end-pos (float-vector 0 0 (- place-z))
+                           (send place-target-cube- :worldcoords))
+                     (send *baxter* arm :move-end-pos (float-vector 0 0 (- place-z))
+                           (send place-target-cube- :worldcoords) :rotation-axis nil)))
           (when av
             (send *ri* :angle-vector-raw av
                   2000 (send *ri* :get-arm-controller arm) 0)
@@ -399,14 +403,17 @@
           (send *ri* :wait-interpolation)
           (when av
             (setq av (if (eq grasp-style- :suction)
-                       (send *baxter* arm :move-end-pos (float-vector 0 0 place-z) :world
+                       (send *baxter* arm :move-end-pos (float-vector 0 0 place-z)
+                             (send place-target-cube- :worldcoords)
                              :rotation-axis :z :use-gripper t)
-                       (send *baxter* arm :move-end-pos (float-vector 0 0 place-z) :world
+                       (send *baxter* arm :move-end-pos (float-vector 0 0 place-z)
+                             (send place-target-cube- :worldcoords)
                              :rotation-axis nil)))
             (send *ri* :angle-vector-raw av
                   1000 (send *ri* :get-arm-controller arm) 0)
             (send *ri* :wait-interpolation))
-          (when moveit-p- (send self :add-cardboard-scene target-cardboard-))))))
+          (when moveit-p- (send self :add-labeled-obj-scene
+                                place-target-cube- place-target-label-))))))
   (:return-from-place-object (arm)
     (let (avs)
       (setq avs (list (send *baxter* :avoid-shelf-pose arm (if (eq arm :larm) :d :f))))
