@@ -11,8 +11,7 @@
 
 (defclass jsk_arc2017_baxter::pick-kiva-pod-interface
   :super jsk_arc2017_baxter::arc-kiva-pod-interface
-  :slots (bins-
-          grasp-style-
+  :slots (grasp-style-
           label-names-
           moveit-p-
           moving-object-p-
@@ -34,7 +33,6 @@
     (setq trial-fail-count- 0)
     (setq recognize-fail-count- 0)
     (setq start-picking-fail-count- 0)
-    (setq bins- (list :a :b :c :d :e :f :g :h :i :j :k :l))
     (setq moveit-p- moveit)
     (setq grasp-style- nil))
   (:recognize-bboxes ()
@@ -63,7 +61,7 @@
       (ros::ros-info "[:wait-for-user-input] received user input: ~a" arm)
       (send self :get-work-orders arm)
       (send self :reset-object-tables :bins)
-      (dolist (bin bins-)
+      (dolist (bin bin-list-)
         (send self :set-objects-param arm bin :object-type :all))
       can-start))
   (:calib-prismatic-joint (arm &key (timeout 10))
@@ -85,7 +83,7 @@
       (return-from :set-target nil))
     (ros::set-dynparam
       (format nil "/~a_hand_camera/bbox_array_to_bbox" (arm2str arm))
-      (cons "index" (position target-bin- bins-)))
+      (cons "index" (position target-bin- bin-list-)))
     (send self :set-target-location arm (cons :bin target-bin-))
     (ros::set-param
       (format nil "~a_hand/target_bin" (arm2str arm))

@@ -14,9 +14,11 @@
   :slots (attached-objects-
           bbox-volume-threshold-
           bin-cubes-
+          bin-list-
           bin-movable-regions-
           bin-object-volumes-
           cardboard-cubes-
+          cardboard-list-
           finished-objects-
           object-boxes-
           object-coords-
@@ -36,8 +38,6 @@
     (setq bin-cubes- (make-hash-table))
     (setq bin-movable-regions- (make-hash-table))
     (setq bin-object-volumes- (make-hash-table))
-    (dolist (bin (list :a :b :c))
-      (sethash bin bin-object-volumes- 0))
     (setq object-boxes- (make-hash-table))
     (setq object-coords- (make-hash-table))
     (setq cardboard-cubes- (make-hash-table))
@@ -88,7 +88,7 @@
     (&key (offset (list 0 0 0)))
     (let (cube)
         (progn
-          (dolist (bin (list :a :b :c :d :e :f :g :h :i :j :k :l))
+          (dolist (bin bin-list-)
                (setq cube (gethash bin bin-cubes-))
                (sethash bin bin-movable-regions-
                         (send self :cube->movable-region cube :offset offset))))))
@@ -269,7 +269,7 @@
   (:recognize-bin-boxes
     (&key (stamp (ros::time-now)))
     (let ((box-topic (format nil "transformable_bin_markers/output/boxes"))
-          box-msg box-list bin-list)
+          box-msg box-list bin)
       (setq box-msg (one-shot-subscribe box-topic
                                         jsk_recognition_msgs::BoundingBoxArray
                                         :timeout 10000
@@ -278,15 +278,19 @@
         (progn
           (ros::ros-info "[~a] [:recognize-bin-boxes] recognize bin boxes" (ros::get-name))
           (setq box-list (send box-msg :boxes))
-          (setq bin-list (list :a :b :c :d :e :f :g :h :i :j :k :l))
-          (dolist (bin bin-list)
-            (sethash bin bin-cubes- (send self :bbox->cube (car box-list)))
-            (setq box-list (cdr box-list))))
+          (dotimes (i (length box-list))
+            (setq bin (str2symbol (format nil "~c" (+ #\a i))))
+            (sethash bin bin-cubes- (send self :bbox->cube (elt box-list i)))
+            ;; generate bin-list- dynamically
+            (pushback bin bin-list-)
+            ;; initialize bin-object-volumes- if not initialized
+            (if (null (gethash bin bin-object-volumes-))
+              (sethash bin bin-object-volumes- 0))))
         (ros::ros-fatal "[:recognize-bin-boxes] cannot recognize bin boxes"))))
   (:recognize-cardboard-boxes
     (&key (stamp (ros::time-now)))
     (let ((box-topic (format nil "transformable_cardboard_markers/output/boxes"))
-          box-msg box-list cardboard-list)
+          box-msg box-list cardboard)
       (setq box-msg (one-shot-subscribe box-topic
                                         jsk_recognition_msgs::BoundingBoxArray
                                         :timeout 10000
@@ -295,10 +299,12 @@
         (progn
           (ros::ros-info "[~a] [:recognize-cardboard-boxes] recognize cardboard boxes" (ros::get-name))
           (setq box-list (send box-msg :boxes))
-          (setq cardboard-list (list :a :b :c))
-          (dolist (cardboard cardboard-list)
-            (sethash cardboard cardboard-cubes- (send self :bbox->cube (car box-list)))
-            (setq box-list (cdr box-list))))
+          (dotimes (i (length box-list))
+            (setq cardboard (str2symbol (format nil "~c" (+ #\a i))))
+            (sethash bin bin-cubes- (send self :bbox->cube (elt box-list i)))
+            (sethash cardboard cardboard-cubes- (send self :bbox->cube (elt box-list i)))
+            ;; generate cardboard-list- dynamically
+            (pushback cardboard cardboard-list-)))
         (ros::ros-fatal "[:recognize-cardboard-boxes] cannot recognize cardboard boxes"))))
   (:recognize-tote-boxes
     (&key (stamp (ros::time-now)))
@@ -972,10 +978,10 @@
   (:delete-bin-scene (bin)
     (send *co* :delete-object (gethash bin bin-cubes-)))
   (:add-shelf-scene ()
-    (dolist (bin (list :a :b :c))
+    (dolist (bin bin-list-)
       (send self :add-bin-scene bin)))
   (:delete-shelf-scene ()
-    (dolist (bin (list :a :b :c))
+    (dolist (bin bin-list-)
       (send self :delete-bin-scene bin)))
   (:add-cardboard-scene (cardboard)
     (let (cardboard-cube)
@@ -1003,12 +1009,12 @@
   (:delete-cardboard-rack-leg-scene (side)
     (send *co* :delete-object (gethash side rack-leg-cubes-)))
   (:add-cardboard-rack-scene ()
-    (dolist (cardboard (list :a :b :c))
+    (dolist (cardboard cardboard-list-)
       (send self :add-cardboard-scene cardboard))
     (dolist (side (list :left :right))
       (send self :add-cardboad-rack-leg-scene side)))
   (:delete-cardboard-rack-scene ()
-    (dolist (cardboard (list :a :b :c))
+    (dolist (cardboard cardboard-list-)
       (send self :delete-cardboard-scene cardboard))
     (dolist (side (list :left :right))
       (send self :delete-cardboad-rack-leg-scene side)))
@@ -1201,7 +1207,7 @@
          (let ((bin (str2symbol (send order :bin)))
                (obj (send order :item)))
            (send self :update-object-tables obj bin :object-type :unfinished-objects)))
-       (dolist (bin (list :a :b :c))
+       (dolist (bin bin-list-)
          (sethash bin finished-objects- nil)
          (sethash bin postponed-objects- nil)))
       ((eq location-type :tote)
@@ -1284,8 +1290,12 @@
         (float-vector -50.0 (/ region-y -7.0) 0.0)
         (float-vector -50.0 (/ region-y 7.0) 0.0))))
   (:get-stowing-target-bin (arm)
-    (let ((bins (if (eq arm :larm) (list :a :b) (list :b :c)))
-          obj-bbox target-bin obj-bbox-volume)
+    (let (bins obj-bbox target-bin obj-bbox-volume)
+      (dotimes (i (length bin-list-))
+        (if (or (eq (mod i 3) 1)
+                (and (eq (mod i 3) 0) (eq arm :larm))
+                (and (eq (mod i 3) 2) (eq arm :rarm)))
+          (pushback (elt bin-list- i) bins)))
       (setq object-volumes
             (mapcar #'(lambda (bin) (gethash bin bin-object-volumes-)) bins))
       (setq target-bin (elt bins (argmin object-volumes)))
