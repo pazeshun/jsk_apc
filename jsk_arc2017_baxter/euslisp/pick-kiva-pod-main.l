@@ -37,9 +37,11 @@
             (:return-from-pick-object -> :check-picking-fail-count)
             (:check-picking-fail-count -> :wait-for-opposite-arm-start-picking)
             (:check-picking-fail-count !-> :calib-prismatic-joint)
-            (:verify-object -> :place-object)
+            (:verify-object -> :set-place-target)
             (:verify-object !-> :return-object)
             (:return-object -> :check-picking-fail-count)
+            (:set-place-target -> :place-object)
+            (:set-place-target !-> :return-object)
             (:place-object -> :return-from-place-object)
             (:return-from-place-object -> :calib-prismatic-joint)
             (:wait-for-opposite-arm-start-picking -> :calib-prismatic-joint)
@@ -111,6 +113,10 @@
               '(lambda (userdata)
                  (send *ti* :update-state *arm* :check-picking-fail-count)
                  (send *ti* :check-picking-fail-count *arm*)))
+            (:set-place-target
+              '(lambda (userdata)
+                 (send *ti* :update-state *arm* :set-place-target)
+                 (send *ti* :set-place-target *arm*)))
             (:return-object
               '(lambda (userdata)
                  (send *ti* :update-state *arm* :return-object)
