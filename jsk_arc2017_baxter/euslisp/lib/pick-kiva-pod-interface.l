@@ -19,7 +19,6 @@
           picking-fail-count-
           prev-target-obj-
           recognize-fail-count-
-          scale-candidates-
           start-picking-fail-count-
           target-bin-
           target-cardboard-
@@ -214,7 +213,6 @@
       (if (eq grasp-style- :suction)
         (send self :set-movable-region-for-bin :offset (list 50 50 0))
         (send self :set-movable-region-for-bin :offset (list 50 50 0)))
-      (send self :reset-scale arm)
       (send *baxter* :head_pan :joint-angle (if (eq arm :larm) -70 70))
       (setq pick-result
             (send self :pick-object-in-bin arm target-bin-
@@ -223,11 +221,6 @@
                   :do-stop-grasp nil
                   :grasp-style grasp-style-))
       (when moveit-p- (send self :add-bin-scene target-bin-))
-      ;; Don't trust pressure sensor
-      ;; (unless (eq pick-result :ik-failed)
-      ;;   (setq graspingp (send *ri* :graspingp arm grasp-style-))
-      ;;   (unless graspingp (return-from :pick-object nil))
-      ;;   )
       (let (avs end-pos)
         (if (eq grasp-style- :suction)
           (progn
@@ -248,18 +241,12 @@
               (send *ri* :get-arm-controller arm :gripper nil) 0)
         (send *ri* :wait-interpolation))
       (if (eq pick-result :ik-failed) (return-from :pick-object nil))
-      ;; Don't trust pressure sensor
-      ;; (setq graspingp (send *ri* :graspingp arm grasp-style-))
-      ;; (ros::ros-info "[main] arm: ~a graspingp: ~a" arm graspingp)
-      ;; graspingp))
-      (setq scale-candidates-
-            (send self :get-scale-candidates arm :picked :stamp (ros::time-now)))
-      ;; If scale value isn't changed, we don't have to verify-object and return-object
-      (if (eq scale-candidates- :no-change)
-        (progn
-          (ros::ros-info-green "[main] arm ~a: grasping nothing is detected by scale" arm)
-          nil)
-        t)))
+      ;; Trust pressure sensor
+      (setq graspingp (send *ri* :graspingp arm grasp-style-))
+      (ros::ros-info "[main] arm: ~a graspingp: ~a" arm graspingp)
+      ;; TODO (send *ri* :graspingp arm :pinch) always returns t,
+      ;;      so placing always occurs even if nothing is pinched
+      graspingp))
   (:return-from-pick-object (arm)
     (send self :add-postponed-object arm target-obj- target-bin-)
     (setq start-picking-fail-count- 0)
@@ -287,40 +274,8 @@
       (setq moving-object-p- nil)
       (ros::ros-info "moving object in bin")
       (return-from :verify-object nil))
-    (let ((stamp (ros::time-now)))
-      (when (eq scale-candidates- :timeout)
-        (ros::ros-error "subscribed weight candidates, but timeout")
-        (return-from :verify-object nil))
-      (ros::ros-info-green "[main] arm ~a: scale candidates ~a" arm scale-candidates-)
-      (unless scale-candidates- (return-from :verify-object nil))
-      (if (find target-obj- scale-candidates- :test #'string=)
-        (not (send self :blacklisted-target-p))  ;; scale can classify the grasped object
-        (progn  ;; scale narrows down candidate objects
-          (let (msg (proba-thre 0.80) new-order)
-            (if (eq (length scale-candidates-) 1)
-              (setq new-order (send self :check-exist-in-order (car scale-candidates-)))
-              (progn
-                (setq msg
-                  (one-shot-subscribe
-                    (format nil "/~a_hand_camera/probability_image_classifier/output" (arm2str arm))
-                    jsk_recognition_msgs::ClassificationResult
-                    :timeout 15000
-                    :after-stamp stamp))
-                (unless msg (return-from :verify-object nil))
-                (ros::ros-info-blue "classifier result: arm ~a, object ~a, proba ~a"
-                                    (arm2str arm) (car (send msg :label_names))
-                                    (elt (send msg :label_proba) 0))
-                (when (> (elt (send msg :label_proba) 0) proba-thre)
-                  (setq new-order
-                        (send self :check-exist-in-order (car (send msg :label_names)))))))
-            (if new-order
-              (progn
-                (setq target-obj- (send new-order :item))
-                (setq target-cardboard- (str2symbol (send new-order :box)))
-                (ros::ros-info-blue "[~a] [main] :verify-object, overwrite target, target-obj: ~a"
-                                    (ros::get-name) target-obj-)
-                (not (send self :blacklisted-target-p)))
-              nil))))))
+    ;; skip verify because we have neither external camera or scale
+    (not (send self :blacklisted-target-p)))
   (:check-picking-fail-count (arm &key (count-limit 2))
     (incf picking-fail-count-)
     (ros::ros-info "[main] arm: ~a, picking fail count: ~a" arm picking-fail-count-)
