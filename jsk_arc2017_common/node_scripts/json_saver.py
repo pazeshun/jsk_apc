@@ -97,7 +97,8 @@ class JSONSaver(threading.Thread):
         self.pub.publish(String(data=osp.dirname(self.output_json_path)))
         contents_msg = ContentArray()
         contents = []
-        for bin_ in 'ABC':
+        for idx_ in range(0, len(self.bin_contents)):
+            bin_ = chr(ord('A') + idx_)
             msg = Content()
             msg.bin = bin_
             msg.items = self.bin_contents[bin_]
@@ -128,27 +129,21 @@ class JSONSaver(threading.Thread):
         self.lock.acquire()
         is_saved = True
         boxes = []
+        bins = []
         if len(self.cardboard_contents.keys()) > 0:
             for key in 'ABC':
                 boxes.append({
                     'size_id': self.cardboard_ids[key],
                     'contents': self.cardboard_contents[key]
                 })
+        for idx_ in range(0, len(self.bin_contents)):
+            bin_ = chr(ord('A') + idx_)
+            bins.append({
+                'bin_id': bin_,
+                'contents': self.bin_contents[bin_]
+                })
         location = {
-            'bins': [
-                {
-                    'bin_id': 'A',
-                    'contents': self.bin_contents['A']
-                },
-                {
-                    'bin_id': 'B',
-                    'contents': self.bin_contents['B']
-                },
-                {
-                    'bin_id': 'C',
-                    'contents': self.bin_contents['C']
-                },
-            ],
+            'bins': bins,
             'boxes': boxes,
             'tote': {
                 'contents': self.tote_contents,
