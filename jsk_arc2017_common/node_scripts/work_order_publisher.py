@@ -87,11 +87,12 @@ class WorkOrderPublisher(object):
                     'bin': bin_,
                     'box': self.cardboard_ids[size_id]
                 }
-                if bin_ == 'A':
+                # bins are in 3 columns
+                if ((ord(bin_) - ord('A')) % 3) == 0:
                     publish_orders['left_hand'].append(order)
-                elif bin_ == 'C':
+                elif ((ord(bin_) - ord('A')) % 3) == 2:
                     publish_orders['right_hand'].append(order)
-                else:  # bin_ == 'B'
+                else:  # bin_ is center
                     publish_orders['left_hand'].append(order)
                     publish_orders['right_hand'].append(order)
 
