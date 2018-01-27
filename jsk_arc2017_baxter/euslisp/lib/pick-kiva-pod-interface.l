@@ -380,8 +380,11 @@
         (let (av)
           (ros::ros-info-green "[main] arm ~a: place object ~a in ~a"
                                arm target-obj- place-target-label-)
+          ;; TODO: fix dummy updating of json
+          ;; (send self :update-json target-obj-
+          ;;       :src (cons :bin target-bin-) :dst place-target-label-)
           (send self :update-json target-obj-
-                :src (cons :bin target-bin-) :dst place-target-label-)
+                :src (cons :bin target-bin-) :dst (cons :cardboard target-box-))
           (send self :add-finished-object arm target-obj- target-bin-)
           (when moveit-p- (send *co* :delete-object place-target-cube-))
           (setq av (if (eq grasp-style- :suction)
