@@ -71,16 +71,16 @@
     ;; movable-region: ((min-of-x max-of-x) (min-of-y max-of-y) (min-of-z max-of-z) center-coords)
     (let (movable-region)
       (pushback (list
-                  (+ (/ (x-of-cube cube) -2) (elt offset i))
-                  (- (/ (x-of-cube cube) 2) (elt offset i)))
+                  (+ (/ (x-of-cube cube) -2) (elt offset 0))
+                  (- (/ (x-of-cube cube) 2) (elt offset 0)))
                 movable-region)
       (pushback (list
-                  (+ (/ (y-of-cube cube) -2) (elt offset i))
-                  (- (/ (y-of-cube cube) 2) (elt offset i)))
+                  (+ (/ (y-of-cube cube) -2) (elt offset 1))
+                  (- (/ (y-of-cube cube) 2) (elt offset 1)))
                 movable-region)
       (pushback (list
-                  (+ (/ (z-of-cube cube) -2) (elt offset i))
-                  (- (/ (z-of-cube cube) 2) (elt offset i)))
+                  (+ (/ (z-of-cube cube) -2) (elt offset 2))
+                  (- (/ (z-of-cube cube) 2) (elt offset 2)))
                 movable-region)
       (pushback (send cube :copy-worldcoords) movable-region)
       movable-region))
