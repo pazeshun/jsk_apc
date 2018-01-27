@@ -531,9 +531,9 @@
           (setf (elt target-local-pos 2) (+ (cadr (elt movable-region 2)) 100))
           ;; location above of the target object in local z axis
           (pushback (send (elt movable-region 3) :transform-vector target-local-pos) target-poss)
-          ;; Go to a little inside of the bin/tote, 300 (30cm) is the z length of bins
-          ;; and smaller than that of tote. TODO: Fix the hard coded offset.
-          (setf (elt target-local-pos 2) (+ (car (elt movable-region 2)) 300))
+          ;; Go to a little inside of the bin/tote
+          ;; TODO: check if this is good for kiva
+          (setf (elt target-local-pos 2) (cadr (elt movable-region 2)))
           (pushback (send (elt movable-region 3) :transform-vector target-local-pos) target-poss))
         (if (eq grasp-style :suction)
           ;; suction
