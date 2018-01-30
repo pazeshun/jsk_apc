@@ -513,9 +513,16 @@
       (send obj-local-cube :move-to
             (send (elt movable-region 3) :transformation
                   (send obj-local-cube :worldcoords) :local) :world)
+      (ros::ros-info "obj-local-pos: ~a, obj-local-cube: ~a, movable-region: ~a, grasp-style: ~a"
+                     obj-local-pos obj-local-cube movable-region grasp-style)
       (setq as-table
             (send self :decide-approach-and-support
                   arm obj-local-pos obj-local-cube movable-region grasp-style))
+      (ros::ros-info "support-style: ~a, yaw-angle: ~a, gripper-angle: ~a, approach-pos: ~a"
+                     (gethash :support-style as-table)
+                     (gethash :yaw-angle as-table)
+                     (gethash :gripper-angle as-table)
+                     (gethash :approach-pos as-table))
       (ros::ros-info "[:pick-object-with-movable-region] arm:~a approach to the object" arm)
       (ros::ros-info "[:pick-object-with-movable-region] arm:~a obj-local-pos: ~a"
                      arm obj-local-pos)
