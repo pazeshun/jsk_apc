@@ -221,6 +221,11 @@
                   :do-stop-grasp nil
                   :grasp-style grasp-style-))
       (when moveit-p- (send self :add-bin-scene target-bin-))
+      (when (eq pick-result :grasp-succeeded-with-support)
+        (ros::ros-info-green
+          "[main] arm: ~a Change grasp-style from suction to pinch for placing"
+          arm)
+        (eq grasp-style- :pinch))
       (let (avs end-pos)
         (if (eq grasp-style- :suction)
           (progn
