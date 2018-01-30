@@ -59,13 +59,13 @@
     (sethash :rarm (gethash :pad-link-l gripper-dims-) 45)
     (sethash :tube-t gripper-dims- (make-hash-table))
     (sethash :larm (gethash :tube-t gripper-dims-) 28)
-    (sethash :rarm (gethash :tube-t gripper-dims-) 28))
+    (sethash :rarm (gethash :tube-t gripper-dims-) 28)
     (sethash :cylindrical-max-t gripper-dims- (make-hash-table))
     (sethash :larm (gethash :cylindrical-max-t gripper-dims-) 50)
     (sethash :rarm (gethash :cylindrical-max-t gripper-dims-) 50)
     (sethash :opposed-max-w gripper-dims- (make-hash-table))
     (sethash :larm (gethash :opposed-max-w gripper-dims-) 150)
-    (sethash :rarm (gethash :opposed-max-w gripper-dims-) 150)
+    (sethash :rarm (gethash :opposed-max-w gripper-dims-) 150))
   (:arc-reset-pose
     (&optional (arm :arms) &rest args)
     (dolist (tmp-arm (if (eq arm :arms) (list :rarm :larm) (list arm)))
@@ -707,8 +707,8 @@
                                    (list max-idx (- max-sign))))
             (setf (elt approach-candidates i)
                   (remove candidate (elt approach-candidates i) :test #'equal))))
-        (setf (elt approach-candidates (if (eq grasp-style :suction) 0 1))
-              (list max-idx max-sign)))
+        (pushback (list max-idx max-sign)
+                  (elt approach-candidates (if (eq grasp-style :suction) 0 1))))
       ;; check which approach can be performed
       (dolist (candidate-list approach-candidates)
         (setq max-dist-bw-obj-bin gripper-req-l)
@@ -882,7 +882,9 @@
           (setq return-table (make-hash-table))
           (sethash :support-style return-table support-style)
           (sethash :yaw-angle return-table yaw-angle)
-          (sethash :gripper-angle return-table gripper-angle)))))
+          (sethash :gripper-angle return-table gripper-angle)
+          (sethash :approach-pos return-table approach-pos)
+          return-table))))
   (:try-to-pick-object
     (arm obj-coords &key (offset #f(0 0 0)) (grasp-style :suction) support-style
          (rotation-axis :z) (gripper-angle 0))
@@ -1103,9 +1105,11 @@
   (:try-to-scrape-out-object
     (arm obj-coords &key (offset #f(0 0 0)))
     "Return value: :grasp-succeeded, :grasp-failed or :ik-failed"
-    (let (graspingp av gripper-angle obj->end above-coords
-                    (obj-coords-offset (send obj-coords :copy-worldcoords))
+    (let (graspingp av gripper-angle obj->end above-coords obj-coords-offset
                     (coords-before-approach (send *baxter* arm :end-coords :copy-worldcoords)))
+      ;; rotate object coords for vacuum pad coords
+      (send obj-coords :rotate -pi/2 :y :local)
+      (setq obj-coords-offset (send obj-coords :copy-worldcoords))
       (send obj-coords-offset :locate offset :local)
       (setq av (send *baxter* :angle-vector))
       (setq gripper-angle (send *baxter* arm :gripper-p :joint-angle))
@@ -1735,6 +1739,6 @@
     (unless (boundp '*co*)
       (setq *co* (when moveit (instance collision-object-publisher :init))))
     (unless (boundp '*ti*)
-      (setq *ti* (instance jsk_arc2017_baxter::arc-interface :init)))
+      (setq *ti* (instance jsk_arc2017_baxter::arc-kiva-pod-interface :init)))
     (send *baxter* :angle-vector (send *ri* :state :potentio-vector))
     (send *ri* :calib-grasp :arms)))
