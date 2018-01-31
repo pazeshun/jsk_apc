@@ -245,7 +245,8 @@
         (send *ri* :angle-vector-raw (send *baxter* :angle-vector) 3000
               (send *ri* :get-arm-controller arm :gripper nil) 0)
         (send *ri* :wait-interpolation))
-      (if (eq pick-result :ik-failed) (return-from :pick-object nil))
+      (if (or (eq pick-result :ik-failed) (eq pick-result :plan-failed))
+        (return-from :pick-object nil))
       ;; Trust pressure sensor
       (setq graspingp (send *ri* :graspingp arm grasp-style-))
       (ros::ros-info "[main] arm: ~a graspingp: ~a" arm graspingp)

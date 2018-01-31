@@ -498,7 +498,7 @@
   (:pick-object-with-movable-region
     (arm movable-region &key (n-trial 1) (n-trial-same-pos 1)
          (do-stop-grasp nil) (grasp-style :suction))
-    "Return value: :grasp-succeeded, :grasp-failed or :ik-failed"
+    "Return value: :grasp-succeeded, :grasp-failed, :ik-failed or :plan-failed"
     (send *ri* :stop-grasp arm :pinch)
     (send *ri* :calib-proximity-threshold arm)
     (let (pick-result avs object-index obj-local-pos obj-local-cube approach-rpy as-table)
@@ -518,6 +518,9 @@
       (setq as-table
             (send self :decide-approach-and-support
                   arm obj-local-pos obj-local-cube movable-region grasp-style))
+      (unless as-table
+            (ros::ros-error "[:pick-object-with-movable-region] arm:~a Abort picking" arm)
+            (return-from :pick-object-with-movable-region :plan-failed))
       (ros::ros-info "support-style: ~a, yaw-angle: ~a, gripper-angle: ~a, approach-pos: ~a"
                      (gethash :support-style as-table)
                      (gethash :yaw-angle as-table)
