@@ -175,38 +175,31 @@
                   :do-stop-grasp nil
                   :grasp-style grasp-style-))
       (when moveit-p- (send self :add-tote-scene arm))
-      ;; Don't trust pressure sensor
-      ;; (unless (eq pick-result :ik-failed)
-      ;;   (setq graspingp (send *ri* :graspingp arm grasp-style-))
-      ;;   (unless graspingp (return-from :pick-object nil))
-      ;;   )
-      (let (end-pos)
-        (if (eq grasp-style- :suction)
-          (progn
-            (send self :ik->tote-center arm
-                  :offset #f(0 0 400)
-                  :rpy (float-vector (if (eq arm :larm) -pi/2 pi/2) 0 0)
-                  :rotation-axis t :use-gripper t)
-            (setq end-pos (send (send *baxter* arm :end-coords :copy-worldcoords) :worldpos))
-            (send *baxter* :rotate-wrist-ik arm
-                  (make-coords :pos end-pos
-                               :rpy (float-vector (if (eq arm :larm) -pi/2 pi/2) 0 0))
-                  :rotate-axis t))
-          (progn
-            (send self :ik->tote-center arm
-                  :offset #f(0 0 400)
-                  :rpy (float-vector (if (eq arm :larm) -pi/2 pi/2) 0 0)
-                  :rotation-axis t :move-palm-end t)
-            (setq end-pos (send (send *baxter* arm :palm-endpoint :copy-worldcoords) :worldpos))
-            (send *baxter* :rotate-wrist-ik arm
-                  (make-coords :pos end-pos
-                               :rpy (float-vector (if (eq arm :larm) -pi/2 pi/2) 0 0))
-                  :move-palm-end t
-                  :rotate-axis t)))
-        (send *ri* :angle-vector-raw (send *baxter* :angle-vector) 3000
-              (send *ri* :get-arm-controller arm :gripper nil) 0)
-        (send *ri* :wait-interpolation))
-      (if (eq pick-result :ik-failed) (return-from :pick-object nil))
+      (when (eq pick-result :grasp-succeeded-with-support)
+        (ros::ros-info-green
+          "[main] arm: ~a Change grasp-style from suction to pinch for placing"
+          arm)
+        (setq grasp-style- :pinch))
+      (if (eq grasp-style- :suction)
+        (progn
+          (send self :ik->tote-center arm
+                :offset #f(0 0 400)
+                :rpy (float-vector (if (eq arm :larm) -pi/2 pi/2) 0 0)
+                :rotation-axis t
+                :use-gripper t
+                :use-rotate-wrist-ik t))
+        (progn
+          (send self :ik->tote-center arm
+                :offset #f(0 0 400)
+                :rpy (float-vector (if (eq arm :larm) -pi/2 pi/2) 0 0)
+                :rotation-axis t
+                :move-palm-end t
+                :use-rotate-wrist-ik t)))
+      (send *ri* :angle-vector-raw (send *baxter* :angle-vector) 3000
+            (send *ri* :get-arm-controller arm :gripper nil) 0)
+      (send *ri* :wait-interpolation)
+      (if (or (eq pick-result :ik-failed) (eq pick-result :plan-failed))
+        (return-from :pick-object nil))
       ;; Don't trust pressure sensor
       ;; (setq graspingp (send *ri* :graspingp arm grasp-style-))
       ;; (ros::ros-info "[main] arm: ~a graspingp: ~a" arm graspingp)
