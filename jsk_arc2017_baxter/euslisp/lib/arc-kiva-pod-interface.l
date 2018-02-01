@@ -1047,7 +1047,7 @@
         (setq av (send *baxter* :angle-vector))
         (setq gripper-angle (send *baxter* arm :gripper-p :joint-angle))
         ;; change gripper angle not to push target object
-        (send *baxter* :rotate-gripper arm (/ gripper-angle 2) :relative nil)
+        (send *baxter* :rotate-gripper arm 0 :relative nil)
         (send *ri* :angle-vector-raw (send *baxter* :angle-vector) 1000)
         (send *ri* :wait-interpolation)
         ;; reproduce angle-vector for IK
@@ -1063,7 +1063,7 @@
         (send *baxter* arm :inverse-kinematics above-coords
               :rotation-axis rotation-axis)
         ;; change gripper angle not to push target object
-        (send *baxter* :rotate-gripper arm (/ gripper-angle 2) :relative nil)
+        (send *baxter* :rotate-gripper arm 0 :relative nil)
         ;; move gripper above object
         (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
               3000 (send *ri* :get-arm-controller arm) 0)
@@ -1127,7 +1127,7 @@
       (setq av (send *baxter* :angle-vector))
       (setq gripper-angle (send *baxter* arm :gripper-p :joint-angle))
       ;; change gripper angle not to push target object
-      (send *baxter* :rotate-gripper arm (/ gripper-angle 2) :relative nil)
+      (send *baxter* :rotate-gripper arm 0 :relative nil)
       (send *ri* :angle-vector-raw (send *baxter* :angle-vector) 1000)
       (send *ri* :wait-interpolation)
       ;; reproduce angle-vector for IK
@@ -1155,7 +1155,7 @@
           arm)
         (return-from :try-to-scrape-out-object :ik-failed))
       ;; change gripper angle not to push target object
-      (send *baxter* :rotate-gripper arm (/ gripper-angle 2) :relative nil)
+      (send *baxter* :rotate-gripper arm 0 :relative nil)
       ;; move gripper above object
       (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
             3000 (send *ri* :get-arm-controller arm) 0)
@@ -1181,7 +1181,7 @@
           "[:try-to-scrape-out-object] arm:~a IK to object fails. Abort picking"
           arm)
         (return-from :try-to-scrape-out-object :ik-failed))
-      (send *baxter* :rotate-gripper arm (/ gripper-angle 2) :relative nil)
+      (send *baxter* :rotate-gripper arm 0 :relative nil)
       (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
             3000 (send *ri* :get-arm-controller arm) 0)
       (send *ri* :wait-interpolation)
