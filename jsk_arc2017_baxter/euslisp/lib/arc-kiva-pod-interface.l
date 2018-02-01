@@ -1723,7 +1723,7 @@
   (:get-stowing-target-bin (arm)
     (let (bins obj-bbox target-bin obj-bbox-volume)
       (dotimes (i (length bin-list-))
-        (if (or (eq (mod i 3) 1)
+        (if (or ;(eq (mod i 3) 1) TODO: fix collision in robot pose by IK
                 (and (eq (mod i 3) 0) (eq arm :larm))
                 (and (eq (mod i 3) 2) (eq arm :rarm)))
           (pushback (elt bin-list- i) bins)))
