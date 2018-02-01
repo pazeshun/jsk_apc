@@ -355,16 +355,28 @@
           (ros::ros-info-green "[main] arm ~a: place object ~a in bin ~a" arm target-obj- target-bin-)
           (when moveit-p- (send self :delete-bin-scene target-bin-))
           (if (eq grasp-style- :suction)
-            (send *ri* :angle-vector-raw
-                  (send *baxter* arm :move-end-pos #f(0 0 -300) :world
-                        :rotation-axis :z
-                        :use-gripper t)
-                  2000 (send *ri* :get-arm-controller arm) 0)
             (progn
               (setq place-av
-                    (send *baxter* arm :move-end-pos #f(0 0 -250) :world :rotation-axis nil))
+                    (send *baxter* arm :move-end-pos #f(0 0 -350) :world
+                          :rotation-axis :z :use-gripper t))
+              (unless place-av
+                (setq place-av
+                      (send *baxter* arm :move-end-pos #f(0 0 -300) :world
+                            :rotation-axis :z :use-gripper t)))
               (if place-av
-                (send *ri* :angle-vector-raw place-av 2000 (send *ri* :get-arm-controller arm) 0))))
+                (send *ri* :angle-vector-raw place-av
+                      2000 (send *ri* :get-arm-controller arm) 0)))
+            (progn
+              (setq place-av
+                    (send *baxter* arm :move-end-pos #f(0 0 -300) :world
+                          :rotation-axis nil))
+              (unless place-av
+                (setq place-av
+                      (send *baxter* arm :move-end-pos #f(0 0 -250) :world
+                            :rotation-axis nil)))
+              (if place-av
+                (send *ri* :angle-vector-raw place-av
+                      2000 (send *ri* :get-arm-controller arm) 0))))
           (send *ri* :wait-interpolation)
           (send *ri* :stop-grasp arm) ;; release object
           (when (eq grasp-style- :pinch)
