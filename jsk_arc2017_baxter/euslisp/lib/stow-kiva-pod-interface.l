@@ -310,13 +310,26 @@
     (if (eq grasp-style- :pinch)
       (send self :resolve-collision-between-fingers arm)))
   (:place-object (arm)
-    (let (dropped place-av)
+    (let (gripper-p gripper-x dropped place-av)
       (send *ri* :speak
             (format nil "~a arm is placing ~a into bin ~a."
                     (arm2str arm) (underscore-to-space target-obj-) target-bin-))
       (ros::ros-info "[main] ~a, place object in bin ~a" arm target-bin-)
       (when moveit-p- (send self :add-object-in-hand-scene arm target-obj-))
       (send *baxter* :head_pan :joint-angle (if (eq arm :larm) 70 -70))
+      ;; save current gripper angles
+      (setq gripper-p (send *baxter* arm :gripper-p :joint-angle))
+      (setq gripper-x (send *baxter* arm :gripper-x :joint-angle))
+      ;; initialize gripper for IK
+      (send *baxter* :rotate-gripper arm 0 :relative nil)
+      (send *baxter* :slide-gripper arm 0 :relative nil)
+      ;; not to use gripper overly in later IK
+      (send self :ik->bin-center arm target-bin-
+            :offset #f(0 0 300)
+            :rotation-axis :z :use-gripper nil)
+      ;; reproduce gripper angles
+      (send *baxter* :rotate-gripper arm gripper-p :relative nil)
+      (send *baxter* :slide-gripper arm gripper-x :relative nil)
       (if (eq grasp-style- :suction)
         (send *ri* :angle-vector
               (send self :ik->bin-center arm target-bin-
@@ -357,22 +370,26 @@
           (if (eq grasp-style- :suction)
             (progn
               (setq place-av
-                    (send *baxter* arm :move-end-pos #f(0 0 -350) :world
+                    (send *baxter* arm :move-end-pos #f(0 0 -350)
+                          (send (gethash target-bin- bin-cubes-) :worldcoords)
                           :rotation-axis :z :use-gripper t))
               (unless place-av
                 (setq place-av
-                      (send *baxter* arm :move-end-pos #f(0 0 -300) :world
+                      (send *baxter* arm :move-end-pos #f(0 0 -300)
+                            (send (gethash target-bin- bin-cubes-) :worldcoords)
                             :rotation-axis :z :use-gripper t)))
               (if place-av
                 (send *ri* :angle-vector-raw place-av
                       2000 (send *ri* :get-arm-controller arm) 0)))
             (progn
               (setq place-av
-                    (send *baxter* arm :move-end-pos #f(0 0 -300) :world
+                    (send *baxter* arm :move-end-pos #f(0 0 -300)
+                          (send (gethash target-bin- bin-cubes-) :worldcoords)
                           :rotation-axis nil))
               (unless place-av
                 (setq place-av
-                      (send *baxter* arm :move-end-pos #f(0 0 -250) :world
+                      (send *baxter* arm :move-end-pos #f(0 0 -250)
+                            (send (gethash target-bin- bin-cubes-) :worldcoords)
                             :rotation-axis nil)))
               (if place-av
                 (send *ri* :angle-vector-raw place-av
@@ -386,15 +403,17 @@
           (send *ri* :wait-interpolation)
           (if (eq grasp-style- :suction)
             (send *ri* :angle-vector-raw
-                  (send *baxter* arm :move-end-pos #f(0 0 300) :world
+                  (send *baxter* arm :move-end-pos #f(0 0 350)
+                        (send (gethash target-bin- bin-cubes-) :worldcoords)
                         :rotation-axis :z
                         :use-gripper t)
                   2000 (send *ri* :get-arm-controller arm) 0)
             (if place-av
-                (send *ri* :angle-vector-raw
-                      (send *baxter* arm :move-end-pos #f(0 0 250) :world
-                            :rotation-axis nil)
-                      2000 (send *ri* :get-arm-controller arm) 0)))
+              (send *ri* :angle-vector-raw
+                    (send *baxter* arm :move-end-pos #f(0 0 300)
+                          (send (gethash target-bin- bin-cubes-) :worldcoords)
+                          :rotation-axis nil)
+                    2000 (send *ri* :get-arm-controller arm) 0)))
           (send *ri* :wait-interpolation)
           (when moveit-p- (send self :add-bin-scene target-bin-))))))
   (:return-from-place-object (arm)
