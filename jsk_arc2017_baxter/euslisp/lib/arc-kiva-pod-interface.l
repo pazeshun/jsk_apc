@@ -1031,6 +1031,7 @@
         :grasp-failed
         (if support-style
           (progn
+            (unix::sleep 1)
             (send *ri* :move-hand arm
                   (send *baxter* :hand-grasp-pose arm support-style) 1000)
             :grasp-succeeded-with-support)
@@ -1109,6 +1110,7 @@
         :grasp-failed
         (if support-style
           (progn
+            (unix::sleep 1)
             (send *ri* :move-hand arm
                   (send *baxter* :hand-grasp-pose arm support-style) 1000)
             :grasp-succeeded-with-support)
