@@ -807,7 +807,8 @@
                            (setq forced-yaw-angle (/ (* 3 pi) 4)))
                           ((and (member :front near-walls) (member :left near-walls))
                            (setq forced-yaw-angle (/ (* 3 -pi) 4)))))
-                      (if (and yaw-angle (not (= yaw-angle (abs forced-yaw-angle))))
+                      (if (and yaw-angle forced-yaw-angle
+                               (not (= yaw-angle (abs forced-yaw-angle))))
                         (setq support-style nil))
                       (setq yaw-angle forced-yaw-angle)))
                   ;; pinch
