@@ -548,7 +548,7 @@
           (pushback (send (elt movable-region 3) :transform-vector target-local-pos) target-poss))
         (ros::ros-info "[:pick-object-with-movable-region] arm:~a yaw-angle ~a"
                        arm (gethash :yaw-angle as-table))
-        (if (eq grasp-style :suction)
+        (if (or (eq grasp-style :suction) (eq (gethash :support-style as-table) :scrape-out))
           ;; suction
           (progn
             (send approach-coords :rotate (or (gethash :yaw-angle as-table) 0) :z :local)
@@ -1134,11 +1134,9 @@
   (:try-to-scrape-out-object
     (arm obj-coords &key (offset #f(0 0 0)))
     "Return value: :grasp-succeeded, :grasp-failed or :ik-failed"
-    (let (graspingp av gripper-angle obj->end above-coords obj-coords-offset
+    (let (graspingp av gripper-angle obj->end above-coords
+                    (obj-coords-offset (send obj-coords :copy-worldcoords))
                     (coords-before-approach (send *baxter* arm :end-coords :copy-worldcoords)))
-      ;; rotate object coords for vacuum pad coords
-      (send obj-coords :rotate -pi/2 :y :local)
-      (setq obj-coords-offset (send obj-coords :copy-worldcoords))
       (send obj-coords-offset :locate offset :local)
       (setq av (send *baxter* :angle-vector))
       (setq gripper-angle (send *baxter* arm :gripper-p :joint-angle))
@@ -1152,7 +1150,7 @@
       (setq obj->end (send obj-coords-offset :transformation coords-before-approach :local))
       (setq above-coords (send obj-coords-offset :copy-worldcoords))
       (send above-coords :translate
-            (float-vector 0 0 (aref (send obj->end :pos) 1))
+            (float-vector 0 0 (aref (send obj->end :pos) 2))
             :local)
       (send *baxter* :slide-gripper arm
             (norm (send coords-before-approach :inverse-transform-vector
@@ -1175,6 +1173,12 @@
       ;; move gripper above object
       (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
             3000 (send *ri* :get-arm-controller arm) 0)
+      (send *ri* :wait-interpolation)
+      ;; push object to wall
+      (send *baxter* arm :move-end-pos (float-vector 0 0 (- (aref (send obj->end :pos) 2)))
+            (send obj-coords-offset :copy-worldcoords))
+      (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
+            1000 (send *ri* :get-arm-controller arm) 0)
       (send *ri* :wait-interpolation)
       ;; start the vacuum gripper before approaching to the object
       (ros::ros-info "[:try-to-scrape-out-object] arm:~a start vacuum gripper" arm)
@@ -1199,7 +1203,7 @@
         (return-from :try-to-scrape-out-object :ik-failed))
       (send *baxter* :rotate-gripper arm 0 :relative nil)
       (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
-            3000 (send *ri* :get-arm-controller arm) 0)
+            1000 (send *ri* :get-arm-controller arm) 0)
       (send *ri* :wait-interpolation)
       (send *baxter* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
       ;; reproduce gripper angle
@@ -1210,6 +1214,7 @@
       (send *baxter* :slide-gripper arm 0 :relative nil)
       (send *ri* :angle-vector-raw (send *baxter* :angle-vector) 1000)
       (send *ri* :wait-interpolation)
+      (unix::sleep 1)
       (send *ri* :move-hand arm
             (send *baxter* :hand-grasp-pose arm :cylindrical) 1000)
       ;; lift object
