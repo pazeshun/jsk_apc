@@ -729,6 +729,7 @@
                 (obj-approach-cube (copy-object obj-local-cube))
                 vertex-values dist-bw-obj-bin object-t object-w
                 obj-pos-to-walls)
+            ;; decide approach-coords (minus z is approach direction)
             (cond ((and (= idx 0) (< sign 0))
                    (send approach-coords :rotate pi/2 :y :local))
                   ((and (= idx 0) (> sign 0))
@@ -740,7 +741,32 @@
                   ((and (= idx 1) (> sign 0))
                    (send approach-coords :rotate -pi/2 :z :local)
                    (send approach-coords :rotate pi/2 :y :local))
-                  ((and (= idx 2) (< sign 0)) t)
+                  ((and (= idx 2) (< sign 0))
+                   ;; decide yaw angle by longest side of projected obj cube
+                   ;; use this angle to estimate precise box size for front suction decision
+                   (let (sides vec proj-vec max-proj-vec (max-l 0))
+                     (pushback (x-of-cube obj-local-cube) sides)
+                     (pushback (y-of-cube obj-local-cube) sides)
+                     (pushback (z-of-cube obj-local-cube) sides)
+                     (dotimes (i 3)
+                       (setq vec (float-vector 0 0 0))
+                       (setf (aref vec i) 1)
+                       (setq vec (scale (elt sides i) vec))
+                       (setq proj-vec (send obj-local-cube :transform-vector vec))
+                       (setq proj-vec (v- proj-vec (send obj-local-cube :worldpos)))
+                       (setf (aref proj-vec 2) 0)
+                       (when (> (norm proj-vec) max-l)
+                         (setq max-proj-vec (copy-object proj-vec))
+                         (setq max-l (norm proj-vec))))
+                     (setq max-proj-vec (normalize-vector max-proj-vec))
+                     (if (>= (aref max-proj-vec 0) 0)
+                       (setq yaw-angle (- (acos (v. max-proj-vec #f(0 1 0)))))
+                       (setq yaw-angle (acos (v. max-proj-vec #f(0 1 0)))))
+                     (if (> yaw-angle pi/2)
+                       (setq yaw-angle (- yaw-angle pi)))
+                     (if (< yaw-angle -pi/2)
+                       (setq yaw-angle (+ yaw-angle pi))))
+                   (send approach-coords :rotate yaw-angle :z :local))
                   (t (ros::ros-fatal
                        "[:decide-approach-and-support] Gravity draws objects outside bin")
                      (return-from :decide-approach-and-support nil)))
@@ -773,11 +799,15 @@
                     (setq approach-pos (copy-object obj-local-pos))
                     (setq approach-idx idx)
                     ;; decide support style depending on object size
+                    ;; yaw-angle is already set
                     (cond ((<= object-w (gethash arm (gethash :opposed-max-w gripper-dims-)))
-                           (setq support-style :opposed)
-                           (setq yaw-angle 0))
+                           (setq support-style :opposed))  ;; yaw-angle is as is
                           ((<= object-t (gethash arm (gethash :opposed-max-w gripper-dims-)))
                            (setq support-style :opposed)
+                           (if (>= yaw-angle 0)
+                             (setq yaw-angle (- yaw-angle pi/2)))
+                           (if (< yaw-angle 0)
+                             (setq yaw-angle (+ yaw-angle pi/2)))
                            (setq yaw-angle -pi/2))
                           (t (setq support-style nil)
                              (setq yaw-angle nil)))
@@ -818,33 +848,11 @@
                     (= (length obj-pos-to-walls)
                        (length (remove nil (mapcar #'(lambda (x) (> x 50))
                                                    obj-pos-to-walls))))
+                    ;; yaw-angle is already set
                     (setq support-style :cylindrical)
                     (setq gripper-angle 0)
                     (setq approach-pos (copy-object obj-local-pos))
-                    (setq approach-idx idx)
-                    ;; decide wrist angle by longest side of projected obj cube
-                    (let (sides vec proj-vec max-proj-vec (max-l 0))
-                      (pushback (x-of-cube obj-approach-cube) sides)
-                      (pushback (y-of-cube obj-approach-cube) sides)
-                      (pushback (z-of-cube obj-approach-cube) sides)
-                      (dotimes (i 3)
-                        (setq vec (float-vector 0 0 0))
-                        (setf (aref vec i) 1)
-                        (setq vec (scale (elt sides i) vec))
-                        (setq proj-vec (send obj-approach-cube :transform-vector vec))
-                        (setq proj-vec (v- proj-vec (send obj-approach-cube :worldpos)))
-                        (setf (aref proj-vec 2) 0)
-                        (when (> (norm proj-vec) max-l)
-                          (setq max-proj-vec (copy-object proj-vec))
-                          (setq max-l (norm proj-vec))))
-                      (setq max-proj-vec (normalize-vector max-proj-vec))
-                      (if (>= (aref max-proj-vec 0) 0)
-                        (setq yaw-angle (- (acos (v. max-proj-vec #f(0 1 0)))))
-                        (setq yaw-angle (acos (v. max-proj-vec #f(0 1 0)))))
-                      (if (> yaw-angle pi/2)
-                        (setq yaw-angle (- yaw-angle pi)))
-                      (if (< yaw-angle -pi/2)
-                        (setq yaw-angle (+ yaw-angle pi)))))))
+                    (setq approach-idx idx))))
               (progn
                 (setq vertex-values (mapcar #'(lambda (x) (aref x 1))
                                             (send obj-approach-cube :vertices)))
@@ -857,6 +865,7 @@
                 ;; check if gripper can enter
                 ;; TODO: dismiss concern about little point cloud in bin
                 ;;       and add size check like above
+                ;; TODO: manage standing flat object not parallel to bin wall
                 (when (> dist-bw-obj-bin max-dist-bw-obj-bin)
                   ;; decide support style depending on object size
                   (setq gripper-angle -pi/2)
