@@ -816,7 +816,7 @@
                   ;; TODO: fix hard coded value
                   (when
                     (= (length obj-pos-to-walls)
-                       (length (remove nil (mapcar #'(lambda (x) (if (> x 50)))
+                       (length (remove nil (mapcar #'(lambda (x) (> x 50))
                                                    obj-pos-to-walls))))
                     (setq support-style :cylindrical)
                     (setq gripper-angle 0)
