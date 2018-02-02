@@ -590,13 +590,20 @@
           conds))
       ;; wait for :interpolatingp
       (dotimes (x 100)
-        (if (send self :interpolatingp) (return))
+        (if (if (member :hand args)
+              (send self :hand-interpolatingp arm)
+              (send self :interpolatingp))
+          (return))
         (unix::usleep 1000))
-      (while (send self :interpolatingp)
+      (while (if (member :hand args)
+               (send self :hand-interpolatingp arm)
+               (send self :interpolatingp))
         (when (reduce #'(lambda (x y) (or x y)) (mapcar #'funcall conds))
           (ros::ros-info "[:wait-interpolation-until] Cancel angle vector: ~a" arm)
-          (send self :cancel-angle-vector
-                :controller-type (send self :get-arm-controller arm)))
+          (if (member :hand args)
+            (send self :cancel-move-hand arm)
+            (send self :cancel-angle-vector
+                  :controller-type (send self :get-arm-controller arm))))
         (unix::usleep 1000))))
   (:calib-pressure-threshold
     (&optional (arm :arms))

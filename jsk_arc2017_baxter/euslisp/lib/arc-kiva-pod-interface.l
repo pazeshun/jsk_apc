@@ -1046,11 +1046,24 @@
       (if (null graspingp)
         :grasp-failed
         (if support-style
-          (progn
+          (let (finger-av)
             (unix::sleep 1)
             (send *ri* :move-hand arm
-                  (send *baxter* :hand-grasp-pose arm support-style) 1000)
-            :grasp-succeeded-with-support)
+                  (send *baxter* :hand-grasp-pose arm support-style) 1000 :wait nil)
+            (send *ri* :wait-interpolation-until arm :hand :finger-proximity)
+            ;; TODO: fix hard-coded value
+            (setq finger-av (send self :get-real-finger-av arm))
+            (if (> (aref finger-av (- (length finger-av) 1)) 30)
+              (progn
+                (send *ri* :move-hand arm
+                      (send *baxter* :hand-grasp-pose arm support-style) 1000)
+                (ros::ros-info "[:try-to-suction-front-object] arm:~a supporting succeeded" arm)
+                :grasp-succeeded-with-support)
+              (progn
+                (send *ri* :move-hand arm
+                      (send *baxter* :hand-grasp-pre-pose arm support-style) 1000 :wait nil)
+                (ros::ros-info "[:try-to-suction-front-object] arm:~a supporting failed" arm)
+                :grasp-succeeded)))
           :grasp-succeeded))))
   (:try-to-suction-side-object
     (arm obj-coords support-style rotation-axis &key (offset #f(0 0 0)))
@@ -1125,11 +1138,24 @@
       (if (null graspingp)
         :grasp-failed
         (if support-style
-          (progn
+          (let (finger-av)
             (unix::sleep 1)
             (send *ri* :move-hand arm
-                  (send *baxter* :hand-grasp-pose arm support-style) 1000)
-            :grasp-succeeded-with-support)
+                  (send *baxter* :hand-grasp-pose arm support-style) 1000 :wait nil)
+            (send *ri* :wait-interpolation-until arm :hand :finger-proximity)
+            ;; TODO: fix hard-coded value
+            (setq finger-av (send self :get-real-finger-av arm))
+            (if (> (aref finger-av (- (length finger-av) 1)) 30)
+              (progn
+                (send *ri* :move-hand arm
+                      (send *baxter* :hand-grasp-pose arm support-style) 1000)
+                (ros::ros-info "[:try-to-suction-side-object] arm:~a supporting succeeded" arm)
+                :grasp-succeeded-with-support)
+              (progn
+                (send *ri* :move-hand arm
+                      (send *baxter* :hand-grasp-pre-pose arm support-style) 1000 :wait nil)
+                (ros::ros-info "[:try-to-suction-side-object] arm:~a supporting failed" arm)
+                :grasp-succeeded)))
           :grasp-succeeded))))
   (:try-to-scrape-out-object
     (arm obj-coords &key (offset #f(0 0 0)))
