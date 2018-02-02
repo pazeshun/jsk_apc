@@ -1072,7 +1072,7 @@
         (setq obj->end (send obj-coords-offset :transformation coords-before-approach :local))
         (setq above-coords (send obj-coords-offset :copy-worldcoords))
         (send above-coords :translate
-              (float-vector 0 0 (aref (send obj->end :pos) 1))
+              (float-vector 0 0 (aref (send obj->end :pos) 2))
               :local)
         (send *baxter* :slide-gripper arm
               (send (send *baxter* arm :gripper-x) :max-angle) :relative nil)
@@ -1097,7 +1097,7 @@
             obj-coords-offset
             :rotation-axis rotation-axis)
       (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
-            3000 (send *ri* :get-arm-controller arm) 0)
+            1000 (send *ri* :get-arm-controller arm) 0)
       (send *ri* :wait-interpolation-until arm :grasp)
       (setq graspingp (send *ri* :graspingp arm :suction))
       (ros::ros-info "[:try-to-suction-side-object] arm:~a graspingp: ~a" arm graspingp)
