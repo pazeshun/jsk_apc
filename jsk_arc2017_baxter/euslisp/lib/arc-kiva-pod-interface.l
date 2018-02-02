@@ -61,8 +61,8 @@
     (sethash :larm (gethash :tube-t gripper-dims-) 28)
     (sethash :rarm (gethash :tube-t gripper-dims-) 28)
     (sethash :cylindrical-max-t gripper-dims- (make-hash-table))
-    (sethash :larm (gethash :cylindrical-max-t gripper-dims-) 50)
-    (sethash :rarm (gethash :cylindrical-max-t gripper-dims-) 50)
+    (sethash :larm (gethash :cylindrical-max-t gripper-dims-) 70)
+    (sethash :rarm (gethash :cylindrical-max-t gripper-dims-) 70)
     (sethash :opposed-max-w gripper-dims- (make-hash-table))
     (sethash :larm (gethash :opposed-max-w gripper-dims-) 150)
     (sethash :rarm (gethash :opposed-max-w gripper-dims-) 150))
@@ -727,7 +727,7 @@
                 (sign (elt candidate 1))
                 (approach-coords (make-coords))
                 (obj-approach-cube (copy-object obj-local-cube))
-                vertex-values dist-bw-obj-bin object-t object-w
+                vertex-values dist-bw-obj-bin object-t object-w object-h
                 obj-pos-to-walls)
             ;; decide approach-coords (minus z is approach direction)
             (cond ((and (= idx 0) (< sign 0))
@@ -785,6 +785,9 @@
                 (setq vertex-values (mapcar #'(lambda (x) (aref x 1))
                                             (send obj-approach-cube :vertices)))
                 (setq object-w (- (apply #'max vertex-values) (apply #'min vertex-values)))
+                (setq vertex-values (mapcar #'(lambda (x) (aref x 2))
+                                            (send obj-approach-cube :vertices)))
+                (setq object-h (- (apply #'max vertex-values) (apply #'min vertex-values)))
                 (dotimes (i 2)
                   (pushback (- (elt (elt movable-region i) 1) (aref obj-local-pos i))
                             obj-pos-to-walls)
@@ -792,9 +795,13 @@
                             obj-pos-to-walls))
                 (if (eq grasp-style :suction)
                   ;; suction
-                  ;; check if object is big enough to suction
-                  (when (and (> object-t (* (gethash arm (gethash :pad-r gripper-dims-)) 2))
-                             (> object-w (* (gethash arm (gethash :pad-r gripper-dims-)) 2)))
+                  ;; check if object is big enough to suction or too low for side suction
+                  ;; TODO: fix hard-coded value
+                  (when (or (and (> object-t
+                                    (+ (* (gethash arm (gethash :pad-r gripper-dims-)) 2) 30))
+                                 (> object-w
+                                    (+ (* (gethash arm (gethash :pad-r gripper-dims-)) 2) 30)))
+                            (< object-h 30))
                     (setq gripper-angle 0)
                     (setq approach-pos (copy-object obj-local-pos))
                     (setq approach-idx idx)
