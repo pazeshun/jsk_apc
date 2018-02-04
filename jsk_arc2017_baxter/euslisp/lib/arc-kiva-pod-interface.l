@@ -1048,11 +1048,12 @@
         (if support-style
           (let (finger-av)
             (unix::sleep 1)
+            (send *ri* :calib-proximity-threshold arm)
             (send *ri* :move-hand arm
                   (send *baxter* :hand-grasp-pose arm support-style) 1000 :wait nil)
             (send *ri* :wait-interpolation-until arm :hand :finger-proximity)
             ;; TODO: fix hard-coded value
-            (setq finger-av (send self :get-real-finger-av arm))
+            (setq finger-av (send *ri* :get-real-finger-av arm))
             (if (> (aref finger-av (- (length finger-av) 1)) 30)
               (progn
                 (send *ri* :move-hand arm
@@ -1140,11 +1141,12 @@
         (if support-style
           (let (finger-av)
             (unix::sleep 1)
+            (send *ri* :calib-proximity-threshold arm)
             (send *ri* :move-hand arm
                   (send *baxter* :hand-grasp-pose arm support-style) 1000 :wait nil)
             (send *ri* :wait-interpolation-until arm :hand :finger-proximity)
             ;; TODO: fix hard-coded value
-            (setq finger-av (send self :get-real-finger-av arm))
+            (setq finger-av (send *ri* :get-real-finger-av arm))
             (if (> (aref finger-av (- (length finger-av) 1)) 30)
               (progn
                 (send *ri* :move-hand arm
