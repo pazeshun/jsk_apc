@@ -1069,11 +1069,11 @@
   (:try-to-suction-side-object
     (arm obj-coords support-style rotation-axis &key (offset #f(0 0 0)))
     "Return value: :grasp-failed, :grasp-succeeded or :grasp-succeeded-with-support"
-    (let (graspingp
+    (let (graspingp obj->end
                     (obj-coords-offset (send obj-coords :copy-worldcoords))
                     (coords-before-approach (send *baxter* arm :end-coords :copy-worldcoords)))
       (send obj-coords-offset :locate offset :local)
-      (let (av gripper-angle obj->end above-coords)
+      (let (av gripper-angle above-coords)
         (setq av (send *baxter* :angle-vector))
         (setq gripper-angle (send *baxter* arm :gripper-p :joint-angle))
         ;; change gripper angle not to push target object
@@ -1123,14 +1123,20 @@
             (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
                   3000 (send *ri* :get-arm-controller arm) 0))
           (send *ri* :wait-interpolation-until arm :grasp :prismatic-loaded)
-          (send *ri* :angle-vector-raw (send *baxter* :angle-vector temp-av)
-                3000 (send *ri* :get-arm-controller arm) 0) ;; revert baxter
-          (send *ri* :wait-interpolation-until arm :grasp)))
+          ;(send *ri* :angle-vector-raw (send *baxter* :angle-vector temp-av)
+          ;      3000 (send *ri* :get-arm-controller arm) 0) ;; revert baxter
+          ;(send *ri* :wait-interpolation-until arm :grasp)
+          ))
+      (send *baxter* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
       ;; TODO: fix hard-coded value
       (send *baxter* :slide-gripper arm 40 :relative nil)
-      (send *baxter* arm :inverse-kinematics
-            coords-before-approach
+      (send *baxter* arm :move-end-pos
+            (float-vector (aref (send obj->end :pos) 0) (aref (send obj->end :pos) 1) 0)
+            (send obj-coords-offset :copy-worldcoords)
             :rotation-axis rotation-axis)
+      ;(send *baxter* arm :inverse-kinematics
+      ;      coords-before-approach
+      ;      :rotation-axis rotation-axis)
       (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
             3000 (send *ri* :get-arm-controller arm) 0)
       (send *ri* :wait-interpolation)
