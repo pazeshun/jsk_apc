@@ -1360,8 +1360,8 @@
       (ros::ros-info "[:try-to-pinch-object] arm:~a graspingp: ~a" arm graspingp)
       (if graspingp :grasp-succeeded :grasp-failed)))
   (:ik->cube-center
-    (arm cube &key (offset #f(0 0 0)) (rpy #f(0 0 0))
-         (rotation-axis t) (use-gripper nil) (move-palm-end nil) (use-rotate-wrist-ik nil))
+    (arm cube &key (offset #f(0 0 0)) (rpy #f(0 0 0)) (rotation-axis t)
+         (use-gripper nil) (move-palm-end nil) (use-rotate-wrist-ik nil) (parallel-with :local))
     (let (cube-coords)
       (setq cube-coords (send cube :copy-worldcoords))
       (send cube-coords :translate
@@ -1371,6 +1371,8 @@
       (send cube-coords :rotate (aref rpy 0) :z)
       (send cube-coords :rotate (aref rpy 1) :y)
       (send cube-coords :rotate (aref rpy 2) :x)
+      (when (eq parallel-with :world)
+        (setq cube-coords (make-coords :pos (send cube-coords :worldpos))))
       (if use-rotate-wrist-ik
         (send *baxter* :rotate-wrist-ik arm cube-coords
               :rotation-axis rotation-axis
