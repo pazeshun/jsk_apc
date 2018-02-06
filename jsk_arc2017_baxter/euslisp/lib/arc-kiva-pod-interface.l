@@ -61,8 +61,8 @@
     (sethash :larm (gethash :tube-t gripper-dims-) 28)
     (sethash :rarm (gethash :tube-t gripper-dims-) 28)
     (sethash :cylindrical-max-t gripper-dims- (make-hash-table))
-    (sethash :larm (gethash :cylindrical-max-t gripper-dims-) 70)
-    (sethash :rarm (gethash :cylindrical-max-t gripper-dims-) 70)
+    (sethash :larm (gethash :cylindrical-max-t gripper-dims-) 80)
+    (sethash :rarm (gethash :cylindrical-max-t gripper-dims-) 80)
     (sethash :opposed-max-w gripper-dims- (make-hash-table))
     (sethash :larm (gethash :opposed-max-w gripper-dims-) 150)
     (sethash :rarm (gethash :opposed-max-w gripper-dims-) 150))
@@ -861,6 +861,21 @@
                     (setq obj-moved-pos (copy-object obj-local-pos))
                     (setq approach-idx idx))))
               (progn
+                (let (sides vec proj-vec)
+                  (pushback (list (x-of-cube obj-approach-cube)) sides)
+                  (pushback (list (y-of-cube obj-approach-cube)) sides)
+                  (pushback (list (z-of-cube obj-approach-cube)) sides)
+                  (dotimes (i 3)
+                    (setq vec (float-vector 0 0 0))
+                    (setf (aref vec i) 1)
+                    (setq vec (scale (car (elt sides i)) vec))
+                    (setq proj-vec (send obj-approach-cube :transform-vector vec))
+                    (setq proj-vec (v- proj-vec (send obj-approach-cube :worldpos)))
+                    (setf (aref proj-vec 2) 0)
+                    (pushback (copy-object proj-vec) (elt sides i)))
+                  (sort sides #'(lambda (x y) (> (norm (cadr x)) (norm (cadr y)))))
+                  ;; get object dimension for support style decision
+                  (setq object-t (car (elt sides 2))))
                 (setq vertex-values (mapcar #'(lambda (x) (aref x 1))
                                             (send obj-approach-cube :vertices)))
                 (setq object-w (- (apply #'max vertex-values) (apply #'min vertex-values)))
@@ -868,7 +883,6 @@
                                             (send obj-approach-cube :vertices)))
                 (setq dist-bw-obj-bin (- (elt (elt movable-region idx) 1)
                                          (apply #'max vertex-values)))
-                (setq object-t (- (apply #'max vertex-values) (apply #'min vertex-values)))
                 ;; check if gripper can enter
                 ;; TODO: dismiss concern about little point cloud in bin
                 ;;       and add size check like above
