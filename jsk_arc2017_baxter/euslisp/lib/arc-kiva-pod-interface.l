@@ -521,11 +521,14 @@
       (unless as-table
             (ros::ros-error "[:pick-object-with-movable-region] arm:~a Abort picking" arm)
             (return-from :pick-object-with-movable-region :plan-failed))
-      (ros::ros-info "support-style: ~a, yaw-angle: ~a, gripper-angle: ~a, approach-pos: ~a"
+      (ros::ros-info
+        "support-style: ~a, yaw-angle: ~a, gripper-angle: ~a, approach-pos: ~a, obj-moved-pos: ~a"
                      (gethash :support-style as-table)
                      (gethash :yaw-angle as-table)
                      (gethash :gripper-angle as-table)
-                     (gethash :approach-pos as-table))
+                     (gethash :approach-pos as-table)
+                     (gethash :obj-moved-pos as-table))
+      (setq obj-local-pos (gethash :obj-moved-pos as-table))
       (ros::ros-info "[:pick-object-with-movable-region] arm:~a approach to the object" arm)
       (ros::ros-info "[:pick-object-with-movable-region] arm:~a obj-local-pos: ~a"
                      arm obj-local-pos)
@@ -672,13 +675,15 @@
       near-walls))
   (:decide-approach-and-support
     (arm obj-local-pos obj-local-cube movable-region grasp-style)
-    "Return value: hash table of :support-style, :yaw-angle, :gripper-angle and :approach-pos.
+    "Return value: hash table of :support-style, :yaw-angle, :gripper-angle,
+    :approach-pos and :obj-moved-pos.
     support-style is nil, :cylindrical, :opposed or :scrape-out.
     yaw-angle is nil, -pi/2 ~ pi/2 or pi.
     gripper-angle is 0 or -pi/2.
-    approach-pos is float-vector of local pos
+    approach-pos is float-vector of local pos of passing point
+    obj-moved-pos is float-vector of moved local pos of object
     CAUTION: This algorithm depends on PCA in ClusterPointIndicesDecomposer"
-    (let (return-table support-style yaw-angle gripper-angle approach-pos
+    (let (return-table support-style yaw-angle gripper-angle approach-pos obj-moved-pos
                        approach-candidates approach-idx
                        max-dist-bw-obj-bin
                        (region-coords (elt movable-region 3))
@@ -804,6 +809,7 @@
                             (< object-h 30))
                     (setq gripper-angle 0)
                     (setq approach-pos (copy-object obj-local-pos))
+                    (setq obj-moved-pos (copy-object obj-local-pos))
                     (setq approach-idx idx)
                     ;; decide support style depending on object size
                     ;; yaw-angle is already set
@@ -859,6 +865,7 @@
                     (setq support-style :cylindrical)
                     (setq gripper-angle 0)
                     (setq approach-pos (copy-object obj-local-pos))
+                    (setq obj-moved-pos (copy-object obj-local-pos))
                     (setq approach-idx idx))))
               (progn
                 (setq vertex-values (mapcar #'(lambda (x) (aref x 1))
@@ -895,9 +902,23 @@
                   (setq approach-pos (copy-object obj-local-pos))
                   (setq approach-pos
                         (send approach-coords :inverse-transform-vector obj-local-pos))
+                  (setq vertex-values (mapcar #'(lambda (x) (aref x 2))
+                                              (send obj-approach-cube :vertices)))
                   (setf (elt approach-pos 2) (apply #'max vertex-values))
                   (setq approach-pos
                         (send approach-coords :transform-vector approach-pos))
+                  (setq obj-moved-pos (copy-object obj-local-pos))
+                  (when (eq grasp-style :suction)
+                    ;; not to catch fingers between object and suction tube in side suction
+                    (setq obj-moved-pos
+                          (send approach-coords :inverse-transform-vector obj-moved-pos))
+                    (setq vertex-values (mapcar #'(lambda (x) (aref x 0))
+                                                (send obj-approach-cube :vertices)))
+                    ;; TODO: fix hard-coded variable
+                    (if (> (elt obj-moved-pos 0) (+ (apply #'min vertex-values) 50))
+                      (setf (elt obj-moved-pos 0) (+ (apply #'min vertex-values) 50)))
+                    (setq obj-moved-pos
+                          (send approach-coords :transform-vector obj-moved-pos)))
                   (setq approach-idx idx)
                   (setq max-dist-bw-obj-bin dist-bw-obj-bin))))))
         (if approach-idx (return)))
@@ -911,6 +932,7 @@
           (sethash :yaw-angle return-table yaw-angle)
           (sethash :gripper-angle return-table gripper-angle)
           (sethash :approach-pos return-table approach-pos)
+          (sethash :obj-moved-pos return-table obj-moved-pos)
           return-table))))
   (:try-to-pick-object
     (arm obj-coords &key (offset #f(0 0 0)) (grasp-style :suction) support-style
