@@ -813,10 +813,8 @@
                           ((<= object-t (gethash arm (gethash :opposed-max-w gripper-dims-)))
                            (setq support-style :opposed)
                            (if (>= yaw-angle 0)
-                             (setq yaw-angle (- yaw-angle pi/2)))
-                           (if (< yaw-angle 0)
-                             (setq yaw-angle (+ yaw-angle pi/2)))
-                           (setq yaw-angle -pi/2))
+                             (setq yaw-angle (- yaw-angle pi/2))
+                             (setq yaw-angle (+ yaw-angle pi/2))))
                           (t (setq support-style nil)
                              (setq yaw-angle nil)))
                     ;; check and avoid near walls
@@ -848,7 +846,7 @@
                       (if (and yaw-angle forced-yaw-angle
                                (not (= yaw-angle (abs forced-yaw-angle))))
                         (setq support-style nil))
-                      (setq yaw-angle forced-yaw-angle)))
+                      (if forced-yaw-angle (setq yaw-angle forced-yaw-angle))))
                   ;; pinch
                   ;; TODO: consider object size instead of considering object centroid only
                   ;; TODO: fix hard coded value
