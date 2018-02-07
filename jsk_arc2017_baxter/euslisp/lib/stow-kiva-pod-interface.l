@@ -331,15 +331,22 @@
       (send *baxter* :rotate-gripper arm gripper-p :relative nil)
       (send *baxter* :slide-gripper arm gripper-x :relative nil)
       (if (eq grasp-style- :suction)
-        (send *ri* :angle-vector
-              (send self :ik->bin-center arm target-bin-
-                    :offset (v+ #f(0 0 300)
-                                (send self :decide-bin-place-area arm target-bin- grasp-style-))
-                    :rotation-axis :z :use-gripper t
-                    ;; to follow gravity
-                    :parallel-with :world)
-              4000 (send *ri* :get-arm-controller arm :head t) 0
-              :move-arm arm)
+        (progn
+          (send self :ik->bin-center arm target-bin-
+                :offset #f(0 0 300)
+                :rotation-axis :z :use-gripper t
+                ;; to follow gravity
+                :parallel-with :world)
+          (send *baxter* :slide-gripper arm 120 :relative nil)
+          (send *ri* :angle-vector
+                (send self :ik->bin-center arm target-bin-
+                      :offset (v+ #f(0 0 300)
+                                  (send self :decide-bin-place-area arm target-bin- grasp-style-))
+                      :rotation-axis :z :use-gripper nil
+                      ;; to follow gravity
+                      :parallel-with :world)
+                4000 (send *ri* :get-arm-controller arm :head t) 0
+                :move-arm arm))
         (send *ri* :angle-vector
               (send self :ik->bin-center arm target-bin-
                     :offset (v+ #f(0 0 300)
