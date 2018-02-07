@@ -65,7 +65,10 @@
     (sethash :rarm (gethash :cylindrical-max-t gripper-dims-) 80)
     (sethash :opposed-max-w gripper-dims- (make-hash-table))
     (sethash :larm (gethash :opposed-max-w gripper-dims-) 150)
-    (sethash :rarm (gethash :opposed-max-w gripper-dims-) 150))
+    (sethash :rarm (gethash :opposed-max-w gripper-dims-) 150)
+    (sethash :pad-to-finger gripper-dims- (make-hash-table))
+    (sethash :larm (gethash :pad-to-finger gripper-dims-) 60)
+    (sethash :rarm (gethash :pad-to-finger gripper-dims-) 60))
   (:arc-reset-pose
     (&optional (arm :arms) &rest args)
     (dolist (tmp-arm (if (eq arm :arms) (list :rarm :larm) (list arm)))
@@ -808,9 +811,15 @@
                     (setq approach-idx idx)
                     ;; decide support style depending on object size
                     ;; yaw-angle is already set
-                    (cond ((<= object-w (gethash arm (gethash :opposed-max-w gripper-dims-)))
+                    (cond ((and (<= object-w
+                                    (gethash arm (gethash :opposed-max-w gripper-dims-)))
+                                (>= (/ object-t 2)
+                                    (gethash arm (gethash :pad-to-finger gripper-dims-))))
                            (setq support-style :opposed))  ;; yaw-angle is as is
-                          ((<= object-t (gethash arm (gethash :opposed-max-w gripper-dims-)))
+                          ((and (<= object-t
+                                    (gethash arm (gethash :opposed-max-w gripper-dims-)))
+                                (>= (/ object-w 2)
+                                    (gethash arm (gethash :pad-to-finger gripper-dims-))))
                            (setq support-style :opposed)
                            (if (>= yaw-angle 0)
                              (setq yaw-angle (- yaw-angle pi/2))
