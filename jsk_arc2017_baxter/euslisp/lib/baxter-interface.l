@@ -128,7 +128,14 @@
                                 (arm2str arm) (symbol2str side))
                         std_msgs::UInt16
                         #'send self :set-finger-flex arm side
-                        :groupname groupname)))
+                        :groupname groupname)
+        ;; publish used proximity value for rosbag
+        (ros::advertise (format nil "/from_main/limb/~a/used_proximity/raw/~a"
+                                (arm2str arm) (symbol2str side)) std_msgs::Float64)
+        (ros::advertise (format nil "/from_main/limb/~a/used_proximity/init/~a"
+                                (arm2str arm) (symbol2str side)) std_msgs::Float64)
+        (ros::advertise (format nil "/from_main/limb/~a/used_proximity/result/~a"
+                                (arm2str arm) (symbol2str side)) std_msgs::Float64)))
     (if mvit-rb (setq moveit-robot mvit-rb))
     (if mvit-env (send self :set-moveit-environment (send mvit-env :init :robot moveit-robot))))
   ;; Overwrite super class's :rarm-controller
@@ -262,17 +269,53 @@
     (let ((l-init (gethash :left (gethash arm proximity-init-values-)))
           (r-init (gethash :right (gethash arm proximity-init-values-)))
           (l (gethash :left (gethash arm proximities-)))
-          (r (gethash :right (gethash arm proximities-))))
+          (r (gethash :right (gethash arm proximities-))) val)
       (if (null raw)
         (cond
           ;; for sparkfun proximity sensor
           ((eq side :left)
-           (/ (- l l-init) (expt (/ l-init 2500.0) 1.5)))
+           (setq val (/ (- l l-init) (expt (/ l-init 2500.0) 1.5)))
+           (ros::publish
+             (format nil "/from_main/limb/~a/used_proximity/raw/~a"
+                     (arm2str arm) (symbol2str side))
+             (instance std_msgs::Float64 :init :data l))
+           (ros::publish
+             (format nil "/from_main/limb/~a/used_proximity/init/~a"
+                     (arm2str arm) (symbol2str side))
+             (instance std_msgs::Float64 :init :data l-init))
+           (ros::publish
+             (format nil "/from_main/limb/~a/used_proximity/result/~a"
+                     (arm2str arm) (symbol2str side))
+             (instance std_msgs::Float64 :init :data val))
+           val)
           ((eq side :right)
-           (/ (- r r-init) (expt (/ r-init 2500.0) 1.5))))
+           (setq val (/ (- r r-init) (expt (/ r-init 2500.0) 1.5)))
+           (ros::publish
+             (format nil "/from_main/limb/~a/used_proximity/raw/~a"
+                     (arm2str arm) (symbol2str side))
+             (instance std_msgs::Float64 :init :data r))
+           (ros::publish
+             (format nil "/from_main/limb/~a/used_proximity/init/~a"
+                     (arm2str arm) (symbol2str side))
+             (instance std_msgs::Float64 :init :data r-init))
+           (ros::publish
+             (format nil "/from_main/limb/~a/used_proximity/result/~a"
+                     (arm2str arm) (symbol2str side))
+             (instance std_msgs::Float64 :init :data val))
+           val))
         (cond
-          ((eq side :left) l)
-          ((eq side :right) r)))))
+          ((eq side :left)
+           (ros::publish
+             (format nil "/from_main/limb/~a/used_proximity/raw/~a"
+                     (arm2str arm) (symbol2str side))
+             (instance std_msgs::Float64 :init :data l))
+           l)
+          ((eq side :right)
+           (ros::publish
+             (format nil "/from_main/limb/~a/used_proximity/raw/~a"
+                     (arm2str arm) (symbol2str side))
+             (instance std_msgs::Float64 :init :data l))
+           r)))))
   (:get-real-finger-av (arm)
     (send self :update-robot-state :wait-until-update t)
     (float-vector
