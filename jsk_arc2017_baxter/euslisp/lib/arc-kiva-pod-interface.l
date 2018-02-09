@@ -896,7 +896,9 @@
                 ;; TODO: dismiss concern about little point cloud in bin
                 ;;       and add size check like above
                 ;; TODO: manage standing flat object not parallel to bin wall
-                (when (> dist-bw-obj-bin max-dist-bw-obj-bin)
+                ;; TODO: fix hard-coded variable
+                (when (and (> dist-bw-obj-bin max-dist-bw-obj-bin)
+                           (> object-w (+ (* (gethash arm (gethash :pad-r gripper-dims-)) 2) 30)))
                   ;; decide support style depending on object size
                   (setq gripper-angle -pi/2)
                   (cond ((eq grasp-style :pinch)
