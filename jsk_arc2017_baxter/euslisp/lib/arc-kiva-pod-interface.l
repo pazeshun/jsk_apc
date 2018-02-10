@@ -943,9 +943,12 @@
                       (setf (elt obj-moved-pos 0) (+ (apply #'min vertex-values) 50)))
                     (setq obj-moved-pos
                           (send approach-coords :transform-vector obj-moved-pos)))
+                  ;; don't fix obj-pos overly (because bbox is sometimes outside bin)
+                  (if (> (aref obj-moved-pos 2) (- (elt (elt movable-region 2) 1) 80))
+                    (setf (aref obj-moved-pos 2) (- (elt (elt movable-region 2) 1) 80)))
                   (setq approach-pos (copy-object obj-moved-pos))
                   (setq approach-pos
-                        (send approach-coords :inverse-transform-vector obj-moved-pos))
+                        (send approach-coords :inverse-transform-vector approach-pos))
                   (setq vertex-values (mapcar #'(lambda (x) (aref x 2))
                                               (send obj-approach-cube :vertices)))
                   (setf (elt approach-pos 2) (apply #'max vertex-values))
