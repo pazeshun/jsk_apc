@@ -1162,7 +1162,7 @@
           (if (send *baxter* arm :move-end-pos #f(0 0 -100) :local)
             (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
                   3000 (send *ri* :get-arm-controller arm) 0))
-          (send *ri* :wait-interpolation-until arm :grasp :prismatic-loaded)
+          (send *ri* :wait-interpolation-until arm :grasp)
           ;(send *ri* :angle-vector-raw (send *baxter* :angle-vector temp-av)
           ;      3000 (send *ri* :get-arm-controller arm) 0) ;; revert baxter
           ;(send *ri* :wait-interpolation-until arm :grasp)
