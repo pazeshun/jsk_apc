@@ -954,6 +954,12 @@
                   (setf (elt approach-pos 2) (apply #'max vertex-values))
                   (setq approach-pos
                         (send approach-coords :transform-vector approach-pos))
+                  ;; limit palm position not to collide fingers to bin
+                  (dotimes (i 2)
+                    (if (> (aref approach-pos i) (- (elt (elt movable-region i) 1) 10))
+                      (setf (aref approach-pos i) (- (elt (elt movable-region i) 1) 10)))
+                    (if (< (aref approach-pos i) (+ (elt (elt movable-region i) 0) 10))
+                      (setf (aref approach-pos i) (+ (elt (elt movable-region i) 0) 10))))
                   (setq approach-idx idx)
                   (setq max-dist-bw-obj-bin dist-bw-obj-bin))))))
         (if approach-idx (return)))
