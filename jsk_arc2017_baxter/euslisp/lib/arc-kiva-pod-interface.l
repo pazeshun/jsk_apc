@@ -1437,7 +1437,7 @@
     (arm bin &key (gripper-angle 90))
     (let (avs offset rpy
               (offset-x (if (eq arm :larm) 30 -50))
-              (offset-y (if (eq arm :larm) 280 -250)))
+              (offset-y (if (eq arm :larm) 280 -220)))
       (setq avs (list (send *baxter* :avoid-shelf-pose arm (if (eq arm :larm) :d :f))))
       (send *baxter* :reset-pose arm)
       (send *baxter* :rotate-gripper arm gripper-angle :relative nil)
