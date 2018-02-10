@@ -831,13 +831,13 @@
                     ;; check and avoid near walls
                     ;; TODO: fix hard coded value
                     (let (near-walls forced-yaw-angle)
-                      (when (< (elt obj-pos-to-walls 0) 50)
+                      (when (< (elt obj-pos-to-walls 0) 20)
                         (pushback :front near-walls))
-                      (when (< (elt obj-pos-to-walls 1) 50)
+                      (when (< (elt obj-pos-to-walls 1) 20)
                         (pushback :rear near-walls))
-                      (when (< (elt obj-pos-to-walls 2) 50)
+                      (when (< (elt obj-pos-to-walls 2) 20)
                         (pushback :left near-walls))
-                      (when (< (elt obj-pos-to-walls 3) 50)
+                      (when (< (elt obj-pos-to-walls 3) 20)
                         (pushback :right near-walls))
                       (if (< (length near-walls) 2)
                         (cond
