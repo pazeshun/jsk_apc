@@ -35,6 +35,7 @@
       <remap from="~input/candidates" to="$(arg INPUT_CANDIDATES)" />
       <rosparam>
         use_topic: true
+        proba_threshold: 0.8
       </rosparam>
     </node>
   </group>
@@ -45,6 +46,7 @@
       <remap from="~input" to="fcn_object_segmentation/output/proba_image" />
       <rosparam>
         use_topic: false
+        proba_threshold: 0.8
       </rosparam>
     </node>
   </group>
