@@ -545,8 +545,10 @@
         (let ((target-local-pos (copy-object (gethash :approach-pos as-table))))
           ;; target-local-pos: relative to movable-region coords
           ;; movable-region: ((min-of-x max-of-x) (min-of-y max-of-y) (min-of-z max-of-z) center-coords)
-          (setf (elt target-local-pos 2) (+ (cadr (elt movable-region 2)) 100))
+          (setf (elt target-local-pos 2) (+ (cadr (elt movable-region 2)) 200))
           ;; location above of the target object in local z axis
+          (pushback (send (elt movable-region 3) :transform-vector target-local-pos) target-poss)
+          (setf (elt target-local-pos 2) (+ (cadr (elt movable-region 2)) 100))
           (pushback (send (elt movable-region 3) :transform-vector target-local-pos) target-poss)
           ;; Go to a little inside of the bin/tote
           ;; TODO: check if this is good for kiva
