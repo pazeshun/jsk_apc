@@ -1109,7 +1109,7 @@
   (:try-to-suction-side-object
     (arm obj-coords support-style rotation-axis &key (offset #f(0 0 0)))
     "Return value: :grasp-failed, :grasp-succeeded or :grasp-succeeded-with-support"
-    (let (graspingp obj->end
+    (let (graspingp obj->end obj-above-av
                     (obj-coords-offset (send obj-coords :copy-worldcoords))
                     (coords-before-approach (send *baxter* arm :end-coords :copy-worldcoords)))
       (send obj-coords-offset :locate offset :local)
@@ -1130,8 +1130,8 @@
               :local)
         (send *baxter* :slide-gripper arm
               (send (send *baxter* arm :gripper-x) :max-angle) :relative nil)
-        (send *baxter* arm :inverse-kinematics above-coords
-              :rotation-axis rotation-axis)
+        (setq obj-above-av (send *baxter* arm :inverse-kinematics above-coords
+                                 :rotation-axis rotation-axis))
         ;; change gripper angle not to push target object
         (send *baxter* :rotate-gripper arm 0 :relative nil)
         ;; move gripper above object
@@ -1163,20 +1163,25 @@
             (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
                   3000 (send *ri* :get-arm-controller arm) 0))
           (send *ri* :wait-interpolation-until arm :grasp)
-          ;(send *ri* :angle-vector-raw (send *baxter* :angle-vector temp-av)
-          ;      3000 (send *ri* :get-arm-controller arm) 0) ;; revert baxter
-          ;(send *ri* :wait-interpolation-until arm :grasp)
+          (send *ri* :angle-vector-raw (send *baxter* :angle-vector temp-av)
+                3000 (send *ri* :get-arm-controller arm) 0) ;; revert baxter
+          (send *ri* :wait-interpolation)
           ))
-      (send *baxter* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
+      ;; lift object
+      (ros::ros-info "[:try-to-suction-side-object] arm:~a lift the object" arm)
+      (send *baxter* :angle-vector obj-above-av)
+      (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 30) :local)
+            1000 (send *ri* :get-arm-controller arm) 0)
+      (send *ri* :wait-interpolation)
       ;; TODO: fix hard-coded value
       (send *baxter* :slide-gripper arm 40 :relative nil)
-      (send *baxter* arm :move-end-pos
-            (float-vector (aref (send obj->end :pos) 0) (aref (send obj->end :pos) 1) 0)
-            (send obj-coords-offset :copy-worldcoords)
-            :rotation-axis rotation-axis)
-      ;(send *baxter* arm :inverse-kinematics
-      ;      coords-before-approach
+      ;(send *baxter* arm :move-end-pos
+      ;      (float-vector (aref (send obj->end :pos) 0) (aref (send obj->end :pos) 1) 0)
+      ;      (send obj-coords-offset :copy-worldcoords)
       ;      :rotation-axis rotation-axis)
+      (send *baxter* arm :inverse-kinematics
+            coords-before-approach
+            :rotation-axis rotation-axis)
       (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
             3000 (send *ri* :get-arm-controller arm) 0)
       (send *ri* :wait-interpolation)
