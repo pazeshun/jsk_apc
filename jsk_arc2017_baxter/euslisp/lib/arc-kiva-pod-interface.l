@@ -917,15 +917,16 @@
                          (setq yaw-angle -pi/2))
                         ((and (= idx 1) (> sign 0))
                          (setq yaw-angle pi/2)))
-                  (setq approach-pos (copy-object obj-local-pos))
-                  (setq approach-pos
-                        (send approach-coords :inverse-transform-vector obj-local-pos))
-                  (setq vertex-values (mapcar #'(lambda (x) (aref x 2))
-                                              (send obj-approach-cube :vertices)))
-                  (setf (elt approach-pos 2) (apply #'max vertex-values))
-                  (setq approach-pos
-                        (send approach-coords :transform-vector approach-pos))
                   (setq obj-moved-pos (copy-object obj-local-pos))
+                  ;; not to collide palm to walls
+                  ;; TODO: fix hard-coded variable and refactor
+                  (let ((cross-idx (if (= idx 0) 1 0)) cross-min cross-max)
+                    (setq cross-min (+ (elt (elt movable-region cross-idx) 0) 25))
+                    (setq cross-max (- (elt (elt movable-region cross-idx) 1) 25))
+                    (cond ((> cross-min (aref obj-moved-pos cross-idx))
+                           (setf (aref obj-moved-pos cross-idx) cross-min))
+                          ((> (aref obj-moved-pos cross-idx) cross-max)
+                           (setf (aref obj-moved-pos cross-idx) cross-max))))
                   (when (eq grasp-style :suction)
                     ;; not to catch fingers between object and suction tube in side suction
                     (setq obj-moved-pos
@@ -937,6 +938,14 @@
                       (setf (elt obj-moved-pos 0) (+ (apply #'min vertex-values) 50)))
                     (setq obj-moved-pos
                           (send approach-coords :transform-vector obj-moved-pos)))
+                  (setq approach-pos (copy-object obj-moved-pos))
+                  (setq approach-pos
+                        (send approach-coords :inverse-transform-vector obj-moved-pos))
+                  (setq vertex-values (mapcar #'(lambda (x) (aref x 2))
+                                              (send obj-approach-cube :vertices)))
+                  (setf (elt approach-pos 2) (apply #'max vertex-values))
+                  (setq approach-pos
+                        (send approach-coords :transform-vector approach-pos))
                   (setq approach-idx idx)
                   (setq max-dist-bw-obj-bin dist-bw-obj-bin))))))
         (if approach-idx (return)))
