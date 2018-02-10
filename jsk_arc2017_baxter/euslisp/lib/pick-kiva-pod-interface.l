@@ -356,7 +356,8 @@
                   :offset offset
                   :rotation-axis (if (eq grasp-style- :suction) :z nil)
                   :use-gripper (if (eq grasp-style- :suction) t nil)
-                  :move-palm-end (if (eq grasp-style- :suction) nil t))
+                  :move-palm-end (if (eq grasp-style- :suction) nil t)
+                  :use-rotate-wrist-ik t)
             avs))
         (setq avs (remove nil avs))
         (setq place-z 50)
