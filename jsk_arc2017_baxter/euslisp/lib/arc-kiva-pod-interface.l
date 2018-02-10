@@ -620,7 +620,7 @@
                         (make-coords
                           :pos (send (elt movable-region 3) :transform-vector obj-local-pos)
                           :rpy approach-rpy)
-                        :offset (float-vector 0 0 (- (* i -30) 30))
+                        :offset (float-vector 0 0 (* i -30))
                         :grasp-style grasp-style
                         :support-style (gethash :support-style as-table)
                         :rotation-axis (if (null (gethash :yaw-angle as-table)) :z t)
@@ -647,6 +647,8 @@
       ;; relative position to movable-region coords
       (setq obj-local-pos
             (send (send (elt movable-region 3) :transformation obj-coords :local) :pos))
+      ;; TODO: fix this offset for camera point cloud
+      (if (eq arm :rarm) (setf (aref obj-local-pos 2) (- (aref obj-local-pos 2) 30)))
       (dolist (i (list 0 1))
         (cond ((> (elt (elt movable-region i) 0) (aref obj-local-pos i))
                (ros::ros-error "[:get-object-position] object is out of movable region. ~a > ~a < ~a"
