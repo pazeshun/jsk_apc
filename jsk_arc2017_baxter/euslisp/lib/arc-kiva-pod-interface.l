@@ -869,8 +869,8 @@
                     (setq approach-pos (copy-object obj-local-pos))
                     (setq obj-moved-pos (copy-object obj-local-pos))
                     (setq approach-idx idx))))
-              (progn
-                (let (sides vec proj-vec)
+              (let (sides vec proj-vec)
+                (progn
                   (pushback (list (x-of-cube obj-approach-cube)) sides)
                   (pushback (list (y-of-cube obj-approach-cube)) sides)
                   (pushback (list (z-of-cube obj-approach-cube)) sides)
@@ -898,7 +898,10 @@
                 ;; TODO: manage standing flat object not parallel to bin wall
                 ;; TODO: fix hard-coded variable
                 (when (and (> dist-bw-obj-bin max-dist-bw-obj-bin)
-                           (> object-w (+ (* (gethash arm (gethash :pad-r gripper-dims-)) 2) 30)))
+                           (> (car (elt sides 0))
+                              (+ (* (gethash arm (gethash :pad-r gripper-dims-)) 2) 10))
+                           (> (car (elt sides 1))
+                              (+ (* (gethash arm (gethash :pad-r gripper-dims-)) 2) 10)))
                   ;; decide support style depending on object size
                   (setq gripper-angle -pi/2)
                   (cond ((eq grasp-style :pinch)
