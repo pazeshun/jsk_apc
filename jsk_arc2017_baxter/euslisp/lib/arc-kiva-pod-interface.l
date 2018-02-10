@@ -1809,9 +1809,12 @@
   (:get-stowing-target-bin (arm)
     (let (bins obj-bbox target-bin obj-bbox-volume)
       (dotimes (i (length bin-list-))
-        (if (or ;(eq (mod i 3) 1) TODO: fix collision in robot pose by IK
-                (and (eq (mod i 3) 0) (eq arm :larm))
-                (and (eq (mod i 3) 2) (eq arm :rarm)))
+        ;; TODO: fix IK failure and collision in robot pose by IK
+        ;; (if (or (eq (mod i 3) 1)
+        ;;         (and (eq (mod i 3) 0) (eq arm :larm))
+        ;;         (and (eq (mod i 3) 2) (eq arm :rarm)))
+        (if (or (and (or (eq (elt bin-list- i) :a) (eq (elt bin-list- i) :d)) (eq arm :larm))
+                (and (or (eq (elt bin-list- i) :c) (eq (elt bin-list- i) :f)) (eq arm :rarm)))
           (pushback (elt bin-list- i) bins)))
       (setq object-volumes
             (mapcar #'(lambda (bin) (gethash bin bin-object-volumes-)) bins))
