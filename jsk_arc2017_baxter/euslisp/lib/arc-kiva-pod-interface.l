@@ -976,8 +976,8 @@
                     (setq vertex-values (mapcar #'(lambda (x) (aref x 0))
                                                 (send obj-approach-cube :vertices)))
                     ;; TODO: fix hard-coded variable
-                    (if (> (elt obj-moved-pos 0) (+ (apply #'min vertex-values) 50))
-                      (setf (elt obj-moved-pos 0) (+ (apply #'min vertex-values) 50)))
+                    (if (> (elt obj-moved-pos 0) (+ (apply #'min vertex-values) 40))
+                      (setf (elt obj-moved-pos 0) (+ (apply #'min vertex-values) 40)))
                     (setq obj-moved-pos
                           (send approach-coords :transform-vector obj-moved-pos)))
                   ;; don't fix obj-pos overly (because bbox is sometimes outside bin)
