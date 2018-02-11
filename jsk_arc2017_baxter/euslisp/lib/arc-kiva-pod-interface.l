@@ -1078,7 +1078,8 @@
     "Return value: :grasp-failed, :grasp-succeeded or :grasp-succeeded-with-support"
     (let (graspingp av
           (coords-before-approach (send *baxter* arm :end-coords :copy-worldcoords)))
-      (send coords-before-approach :locate #f(0 0 300) obj-coords)
+      ;; when comment in below, object is dropped from kiva
+      ;; (send coords-before-approach :locate #f(0 0 300) obj-coords)
       ;; start the vacuum gripper before approaching to the object
       (ros::ros-info "[:try-to-suction-front-object] arm:~a start vacuum gripper" arm)
       (send *ri* :start-grasp arm)
