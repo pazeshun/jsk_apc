@@ -867,13 +867,13 @@
                     ;; check and avoid near walls
                     ;; TODO: fix hard coded value
                     (let (near-walls forced-yaw-angle)
-                      (when (< (elt obj-pos-to-walls 0) 20)
+                      (when (< (elt obj-pos-to-walls 0) 35)
                         (pushback :front near-walls))
-                      (when (< (elt obj-pos-to-walls 1) 20)
+                      (when (< (elt obj-pos-to-walls 1) 35)
                         (pushback :rear near-walls))
-                      (when (< (elt obj-pos-to-walls 2) 20)
+                      (when (< (elt obj-pos-to-walls 2) 35)
                         (pushback :left near-walls))
-                      (when (< (elt obj-pos-to-walls 3) 20)
+                      (when (< (elt obj-pos-to-walls 3) 35)
                         (pushback :right near-walls))
                       (if (< (length near-walls) 2)
                         (cond
@@ -962,8 +962,8 @@
                   ;; not to collide palm to walls
                   ;; TODO: fix hard-coded variable and refactor
                   (let ((cross-idx (if (= idx 0) 1 0)) cross-min cross-max)
-                    (setq cross-min (+ (elt (elt movable-region cross-idx) 0) 25))
-                    (setq cross-max (- (elt (elt movable-region cross-idx) 1) 25))
+                    (setq cross-min (+ (elt (elt movable-region cross-idx) 0) 40))
+                    (setq cross-max (- (elt (elt movable-region cross-idx) 1) 40))
                     (cond ((> cross-min (aref obj-moved-pos cross-idx))
                            (setf (aref obj-moved-pos cross-idx) cross-min))
                           ((> (aref obj-moved-pos cross-idx) cross-max)
@@ -991,11 +991,12 @@
                   (setq approach-pos
                         (send approach-coords :transform-vector approach-pos))
                   ;; limit palm position not to collide fingers to bin
+                  ;; TODO: fix hard-coded variable
                   (dotimes (i 2)
-                    (if (> (aref approach-pos i) (- (elt (elt movable-region i) 1) 10))
-                      (setf (aref approach-pos i) (- (elt (elt movable-region i) 1) 10)))
-                    (if (< (aref approach-pos i) (+ (elt (elt movable-region i) 0) 10))
-                      (setf (aref approach-pos i) (+ (elt (elt movable-region i) 0) 10))))
+                    (if (> (aref approach-pos i) (- (elt (elt movable-region i) 1) 30))
+                      (setf (aref approach-pos i) (- (elt (elt movable-region i) 1) 30)))
+                    (if (< (aref approach-pos i) (+ (elt (elt movable-region i) 0) 30))
+                      (setf (aref approach-pos i) (+ (elt (elt movable-region i) 0) 30))))
                   (setq approach-idx idx)
                   (setq max-dist-bw-obj-bin dist-bw-obj-bin))))))
         (if approach-idx (return)))

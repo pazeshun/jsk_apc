@@ -211,8 +211,8 @@
       (setq recognize-fail-count- 0)
       (when moveit-p- (send self :delete-bin-scene target-bin-))
       (if (eq grasp-style- :suction)
-        (send self :set-movable-region-for-bin :offset (list 50 50 0))
-        (send self :set-movable-region-for-bin :offset (list 50 50 0)))
+        (send self :set-movable-region-for-bin :offset (list 35 35 0))
+        (send self :set-movable-region-for-bin :offset (list 35 35 0)))
       (send *baxter* :head_pan :joint-angle (if (eq arm :larm) -70 70))
       (setq pick-result
             (send self :pick-object-in-bin arm target-bin-
