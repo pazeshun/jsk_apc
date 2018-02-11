@@ -843,12 +843,13 @@
                       (setq vertex-values (mapcar #'(lambda (x) (aref x 0))
                                                   (send obj-approach-cube :vertices)))
                       ;; fix obj-pos to pinch object
+                      ;; TODO: fix hard-coded value
                       (if (> (elt obj-moved-pos 0)
                              (- (apply #'max vertex-values)
-                                (+ (gethash arm (gethash :pad-to-finger gripper-dims-)) 10)))
+                                (+ (gethash arm (gethash :pad-to-finger gripper-dims-)) 20)))
                         (setf (elt obj-moved-pos 0)
                               (- (apply #'max vertex-values)
-                                 (+ (gethash arm (gethash :pad-to-finger gripper-dims-)) 10))))
+                                 (+ (gethash arm (gethash :pad-to-finger gripper-dims-)) 20))))
                       (setq obj-moved-pos
                             (send approach-coords :transform-vector obj-moved-pos))
                       ;; remake obj-pos-to-walls based on new obj-pos
