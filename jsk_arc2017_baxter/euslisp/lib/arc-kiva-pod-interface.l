@@ -1119,15 +1119,18 @@
           (send *ri* :angle-vector-raw (send *baxter* :angle-vector temp-av)
                 3000 (send *ri* :get-arm-controller arm) 0) ;; revert baxter
           (send *ri* :wait-interpolation-until arm :grasp :prismatic-loaded)))
+      ;; free vacuum pad joint
       (send *baxter* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
       (send *ri* :angle-vector-raw (send *baxter* :rotate-gripper arm 30 :relative nil)
+            1000 (send *ri* :get-arm-controller arm) 0)
+      (send *ri* :wait-interpolation)
+      ;; lift a little to world-z for drawing obj
+      (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 30) :world)
             1000 (send *ri* :get-arm-controller arm) 0)
       (send *ri* :wait-interpolation)
       ;; suction: prismatic-based approach
       (send *baxter* :slide-gripper arm 0 :relative nil)
       (send *baxter* :rotate-gripper arm 0 :relative nil)
-      (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
-            3000 (send *ri* :get-arm-controller arm) 0)
       ;; suction: prismatic-based approach
       ;; lift object
       (ros::ros-info "[:try-to-suction-front-object] arm:~a lift the object" arm)
@@ -1231,7 +1234,7 @@
       ;; lift object
       (ros::ros-info "[:try-to-suction-side-object] arm:~a lift the object" arm)
       (send *baxter* :angle-vector obj-above-av)
-      (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 30) :local)
+      (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 40) :local)
             1000 (send *ri* :get-arm-controller arm) 0)
       (send *ri* :wait-interpolation)
       ;; TODO: fix hard-coded value
