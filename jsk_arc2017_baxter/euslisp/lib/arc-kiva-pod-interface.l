@@ -1235,7 +1235,7 @@
       ;; lift object
       (ros::ros-info "[:try-to-suction-side-object] arm:~a lift the object" arm)
       (send *baxter* :angle-vector obj-above-av)
-      (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 40) :local)
+      (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 40) :world)
             1000 (send *ri* :get-arm-controller arm) 0)
       (send *ri* :wait-interpolation)
       ;; TODO: fix hard-coded value
