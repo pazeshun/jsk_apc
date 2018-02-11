@@ -810,26 +810,60 @@
                                     (+ (* (gethash arm (gethash :pad-r gripper-dims-)) 2) 30)))
                             (and (< object-h object-t) (< object-h object-w)))
                     (setq gripper-angle 0)
-                    (setq approach-pos (copy-object obj-local-pos))
                     (setq obj-moved-pos (copy-object obj-local-pos))
                     (setq approach-idx idx)
                     ;; decide support style depending on object size
                     ;; yaw-angle is already set
-                    (cond ((and (<= object-w
+                    ;; TODO: fix hard-coded value
+                    (cond ((and (<= object-t
                                     (gethash arm (gethash :opposed-max-w gripper-dims-)))
-                                (>= (/ object-t 2)
-                                    (gethash arm (gethash :pad-to-finger gripper-dims-))))
-                           (setq support-style :opposed))  ;; yaw-angle is as is
-                          ((and (<= object-t
-                                    (gethash arm (gethash :opposed-max-w gripper-dims-)))
-                                (>= (/ object-w 2)
-                                    (gethash arm (gethash :pad-to-finger gripper-dims-))))
+                                (>= object-w
+                                    (+ (gethash arm (gethash :pad-to-finger gripper-dims-)) 25)))
                            (setq support-style :opposed)
                            (if (>= yaw-angle 0)
                              (setq yaw-angle (- yaw-angle pi/2))
                              (setq yaw-angle (+ yaw-angle pi/2))))
+                          ((and (<= object-w
+                                    (gethash arm (gethash :opposed-max-w gripper-dims-)))
+                                (>= object-t
+                                    (+ (gethash arm (gethash :pad-to-finger gripper-dims-)) 25)))
+                           (setq support-style :opposed))  ;; yaw-angle is as is
                           (t (setq support-style nil)
                              (setq yaw-angle nil)))
+                    (when yaw-angle
+                      ;; follow yaw-angle change
+                      (send approach-coords :orient yaw-angle :z :world)
+                      ;; change obj-approach-cube based on new yaw-angle
+                      (send obj-approach-cube :move-to (send obj-local-cube :worldcoords) :world)
+                      (send obj-approach-cube :move-to
+                            (send approach-coords :transformation
+                                  (send obj-approach-cube :worldcoords) :local) :world)
+                      (setq obj-moved-pos
+                            (send approach-coords :inverse-transform-vector obj-moved-pos))
+                      (setq vertex-values (mapcar #'(lambda (x) (aref x 0))
+                                                  (send obj-approach-cube :vertices)))
+                      ;; fix obj-pos to pinch object
+                      (if (> (elt obj-moved-pos 0)
+                             (- (apply #'max vertex-values)
+                                (+ (gethash arm (gethash :pad-to-finger gripper-dims-)) 10)))
+                        (setf (elt obj-moved-pos 0)
+                              (- (apply #'max vertex-values)
+                                 (+ (gethash arm (gethash :pad-to-finger gripper-dims-)) 10))))
+                      (setq obj-moved-pos
+                            (send approach-coords :transform-vector obj-moved-pos))
+                      ;; remake obj-pos-to-walls based on new obj-pos
+                      (setq obj-pos-to-walls nil)
+                      (dotimes (i 2)
+                        ;; limit obj-pos inside movable-region
+                        (if (> (aref obj-moved-pos i) (elt (elt movable-region i) 1))
+                          (setf (aref obj-moved-pos i) (elt (elt movable-region i) 1)))
+                        (if (< (aref obj-moved-pos i) (elt (elt movable-region i) 0))
+                          (setf (aref obj-moved-pos i) (elt (elt movable-region i) 0)))
+                        (pushback (- (elt (elt movable-region i) 1) (aref obj-moved-pos i))
+                                  obj-pos-to-walls)
+                        (pushback (- (aref obj-moved-pos i) (elt (elt movable-region i) 0))
+                                  obj-pos-to-walls)))
+                    (setq approach-pos (copy-object obj-moved-pos))
                     ;; check and avoid near walls
                     ;; TODO: fix hard coded value
                     (let (near-walls forced-yaw-angle)
@@ -843,7 +877,7 @@
                         (pushback :right near-walls))
                       (if (< (length near-walls) 2)
                         (cond
-                          ((eq (car near-walls) :rear) (setq forced-yaw-angle 0))
+                          ((eq (car near-walls) :rear) (setq forced-yaw-angle 0.0))
                           ((eq (car near-walls) :front) (setq forced-yaw-angle pi))
                           ((eq (car near-walls) :right) (setq forced-yaw-angle pi/2))
                           ((eq (car near-walls) :left) (setq forced-yaw-angle -pi/2)))
@@ -857,7 +891,7 @@
                           ((and (member :front near-walls) (member :left near-walls))
                            (setq forced-yaw-angle (/ (* 3 -pi) 4)))))
                       (if (and yaw-angle forced-yaw-angle
-                               (not (= yaw-angle (abs forced-yaw-angle))))
+                               (not (eps= yaw-angle (abs forced-yaw-angle) 0.1)))
                         (setq support-style nil))
                       (if forced-yaw-angle (setq yaw-angle forced-yaw-angle))))
                   ;; pinch
