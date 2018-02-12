@@ -128,7 +128,18 @@
                                 (arm2str arm) (symbol2str side))
                         std_msgs::UInt16
                         #'send self :set-finger-flex arm side
-                        :groupname groupname)))
+                        :groupname groupname)
+        ;; publish used proximity value for rosbag
+        (ros::advertise (format nil "/from_main/limb/~a/used_proximity/raw/~a"
+                                (arm2str arm) (symbol2str side)) std_msgs::Float64)
+        (ros::advertise (format nil "/from_main/limb/~a/used_proximity/init/~a"
+                                (arm2str arm) (symbol2str side)) std_msgs::Float64)
+        (ros::advertise (format nil "/from_main/limb/~a/used_proximity/result/~a"
+                                (arm2str arm) (symbol2str side)) std_msgs::Float64)))
+    ;; publish used proximity value for rosbag
+    (ros::advertise "/from_main/limb/left/used_proximity/raw/palm" std_msgs::Float64)
+    (ros::advertise "/from_main/limb/left/used_proximity/init/palm" std_msgs::Float64)
+    (ros::advertise "/from_main/limb/left/used_proximity/result/palm" std_msgs::Float64)
     (if mvit-rb (setq moveit-robot mvit-rb))
     (if mvit-env (send self :set-moveit-environment (send mvit-env :init :robot moveit-robot))))
   ;; Overwrite super class's :rarm-controller
@@ -270,20 +281,50 @@
           (p-init (gethash :palm (gethash arm proximity-init-values-)))
           (l (gethash :left (gethash arm proximities-)))
           (r (gethash :right (gethash arm proximities-)))
-          (p (gethash :palm (gethash arm proximities-))))
+          (p (gethash :palm (gethash arm proximities-)))
+          raw-msg init-msg res-msg val)
       (if (null raw)
         (cond
           ;; for sparkfun proximity sensor
           ((eq side :left)
-           (/ (- l l-init) (expt (/ l-init 2500.0) 1.5)))
+           (setq val (/ (- l l-init) (expt (/ l-init 2500.0) 1.5)))
+           (setq raw-msg (instance std_msgs::Float64 :init :data l))
+           (setq init-msg (instance std_msgs::Float64 :init :data l-init))
+           (setq res-msg (instance std_msgs::Float64 :init :data val)))
           ((eq side :right)
-           (/ (- r r-init) (expt (/ r-init 2500.0) 1.5)))
+           (setq val (/ (- r r-init) (expt (/ r-init 2500.0) 1.5)))
+           (setq raw-msg (instance std_msgs::Float64 :init :data r))
+           (setq init-msg (instance std_msgs::Float64 :init :data r-init))
+           (setq res-msg (instance std_msgs::Float64 :init :data val)))
           ((eq side :palm)
-           (/ (- p p-init) (expt (/ p-init 2500.0) 1.5))))
+           (setq val (/ (- p p-init) (expt (/ p-init 2500.0) 1.5)))
+           (setq raw-msg (instance std_msgs::Float64 :init :data p))
+           (setq init-msg (instance std_msgs::Float64 :init :data p-init))
+           (setq res-msg (instance std_msgs::Float64 :init :data val))))
         (cond
-          ((eq side :left) l)
-          ((eq side :right) r)
-          ((eq side :palm) p)))))
+          ((eq side :left)
+           (setq val l)
+           (setq raw-msg (instance std_msgs::Float64 :init :data l)))
+          ((eq side :right)
+           (setq val r)
+           (setq raw-msg (instance std_msgs::Float64 :init :data r)))
+          ((eq side :palm)
+           (setq val p)
+           (setq raw-msg (instance std_msgs::Float64 :init :data p)))))
+      ;; publish used proximity value for rosbag
+      (if raw-msg
+        (ros::publish
+          (format nil "/from_main/limb/~a/used_proximity/raw/~a"
+                  (arm2str arm) (symbol2str side)) raw-msg))
+      (if init-msg
+        (ros::publish
+          (format nil "/from_main/limb/~a/used_proximity/init/~a"
+                  (arm2str arm) (symbol2str side)) init-msg))
+      (if res-msg
+        (ros::publish
+          (format nil "/from_main/limb/~a/used_proximity/result/~a"
+                  (arm2str arm) (symbol2str side)) res-msg))
+      val))
   (:get-real-finger-av (arm)
     (send self :update-robot-state :wait-until-update t)
     (if (eq arm :rarm)
