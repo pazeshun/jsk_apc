@@ -2,15 +2,15 @@
 
 (require "package://jsk_2015_05_baxter_apc/euslisp/lib/util.l")
 (require "package://jsk_2016_01_baxter_apc/euslisp/lib/util.l")
-(require "package://jsk_arc2017_baxter/euslisp/lib/arc-kiva-pod-interface.l")
+(require "package://jsk_arc2017_baxter/euslisp/lib/pick-book-base-interface.l")
 
 (ros::load-ros-manifest "jsk_arc2017_baxter")
 
 (unless (find-package "JSK_ARC2017_BAXTER")
   (make-package "JSK_ARC2017_BAXTER"))
 
-(defclass jsk_arc2017_baxter::pick-kiva-pod-interface
-  :super jsk_arc2017_baxter::arc-kiva-pod-interface
+(defclass jsk_arc2017_baxter::pick-book-interface
+  :super jsk_arc2017_baxter::pick-book-base-interface
   :slots (grasp-style-
           label-names-
           moveit-p-
@@ -26,7 +26,7 @@
           target-obj-
           trial-fail-count-))
 
-(defmethod jsk_arc2017_baxter::pick-kiva-pod-interface
+(defmethod jsk_arc2017_baxter::pick-book-interface
   (:init (&key (moveit nil))
     (send-super :init)
     (setq picking-fail-count- 0)
@@ -432,20 +432,20 @@
       (setq grasp-style- nil))))
 
 
-(defun jsk_arc2017_baxter::pick-kiva-pod-init (&key (ctype :default-controller) (moveit nil))
+(defun jsk_arc2017_baxter::pick-book-init (&key (ctype :default-controller) (moveit nil))
   (let (mvit-env mvit-rb)
     (when moveit
-      (setq mvit-env (instance jsk_arc2017_baxter::baxter-moveit-environment))
-      (setq mvit-rb (instance jsk_arc2017_baxter::baxter-robot :init)))
+      (setq mvit-env (instance jsk_arc2017_baxter::baxterlgv7-moveit-environment))
+      (setq mvit-rb (instance jsk_arc2017_baxter::baxterlgv7-robot :init)))
     (unless (boundp '*ri*)
-      (setq *ri* (instance jsk_arc2017_baxter::baxter-interface :init :type ctype
+      (setq *ri* (instance jsk_arc2017_baxter::baxterlgv7-interface :init :type ctype
                            :moveit-environment mvit-env
                            :moveit-robot mvit-rb)))
     (unless (boundp '*baxter*)
-      (setq *baxter* (instance jsk_arc2017_baxter::baxter-robot :init)))
+      (setq *baxter* (instance jsk_arc2017_baxter::baxterlgv7-robot :init)))
     (unless (boundp '*co*)
       (setq *co* (when moveit (instance collision-object-publisher :init))))
     (unless (boundp '*ti*)
-      (setq *ti* (instance jsk_arc2017_baxter::pick-kiva-pod-interface :init :moveit moveit)))
+      (setq *ti* (instance jsk_arc2017_baxter::pick-book-interface :init :moveit moveit)))
     (send *baxter* :angle-vector (send *ri* :state :potentio-vector))
     (send *ri* :calib-grasp :arms)))
