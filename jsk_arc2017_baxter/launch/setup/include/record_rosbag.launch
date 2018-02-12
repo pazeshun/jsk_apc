@@ -36,10 +36,13 @@
 
               /from_main/limb/left/used_proximity/init/left
               /from_main/limb/left/used_proximity/init/right
+              /from_main/limb/left/used_proximity/init/palm
               /from_main/limb/left/used_proximity/raw/left
               /from_main/limb/left/used_proximity/raw/right
+              /from_main/limb/left/used_proximity/raw/palm
               /from_main/limb/left/used_proximity/result/left
               /from_main/limb/left/used_proximity/result/right
+              /from_main/limb/left/used_proximity/result/palm
               /from_main/limb/right/used_proximity/init/left
               /from_main/limb/right/used_proximity/init/right
               /from_main/limb/right/used_proximity/raw/left
