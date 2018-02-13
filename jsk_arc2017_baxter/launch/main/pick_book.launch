@@ -96,7 +96,7 @@
   <node name="grasp_style_server"
         pkg="jsk_arc2017_common" type="grasp_style_server.py">
     <rosparam>
-      max_trial: 2
+      max_trial: 1
     </rosparam>
   </node>
 

@@ -9,6 +9,7 @@ import rospy
 class GraspStyleServer(object):
 
     style_priority = [
+        'edge',
         'suction',
         'pinch'
     ]
