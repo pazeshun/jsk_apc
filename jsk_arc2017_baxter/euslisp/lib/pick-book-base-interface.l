@@ -1495,12 +1495,7 @@
             (float-vector 0 pi/2 (if (eq arm :larm) pi/2 -pi/2)))
       (send self :ik->bin-center arm bin
             :offset offset :rpy rpy :use-gripper nil :use-rotate-wrist-ik t)
-      ;; TODO: tilting gripper based on gravity and entrance direction
-      (setq rpy
-            (float-vector 0 (+ pi/2 (/ pi 6)) (if (eq arm :larm) pi/2 -pi/2)))
-      (send self :ik->bin-center arm bin
-            :offset offset :rpy rpy :use-gripper nil :use-rotate-wrist-ik t)
-      (send *ri* :angle-vector (send *baxter* :angle-vector) 3000
+      (send *ri* :angle-vector-raw (send *baxter* :angle-vector) 3000
             (send *ri* :get-arm-controller arm) 0)))
   (:move-arm-body->tote-overlook-pose
     (arm &key (gripper-angle 90))
