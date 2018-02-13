@@ -411,14 +411,21 @@
                            (send *ri* :tf-pose->coords
                                  (send com-msg :header :frame_id) obj-pose))
                        (send com-msg :poses)))
-         (if (and (> (length obj-box) 0) (> (length obj-coords) 0))
+         (if (> (length obj-box) 0)
            (progn
              (sethash arm object-boxes- obj-box)
-             (sethash arm object-coords- obj-coords)
+             (if (> (length obj-coords) 0)
+               (progn
+                 (sethash arm object-coords- obj-coords))
+               (progn
+                 (ros::ros-error "[:recognize-target-object] arm: ~a obj-coords length ~a"
+                                 arm (length obj-coords))
+                 (ros::ros-error "[:recognize-target-object] arm: ~a use obj-box for grasp point"
+                                 arm)
+                 (sethash arm object-coords- nil)))
              (setq is-recognized t))
            (progn
              (ros::ros-error "[:recognize-target-object] arm: ~a obj-box length ~a" arm (length obj-box))
-             (ros::ros-error "[:recognize-target-object] arm: ~a obj-coords length ~a" arm (length obj-coords))
              (setq is-recognized nil))))
         (t
          (ros::ros-error "[:recognize-target-object] arm: ~a failed to get cpi msg" arm)
