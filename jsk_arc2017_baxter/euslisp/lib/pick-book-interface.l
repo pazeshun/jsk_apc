@@ -24,12 +24,14 @@
           target-bin-
           target-box-
           target-obj-
+          trial-edge-num-
           trial-fail-count-))
 
 (defmethod jsk_arc2017_baxter::pick-book-interface
   (:init (&key (moveit nil))
     (send-super :init)
     (setq picking-fail-count- 0)
+    (setq trial-edge-num- 0)
     (setq trial-fail-count- 0)
     (setq recognize-fail-count- 0)
     (setq start-picking-fail-count- 0)
@@ -205,49 +207,42 @@
                   (arm2str arm)
                   (underscore-to-space target-obj-)
                   (if moving-object-p- " not" "")))
-    (let (pick-result graspingp)
+    (let (object-index obj-coords pick-result graspingp)
       ;; slots reset
       (setq start-picking-fail-count- 0)
       (setq recognize-fail-count- 0)
-      (when moveit-p- (send self :delete-bin-scene target-bin-))
-      (if (eq grasp-style- :suction)
-        (send self :set-movable-region-for-bin :offset (list 35 35 0))
-        (send self :set-movable-region-for-bin :offset (list 35 35 0)))
-      (send *baxter* :head_pan :joint-angle (if (eq arm :larm) -70 70))
-      (setq pick-result
-            (send self :pick-object-in-bin arm target-bin-
-                  :n-trial 1
-                  :n-trial-same-pos 1
-                  :do-stop-grasp nil
-                  :grasp-style grasp-style-))
-      (when moveit-p- (send self :add-bin-scene target-bin-))
-      (when (eq pick-result :grasp-succeeded-with-support)
-        (ros::ros-info-green
-          "[main] arm: ~a Change grasp-style from suction to pinch for placing"
-          arm)
-        (setq grasp-style- :pinch))
-      (if (eq grasp-style- :suction)
-        (progn
-          (send self :ik->bin-center arm target-bin-
-                :offset #f(0 0 300)
-                :rpy (float-vector (if (eq arm :larm) -pi/2 pi/2) 0 0)
-                :rotation-axis t
-                :use-gripper t
-                :use-rotate-wrist-ik t))
-        (progn
-          (send self :ik->bin-center arm target-bin-
-                :offset #f(0 0 300)
-                :rpy (float-vector (if (eq arm :larm) -pi/2 pi/2) 0 0)
-                :rotation-axis t
-                :move-palm-end t
-                :use-rotate-wrist-ik t)))
-      (send *ri* :angle-vector-raw (send *baxter* :angle-vector) 3000
-            (send *ri* :get-arm-controller arm :gripper nil) 0)
-      (send *ri* :wait-interpolation)
+      (while (and (or (null pick-result) (eq pick-result :support-failed)) (< trial-edge-num- 4))
+        (incf trial-edge-num-)
+        (when moveit-p- (send self :delete-bin-scene target-bin-))
+        (if (eq grasp-style- :suction)
+          (send self :set-movable-region-for-bin :offset (list 35 35 0))
+          (send self :set-movable-region-for-bin :offset (list 35 35 0)))
+        (send *baxter* :head_pan :joint-angle (if (eq arm :larm) -70 70))
+        ;; pick largest bounding box
+        (setq object-index 0)
+        (setq obj-coords
+              (send self :get-object-coords arm
+                    :object-index object-index :trial-edge-num trial-edge-num-))
+        (setq pick-result
+              (send self :pick-object-in-bin arm target-bin- obj-coords
+                    :n-trial 1
+                    :n-trial-same-pos 1
+                    :do-stop-grasp nil
+                    :grasp-style grasp-style-))
+        (when moveit-p- (send self :add-bin-scene target-bin-))
+        (send self :ik->bin-center arm target-bin-
+              :offset #f(0 0 300)
+              :rpy (float-vector (if (eq arm :larm) -pi/2 pi/2) 0 0)
+              :rotation-axis t
+              :use-gripper nil
+              :use-rotate-wrist-ik t)
+        (send *ri* :angle-vector-raw (send *baxter* :angle-vector) 3000
+              (send *ri* :get-arm-controller arm :gripper nil) 0)
+        (send *ri* :wait-interpolation))
       (if (or (eq pick-result :ik-failed) (eq pick-result :plan-failed))
         (return-from :pick-object nil))
       ;; Trust pressure sensor
-      (setq graspingp (send *ri* :graspingp arm grasp-style-))
+      (setq graspingp (send *ri* :graspingp arm :suction))
       (ros::ros-info "[main] arm: ~a graspingp: ~a" arm graspingp)
       ;; TODO (send *ri* :graspingp arm :pinch) always returns t,
       ;;      so placing always occurs even if nothing is pinched

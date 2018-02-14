@@ -549,13 +549,16 @@
       (error ":wait-interpolation-until set arm for first arg~%"))
     (let (conds r-init-flex l-init-flex init-load r-flex l-flex
                 finger-load prismatic-load flex-thre-offset
-                r-proximity l-proximity)
+                r-proximity l-proximity p-proximity palm-prox-range)
       (setq r-init-flex (send self :get-finger-flex arm :right))
       (setq l-init-flex (send self :get-finger-flex arm :left))
       (setq init-load (send self :get-finger-load arm))
       (setq flex-thre-offset
             (if (member :flex-thre-offset args)
               (cadr (member :flex-thre-offset args)) nil))
+      (setq palm-prox-range
+            (if (member :palm-prox-range args)
+              (cadr (member :palm-prox-range args)) nil))
       (ros::ros-info
         "[:wait-interpolation-until] Init flex:  r: ~a l: ~a" r-init-flex l-init-flex)
       (ros::ros-info "[:wait-interpolation-until] Init load: ~a" init-load)
@@ -653,6 +656,21 @@
                 (progn
                   (ros::ros-info "[:wait-interpolation-until] Detected finger proximity. r: ~a, l: ~a"
                                  r-proximity l-proximity)
+                  t)
+                nil))
+          conds))
+      (when (member :palm-proximity args)
+        (ros::ros-info "[:wait-interpolation-until] Prepare for palm proximity")
+        (pushback
+          #'(lambda ()
+              (setq p-proximity (send self :get-proximity arm :palm))
+              (if (if (null palm-prox-range)
+                    (> p-proximity proximity-threshold-)
+                    (or (< p-proximity (elt palm-prox-range 0))
+                        (> p-proximity (elt palm-prox-range 1))))
+                (progn
+                  (ros::ros-info "[:wait-interpolation-until] Detected palm proximity. p: ~a"
+                                 p-proximity)
                   t)
                 nil))
           conds))
