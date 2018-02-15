@@ -334,25 +334,22 @@
       ;;             :offset #f(0 0 200) :rotation-axis :z :use-gripper t)
       ;;       4000 (send *ri* :get-arm-controller arm) 0
       ;;       :path-constraints path-constraints)
-      (let (avs (offsets (list #f(-50 0 500) #f(-50 0 200) #f(0 0 200) #f(30 0 200))))
+      (let (avs (offsets (list #f(-50 0 500) #f(-50 0 200))))
         (dolist (offset offsets)
           (pushback
             (send self :ik->cube-center arm place-target-cube-
                   :offset offset
-                  :rotation-axis (if (eq grasp-style- :suction) :z nil)
-                  :use-gripper (if (eq grasp-style- :suction) t nil)
-                  :move-palm-end (if (eq grasp-style- :suction) nil t)
+                  :rpy (float-vector pi/2 0 -pi/2)
+                  :rotation-axis t
+                  :use-gripper nil
                   :use-rotate-wrist-ik t)
             avs))
         (setq avs (remove nil avs))
         (setq place-z 50)
-        (if (eq grasp-style- :suction)
-          (send *ri* :angle-vector-sequence-raw avs :fast
-                (send *ri* :get-arm-controller arm :gripper t :head t) 0 :scale 7.0)
-          (send *ri* :angle-vector-sequence-raw avs :fast
-                (send *ri* :get-arm-controller arm :gripper nil :head t) 0 :scale 7.0))
+        (send *ri* :angle-vector-sequence-raw avs :fast
+              (send *ri* :get-arm-controller arm :gripper nil :head t) 0 :scale 7.0)
         (send *ri* :wait-interpolation))
-      (setq dropped (not (send *ri* :graspingp arm grasp-style-)))
+      (setq dropped (not (send *ri* :graspingp arm :suction)))
       ;; (when moveit-p- (send self :delete-object-in-hand-scene arm))
       (if dropped
         (progn
@@ -361,12 +358,7 @@
                         (arm2str arm) (underscore-to-space target-obj-)))
           (ros::ros-error "[main] arm ~a: dropped object" arm)
           (send *ri* :stop-grasp arm)
-          (when (eq grasp-style- :pinch)
-            (send *ri* :stop-grasp arm :pinch)
-            (send *baxter* :rotate-gripper arm 90 :relative nil))
-          ;; we assume object is dropped, but it can be just a mis-detection of grasp
-          (send self :spin-off-by-wrist arm :times 3)
-          (send *ri* :wait-interpolation)
+          (send *ri* :stop-grasp arm :pinch)
           (send self :add-postponed-object arm target-obj- target-bin-))
         (let (av)
           (ros::ros-info-green "[main] arm ~a: place object ~a in ~a"
@@ -378,29 +370,19 @@
                 :src (cons :bin target-bin-) :dst (cons :cardboard target-box-))
           (send self :add-finished-object arm target-obj- target-bin-)
           (when moveit-p- (send *co* :delete-object place-target-cube-))
-          (setq av (if (eq grasp-style- :suction)
-                     (send *baxter* arm :move-end-pos (float-vector 0 0 (- place-z))
-                           (send place-target-cube- :worldcoords))
-                     (send *baxter* arm :move-end-pos (float-vector 0 0 (- place-z))
-                           (send place-target-cube- :worldcoords) :rotation-axis nil)))
+          (setq av (send *baxter* arm :move-end-pos (float-vector 0 0 (- place-z))
+                         (send place-target-cube- :worldcoords)))
           (when av
             (send *ri* :angle-vector-raw av
                   2000 (send *ri* :get-arm-controller arm) 0)
             (send *ri* :wait-interpolation))
           (send *ri* :stop-grasp arm) ;; release object
-          (when (eq grasp-style- :pinch)
-            (send *ri* :stop-grasp arm :pinch)
-            (send *baxter* :rotate-gripper arm 90 :relative nil)) ;; release object
-          (send self :spin-off-by-wrist arm :times 5)
-          (send *ri* :wait-interpolation)
+          (send *ri* :stop-grasp arm :pinch)
+          (unix::sleep 3)
           (when av
-            (setq av (if (eq grasp-style- :suction)
-                       (send *baxter* arm :move-end-pos (float-vector 0 0 place-z)
-                             (send place-target-cube- :worldcoords)
-                             :rotation-axis :z :use-gripper t)
-                       (send *baxter* arm :move-end-pos (float-vector 0 0 place-z)
-                             (send place-target-cube- :worldcoords)
-                             :rotation-axis nil)))
+            (setq av (send *baxter* arm :move-end-pos (float-vector 0 0 place-z)
+                           (send place-target-cube- :worldcoords)
+                           :rotation-axis t))
             (send *ri* :angle-vector-raw av
                   1000 (send *ri* :get-arm-controller arm) 0)
             (send *ri* :wait-interpolation))
