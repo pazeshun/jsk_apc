@@ -1580,7 +1580,7 @@
       (send *baxter* :rotate-gripper arm gripper-angle :relative nil)
       (setq offset (float-vector offset-x offset-y 250))
       (setq rpy
-            (float-vector 0 pi/2 (if (eq arm :larm) pi/2 -pi/2)))
+            (float-vector 0 (if (eq arm :larm) -pi/2 pi/2) (if (eq arm :larm) pi/2 -pi/2)))
       (send self :ik->bin-center arm bin
             :offset offset :rpy rpy :use-gripper nil :use-rotate-wrist-ik t)
       (send *ri* :angle-vector-raw (send *baxter* :angle-vector) 3000
