@@ -24,15 +24,13 @@
           target-bin-
           target-box-
           target-obj-
-          trial-edge-num-
-          trial-fail-count-))
+          trial-edge-num-))
 
 (defmethod jsk_arc2017_baxter::pick-book-interface
   (:init (&key (moveit nil))
     (send-super :init)
     (setq picking-fail-count- 0)
     (setq trial-edge-num- 0)
-    (setq trial-fail-count- 0)
     (setq recognize-fail-count- 0)
     (setq start-picking-fail-count- 0)
     (setq moveit-p- moveit)
@@ -95,7 +93,6 @@
     (if target-bin- t nil))
   (:recognize-object (arm &key (trial-times 10))
     (let (is-recognized recognition-count)
-      (setq trial-fail-count- 0)
       (setq grasp-style- nil)
       (send *ri* :move-hand arm
             (send *baxter* :hand-grasp-pre-pose arm :opposed) 1000 :wait nil)
@@ -110,8 +107,9 @@
           (setq order (send self :select-work-order-in-bin arm target-bin- :stamp stamp))
           (setq is-recognized
             (when order
-              (setq target-obj- (send order :item))
-              (setq target-box- (str2symbol (send order :box)))
+              (when (= trial-edge-num- 0)
+                (setq target-obj- (send order :item))
+                (setq target-box- (str2symbol (send order :box))))
               (ros::set-param
                 (format nil "~a_hand/target_object" (arm2str arm)) target-obj-)
               (ros::set-dynparam
@@ -165,7 +163,7 @@
     ;; first trial: trial-time = 1
     (setq grasp-style- (send self :get-grasp-style arm target-obj- 1))
     (ros::ros-info-green "arm: ~a, grasp-style: ~a, trial-time: ~a"
-                         (arm2str arm) (symbol2str grasp-style-) (+ trial-fail-count- 1))
+                         (arm2str arm) (symbol2str grasp-style-) 1)
     (when grasp-style-
       (setq prev-target-obj- nil)
       (setq start-picking-fail-count- 0))
@@ -185,21 +183,13 @@
         (setq prev-target-obj- nil)
         (setq start-picking-fail-count- 0))
       start-picking-failp))
-  (:change-grasp-style (arm)
-    (incf trial-fail-count-)
+  (:check-trial-edge-num (arm)
     (send *ri* :stop-grasp arm)
-    (let (next-style)
-      ;; try another grasp style
-      (setq next-style (send self :get-grasp-style arm target-obj- (+ trial-fail-count- 1)))
-      (ros::ros-info-green "arm: ~a, next grasp-style: ~a, trial-time: ~a"
-                           (arm2str arm) (symbol2str next-style) (+ trial-fail-count- 1))
-      (if next-style
-        (progn
-          (setq grasp-style- next-style)
-          t)
-        (progn
-          (setq trial-fail-count- 0)
-          nil))))
+    (if (>= trial-edge-num- 4)
+      (progn
+        (setq trial-edge-num- 0)
+        nil)
+      t))
   (:pick-object
     (arm)
     (send *ri* :speak

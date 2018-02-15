@@ -31,9 +31,9 @@
             (:check-start-picking-fail-count -> :return-from-pick-object)
             (:check-start-picking-fail-count !-> :recognize-object)
             (:pick-object -> :verify-object)
-            (:pick-object !-> :change-grasp-style)
-            (:change-grasp-style -> :pick-object)
-            (:change-grasp-style !-> :return-from-pick-object)
+            (:pick-object !-> :check-trial-edge-num)
+            (:check-trial-edge-num -> :recognize-object)
+            (:check-trial-edge-num !-> :return-from-pick-object)
             (:return-from-pick-object -> :check-picking-fail-count)
             (:check-picking-fail-count -> :wait-for-opposite-arm-start-picking)
             (:check-picking-fail-count !-> :calib-prismatic-joint)
@@ -92,10 +92,10 @@
               '(lambda (userdata)
                  (send *ti* :update-state *arm* :check-start-picking-fail-count)
                  (send *ti* :check-start-picking-fail-count *arm* :count-limit 5)))
-            (:change-grasp-style
+            (:check-trial-edge-num
               '(lambda (userdata)
-                 (send *ti* :update-state *arm* :change-grasp-style)
-                 (send *ti* :change-grasp-style *arm*)))
+                 (send *ti* :update-state *arm* :check-trial-edge-num)
+                 (send *ti* :check-trial-edge-num *arm*)))
             (:pick-object
               '(lambda (userdata)
                  (send *ti* :update-state *arm* :pick-object)
