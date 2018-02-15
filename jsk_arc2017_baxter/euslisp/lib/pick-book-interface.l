@@ -278,22 +278,14 @@
   (:return-object (arm)
     (send self :add-postponed-object arm target-obj- target-bin-)
     (when moveit-p- (send self :delete-bin-scene target-bin-))
-    (if (eq grasp-style- :suction)
-      (send *ri* :angle-vector-raw
-            (send self :ik->bin-center arm target-bin-
-                  :offset (send self :decide-bin-return-area arm target-bin-)
-                  :rotation-axis :z :use-gripper t)
-            :fast (send *ri* :get-arm-controller arm) 0 :scale 5.0)
-      (send *ri* :angle-vector-raw
-            (send self :ik->bin-center arm target-bin-
-                  :offset (send self :decide-bin-return-area arm target-bin-)
-                  :rotation-axis :z :move-palm-end t)
-            :fast (send *ri* :get-arm-controller arm :gripper nil) 0 :scale 5.0))
+    (send *ri* :angle-vector-raw
+          (send self :ik->bin-center arm target-bin-
+                :offset (send self :decide-bin-return-area arm target-bin-)
+                :rotation-axis :z :use-gripper t)
+          :fast (send *ri* :get-arm-controller arm) 0 :scale 5.0)
     (send *ri* :wait-interpolation)
     (send *ri* :stop-grasp arm)
-    (when (eq grasp-style- :pinch)
-      (send *ri* :stop-grasp arm :pinch)
-      (send *baxter* :rotate-gripper arm 90 :relative nil))
+    (send *ri* :stop-grasp arm :pinch)
     (send self :spin-off-by-wrist arm :times 3)
     (send *ri* :wait-interpolation)
     (ros::ros-info "[main] ~a, return object in shelf" arm)
