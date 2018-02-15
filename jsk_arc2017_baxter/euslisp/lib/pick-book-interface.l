@@ -269,8 +269,8 @@
         (ros::ros-info "[main] blacklisted object, return to shelf")
         nil)
       (progn
-        (setq place-target-label- (format nil "~A_tote" (arm2str arm)))
-        (setq place-target-cube- (gethash arm tote-cubes-))
+        (setq place-target-label- (format nil "cardboard_~A" (symbol-string cardboard)))
+        (setq place-target-cube- (gethash target-box- cardboard-cubes-))
         ;; logging
         (ros::ros-info "[main] place-target: label: ~a, cube: ~a"
                        place-target-label- place-target-cube-)
