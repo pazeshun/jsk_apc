@@ -18,8 +18,10 @@
   <!-- Sanity Check                                                                  -->
   <!-- ============================================================================= -->
 
+  <!--
   <param name="sanity_check_for_setup_for_pick"
          command="rosrun jsk_arc2017_baxter sanity_check_for_setup_for_pick.py" />
+  -->
 
   <!-- ============================================================================= -->
   <!-- Nodes                                                                         -->
