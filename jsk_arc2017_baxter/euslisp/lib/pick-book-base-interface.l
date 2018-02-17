@@ -510,6 +510,8 @@
     "Return value: :grasp-succeeded, :grasp-failed, :ik-failed or :plan-failed"
     (send *ri* :stop-grasp arm :pinch)
     (send *ri* :calib-proximity-threshold arm)
+    (send *ri* :move-hand arm
+          (send *baxter* :hand-grasp-pre-pose arm :cylindrical) 1000 :wait nil)
     (let (pick-result avs object-index obj-local-pos obj-local-cube approach-rpy as-table)
       (ros::ros-info "[:pick-object-with-movable-region] arm:~a approach to the object" arm)
       (ros::ros-info "[:pick-object-with-movable-region] arm:~a obj-coords: ~a"
@@ -546,10 +548,6 @@
         (send *ri* :angle-vector-sequence-raw next-avs
               :fast (send *ri* :get-arm-controller arm :head t) 0 :scale 5.0)
         (send *ri* :wait-interpolation))
-      ;; Now hand is inside of the bin, so we can open fingers
-      (send *ri* :move-hand arm
-            (send *baxter* :hand-grasp-pre-pose arm :cylindrical)
-            1000)
       ;; Picking trials in the bin
       (dotimes (i n-trial)
         (dotimes (j n-trial-same-pos)
