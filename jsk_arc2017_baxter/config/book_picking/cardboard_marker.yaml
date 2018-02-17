@@ -1,11 +1,11 @@
 boxes:
-- dimensions: [0.25, 0.35, 0.15]
+- dimensions: [0.25, 0.35, 0.08]
   frame_id: base
   name: cardboard_A
   orientation: [0.0, 0.0, 0.0, 1.0]
-  position: [0.925, 0.35, -0.35]
-- dimensions: [0.25, 0.35, 0.15]
+  position: [1.016, 0.35, -0.35]
+- dimensions: [0.25, 0.35, 0.12]
   frame_id: base
   name: cardboard_B
   orientation: [0.0, 0.0, 0.0, 1.0]
-  position: [1.05, 0.35, -0.35]
+  position: [1.138, 0.24, -0.325]
