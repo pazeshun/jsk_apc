@@ -77,7 +77,7 @@ class JSONSaver(threading.Thread):
             for box in data['boxes']:
                 size_id = box['size_id']
                 cardboard_contents[size_id] = box['contents']
-            for key in 'ABC':
+            for key in self.cardboard_ids.keys():
                 size_id = self.cardboard_ids[key]
                 self.cardboard_contents[key] = cardboard_contents[size_id]
 
@@ -131,7 +131,7 @@ class JSONSaver(threading.Thread):
         boxes = []
         bins = []
         if len(self.cardboard_contents.keys()) > 0:
-            for key in 'ABC':
+            for key in self.cardboard_ids.keys():
                 boxes.append({
                     'size_id': self.cardboard_ids[key],
                     'contents': self.cardboard_contents[key]
