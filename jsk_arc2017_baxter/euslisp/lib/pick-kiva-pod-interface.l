@@ -349,7 +349,7 @@
       ;;             :offset #f(0 0 200) :rotation-axis :z :use-gripper t)
       ;;       4000 (send *ri* :get-arm-controller arm) 0
       ;;       :path-constraints path-constraints)
-      (let (avs (offsets (list #f(-50 0 500) #f(-50 0 200) #f(0 0 200) #f(30 0 200))))
+      (let (avs (offsets (list #f(-50 0 500) #f(-50 0 200) #f(0 0 100) #f(30 0 0))))
         (dolist (offset offsets)
           (pushback
             (send self :ik->cube-center arm place-target-cube-
