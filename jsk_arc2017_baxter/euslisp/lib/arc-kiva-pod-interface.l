@@ -1478,19 +1478,18 @@
   (:move-arm-body->bin-overlook-pose
     (arm bin &key (gripper-angle 90))
     (let (avs offset rpy
-              (offset-x (if (eq arm :larm) 30 -50))
-              (offset-y (if (eq arm :larm) 280 -220)))
+              (offset-x -100)
+              (offset-y (if (eq arm :larm) -50 50)))
       (setq avs (list (send *baxter* :avoid-shelf-pose arm (if (eq arm :larm) :d :f))))
-      (send *baxter* :reset-pose arm)
+      ;; (send *baxter* :reset-pose arm)
+      (send *baxter* :avoid-shelf-pose arm bin)
       (send *baxter* :rotate-gripper arm gripper-angle :relative nil)
-      (setq offset (float-vector offset-x offset-y 250))
-      (setq rpy
-            (float-vector 0 pi/2 (if (eq arm :larm) pi/2 -pi/2)))
+      (setq offset (float-vector offset-x offset-y 200))
+      (setq rpy (float-vector 0 pi/2 0))
       (send self :ik->bin-center arm bin
             :offset offset :rpy rpy :use-gripper nil :use-rotate-wrist-ik t)
       ;; TODO: tilting gripper based on gravity and entrance direction
-      (setq rpy
-            (float-vector 0 (+ pi/2 (/ pi 6)) (if (eq arm :larm) pi/2 -pi/2)))
+      (setq rpy (float-vector 0 (+ pi/2 (/ pi 6)) 0))
       (send self :ik->bin-center arm bin
             :offset offset :rpy rpy :use-gripper nil :use-rotate-wrist-ik t)
       (send *ri* :angle-vector (send *baxter* :angle-vector) 3000
