@@ -938,9 +938,9 @@
                 ;; TODO: fix hard-coded variable
                 (when (and (> dist-bw-obj-bin max-dist-bw-obj-bin)
                            (> (car (elt sides 0))
-                              (+ (* (gethash arm (gethash :pad-r gripper-dims-)) 2) 10))
+                              (* (gethash arm (gethash :pad-r gripper-dims-)) 2))
                            (> (car (elt sides 1))
-                              (+ (* (gethash arm (gethash :pad-r gripper-dims-)) 2) 10)))
+                              (* (gethash arm (gethash :pad-r gripper-dims-)) 2)))
                   ;; decide support style depending on object size
                   (setq gripper-angle -pi/2)
                   (cond ((eq grasp-style :pinch)
