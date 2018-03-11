@@ -1203,6 +1203,7 @@
         (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
               3000 (send *ri* :get-arm-controller arm) 0)
         (send *ri* :wait-interpolation)
+        (unix::sleep 1)
         ;; reproduce gripper angle
         (send *baxter* :rotate-gripper arm gripper-angle :relative nil)
         (send *ri* :angle-vector-raw (send *baxter* :angle-vector) 1000)
