@@ -648,7 +648,7 @@
       (setq obj-local-pos
             (send (send (elt movable-region 3) :transformation obj-coords :local) :pos))
       ;; TODO: fix this offset for camera point cloud
-      (if (eq arm :rarm) (setf (aref obj-local-pos 2) (- (aref obj-local-pos 2) 30)))
+      (if (eq arm :rarm) (setf (aref obj-local-pos 2) (- (aref obj-local-pos 2) 18)))
       (dolist (i (list 0 1))
         (cond ((> (elt (elt movable-region i) 0) (aref obj-local-pos i))
                (ros::ros-error "[:get-object-position] object is out of movable region. ~a > ~a < ~a"
