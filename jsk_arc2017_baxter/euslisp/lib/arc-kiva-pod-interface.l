@@ -504,15 +504,17 @@
     "Return value: :grasp-succeeded, :grasp-failed, :ik-failed or :plan-failed"
     (send *ri* :stop-grasp arm :pinch)
     (send *ri* :calib-proximity-threshold arm)
-    (let (pick-result avs object-index obj-local-pos obj-local-cube approach-rpy as-table)
+    (let (pick-result avs object-index obj-local-pos obj-cube obj-local-cube approach-rpy as-table)
       ;; pick largest bounding box
       (setq object-index 0)
       ;; obj-local-pos: relative position to movable-region coords
       (setq obj-local-pos
             (send self :get-object-position arm movable-region :object-index object-index))
       ;; get object cube in worldcoords
-      (setq obj-local-cube (send self :bbox->cube (elt (gethash arm object-boxes-) object-index)))
+      (setq obj-cube (send self :bbox->cube (elt (gethash arm object-boxes-) object-index)))
+      (sethash arm attached-objects- obj-cube)
       ;; convert object cube from world to local
+      (setq obj-local-cube (copy-object obj-cube))
       (send obj-local-cube :move-to
             (send (elt movable-region 3) :transformation
                   (send obj-local-cube :worldcoords) :local) :world)
@@ -664,6 +666,12 @@
                (setf (aref obj-local-pos i) (elt (elt movable-region i) 1)))
               (t nil)))
       obj-local-pos))
+  (:assoc-attached-object-to-end-coords
+    (arm end-coords-symbol)
+    (send *baxter* arm end-coords-symbol :assoc (gethash arm attached-objects-)))
+  (:dissoc-attached-object-from-end-coords
+    (arm end-coords-symbol)
+    (send *baxter* arm end-coords-symbol :dissoc (gethash arm attached-objects-)))
   (:check-near-walls
     (obj-pos movable-region &key (range 100))
     (let (near-walls)
@@ -1089,6 +1097,8 @@
             (send (send obj-coords :copy-worldcoords) :locate offset :local)
             :use-gripper t
             :rotation-axis rotation-axis)
+      ;; assoc attached object to end-coords for stowing check
+      (send self :assoc-attached-object-to-end-coords arm :end-coords)
       (let ((prismatic-angle (send *baxter* arm :gripper-x :joint-angle)))
         (send *baxter* :slide-gripper arm 0 :relative nil)
         (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
@@ -1216,6 +1226,8 @@
       (send *baxter* arm :inverse-kinematics
             obj-coords-offset
             :rotation-axis rotation-axis)
+      ;; assoc attached object to end-coords for stowing check
+      (send self :assoc-attached-object-to-end-coords arm :end-coords)
       (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
             1000 (send *ri* :get-arm-controller arm) 0)
       (send *ri* :wait-interpolation-until arm :grasp)
@@ -1334,6 +1346,8 @@
       (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
             1000 (if (eq arm :rarm) :rgripper-controller :lgripper-controller) 0)
       (send *ri* :wait-interpolation)
+      ;; assoc attached object to end-coords to move object following lifting
+      (send self :assoc-attached-object-to-end-coords arm :end-coords)
       ;; start the vacuum gripper after hanging object
       (ros::ros-info "[:try-to-scrape-out-object] arm:~a start vacuum gripper" arm)
       (send *ri* :start-grasp arm)
@@ -1342,6 +1356,8 @@
       (send *baxter* :slide-gripper arm 0 :relative nil)
       (send *ri* :angle-vector-raw (send *baxter* :angle-vector) 1000)
       (send *ri* :wait-interpolation)
+      ;; assoc attached object to end-coords for stowing check
+      (send self :assoc-attached-object-to-end-coords arm :palm-endpoint)
       ;; close fingers
       (send *ri* :move-hand arm
             (send *baxter* :hand-grasp-pose arm :cylindrical) 1000 :wait nil)
@@ -1381,6 +1397,8 @@
       (unless av
         (ros::ros-error "[:try-to-pinch-object] arm:~a IK to object fails. Abort picking" arm)
         (return-from :try-to-pinch-object :ik-failed))
+      ;; assoc attached object to end-coords for stowing check
+      (send self :assoc-attached-object-to-end-coords arm :palm-endpoint)
       (send *ri* :update-robot-state :wait-until-update t)
       (unless (send *ri* :angle-vector-raw av
                     3000 (send *ri* :get-arm-controller arm) 0 :end-coords-interpolation t)
@@ -1615,9 +1633,12 @@
       (send *co* :delete-object (gethash tmp-arm tote-cubes-))))
   (:add-object-in-hand-scene (arm target-obj)
     ;; add object as attached collision object
-    (let ((end-coords-name (format nil "~a_gripper_pad_with_base" (arm2str arm))) obj-cube)
+    (let (end-coords-name obj-cube)
       ;; attach largest bounding box
-      (setq obj-cube (send self :bbox->cube (elt (gethash arm object-boxes-) 0)))
+      (setq obj-cube (gethash arm attached-objects-))
+      (if (eq (send obj-cube :parent) (send *baxter* arm :end-coords))
+        (setq end-coords-name (format nil "~a_gripper_pad_with_base" (arm2str arm)))
+        (setq end-coords-name (format nil "~a_gripper_palm_endpoint" (arm2str arm))))
       (send *co* :add-attached-object obj-cube end-coords-name
             :frame-id end-coords-name
             :object-id target-obj
@@ -1630,8 +1651,7 @@
                            (format nil "~a_gripper_r_finger_base" (arm2str arm))
                            (format nil "~a_gripper_l_finger" (arm2str arm))
                            (format nil "~a_gripper_r_finger" (arm2str arm))
-                           (format nil "~a_gripper_palm_endpoint" (arm2str arm))))
-      (sethash arm attached-objects- obj-cube)))
+                           (format nil "~a_gripper_palm_endpoint" (arm2str arm))))))
   (:delete-object-in-hand-scene (arm)
     ;; delete object as attached collision object
     (let (obj-cube)
