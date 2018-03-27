@@ -14,6 +14,7 @@
   :slots (grasp-style-
           moveit-p-
           picking-fail-count-
+          place-avs-
           prev-target-obj-
           recognize-fail-count-
           scale-candidates-
@@ -264,17 +265,191 @@
       (setq picking-failp (null (> count-limit picking-fail-count-)))
       (if picking-failp (setq picking-fail-count- 0))
       picking-failp))
-  (:set-target-bin (arm)
+  (:set-target-bin-and-place-motion (arm)
     (setq picking-fail-count- 0)
-    (setq target-bin- (send self :get-stowing-target-bin arm))
-    (if (eq target-bin- :tote)
-      (progn
-        (ros::ros-info "[main] unable to recognize, return to tote")
-        nil)
-      (progn
-        (ros::set-param (format nil "~a_hand/target_bin" (arm2str arm)) (symbol2str target-bin-))
-        (ros::ros-info "[main] target-bin: ~a" target-bin-)
-        t)))
+    (let (prev-av gripper-p gripper-x place-rpy
+                  (place-area-offset (send self :decide-bin-place-area arm
+                                           bin-cand grasp-style-)))
+      (setq prev-av (send *baxter* :angle-vector))
+      ;; generate place motion
+      (dolist (bin-cand (send self :get-stowing-bin-candidates arm))
+        (ros::ros-info "[main] try bin ~a as place target" bin-cand)
+        (send *baxter* :angle-vector prev-av)
+        (send *baxter* :head_pan :joint-angle (if (eq arm :larm) 70 -70))
+        ;; save current gripper angles
+        (setq gripper-p (send *baxter* arm :gripper-p :joint-angle))
+        (setq gripper-x (send *baxter* arm :gripper-x :joint-angle))
+        ;; initialize gripper for IK
+        (send *baxter* :rotate-gripper arm 0 :relative nil)
+        (send *baxter* :slide-gripper arm 0 :relative nil)
+        ;; not to use gripper overly in later IK
+        (send self :ik->bin-center arm bin-cand
+              :offset #f(0 0 300)
+              :rotation-axis :z :use-gripper nil)
+        ;; reproduce gripper angles
+        (send *baxter* :rotate-gripper arm gripper-p :relative nil)
+        (send *baxter* :slide-gripper arm gripper-x :relative nil)
+        ;; TODO: don't access bin-cubes-
+        (if (eq grasp-style- :suction)
+          ;; suction
+          (progn
+            ;; rotate gripper depending on bin position
+            (send self :ik->bin-center arm bin-cand
+                  :offset #f(0 0 300)
+                  :rotation-axis :z :use-gripper t
+                  ;; to follow gravity
+                  :parallel-with :world)
+            (send *baxter* :slide-gripper arm 120 :relative nil)
+            (setq place-avs-
+                  (send self :verify-place-motion arm
+                        (gethash bin-cand bin-cubes-)
+                        (list
+                          (send self :ik->bin-center arm bin-cand
+                                :offset (v+ #f(0 0 300) place-area-offset)
+                                :rotation-axis :z :use-gripper nil
+                                ;; to follow gravity
+                                :parallel-with :world)
+                          (send *baxter* arm :move-end-pos #f(0 0 -350)
+                                (send (gethash bin-cand bin-cubes-) :worldcoords)
+                                :rotation-axis :z :use-gripper t))))
+            (when (null place-avs-)
+              (ros::ros-info "[main] try place motion rpy: ~a"
+                             (setq place-rpy (float-vector pi/2 0 (/ pi -6))))
+              (setq place-avs-
+                    (send self :verify-place-motion arm
+                          (gethash bin-cand bin-cubes-)
+                          (list
+                            (send self :ik->bin-center arm bin-cand
+                                  :offset (v+ #f(0 0 300) place-area-offset)
+                                  :rpy place-rpy
+                                  :rotation-axis :z :use-gripper t
+                                  ;; to follow gravity
+                                  :parallel-with :world)
+                            (send *baxter* arm :move-end-pos #f(0 0 -300)
+                                  (send (gethash bin-cand bin-cubes-) :worldcoords)
+                                  :rotation-axis :z :use-gripper t)))))
+            (when (null place-avs-)
+              (ros::ros-info "[main] try place motion rpy: ~a"
+                             (setq place-rpy (float-vector -pi/2 0 (/ pi 6))))
+              (setq place-avs-
+                    (send self :verify-place-motion arm
+                          (gethash bin-cand bin-cubes-)
+                          (list
+                            (send self :ik->bin-center arm bin-cand
+                                  :offset (v+ #f(0 0 300) place-area-offset)
+                                  :rpy place-rpy
+                                  :rotation-axis :z :use-gripper t
+                                  ;; to follow gravity
+                                  :parallel-with :world)
+                            (send *baxter* arm :move-end-pos #f(0 0 -300)
+                                  (send (gethash bin-cand bin-cubes-) :worldcoords)
+                                  :rotation-axis :z :use-gripper t)))))
+            (when place-avs- (setq target-bin- bin-cand) (return)))
+          ;; pinch
+          (progn
+            (setq place-avs-
+                  (send self :verify-place-motion arm
+                        (gethash bin-cand bin-cubes-)
+                        (list
+                          (send self :ik->bin-center arm bin-cand
+                                :offset (v+ #f(0 0 300) place-area-offset)
+                                :rotation-axis nil :move-palm-end t)
+                          (send *baxter* arm :move-end-pos #f(0 0 -300)
+                                (send (gethash bin-cand bin-cubes-) :worldcoords)
+                                :rotation-axis nil :move-palm-end t))))
+            (when (null place-avs-)
+              (ros::ros-info "[main] try place motion aligned with bin-coords")
+              (setq place-avs-
+                    (send self :verify-place-motion arm
+                          (gethash bin-cand bin-cubes-)
+                          (list
+                            (send self :ik->bin-center arm bin-cand
+                                  :offset (v+ #f(0 0 300) place-area-offset)
+                                  :rotation-axis t :move-palm-end t)
+                            (send *baxter* arm :move-end-pos #f(0 0 -300)
+                                  (send (gethash bin-cand bin-cubes-) :worldcoords)
+                                  :rotation-axis t :move-palm-end t)))))
+            (when (null place-avs-)
+              (ros::ros-info "[main] try place motion rpy: ~a"
+                             (setq place-rpy (float-vector pi/2 0 0)))
+              (setq place-avs-
+                    (send self :verify-place-motion arm
+                          (gethash bin-cand bin-cubes-)
+                          (list
+                            (send self :ik->bin-center arm bin-cand
+                                  :offset (v+ #f(0 0 300) place-area-offset)
+                                  :rpy place-rpy
+                                  :rotation-axis t :move-palm-end t)
+                            (send *baxter* arm :move-end-pos #f(0 0 -300)
+                                  (send (gethash bin-cand bin-cubes-) :worldcoords)
+                                  :rotation-axis t :move-palm-end t)))))
+            (when (null place-avs-)
+              (ros::ros-info "[main] try place motion rpy: ~a"
+                             (setq place-rpy (float-vector -pi/2 0 0)))
+              (setq place-avs-
+                    (send self :verify-place-motion arm
+                          (gethash bin-cand bin-cubes-)
+                          (list
+                            (send self :ik->bin-center arm bin-cand
+                                  :offset (v+ #f(0 0 300) place-area-offset)
+                                  :rpy place-rpy
+                                  :rotation-axis t :move-palm-end t)
+                            (send *baxter* arm :move-end-pos #f(0 0 -300)
+                                  (send (gethash bin-cand bin-cubes-) :worldcoords)
+                                  :rotation-axis t :move-palm-end t)))))
+            (when (null place-avs-)
+              (ros::ros-info "[main] try place motion rpy: ~a"
+                             (setq place-rpy (float-vector 0 (- pi/2 (/ pi 6)) 0)))
+              (setq place-avs-
+                    (send self :verify-place-motion arm
+                          (gethash bin-cand bin-cubes-)
+                          (list
+                            (send self :ik->bin-center arm bin-cand
+                                  :offset (v+ #f(0 0 300) place-area-offset)
+                                  :rpy place-rpy
+                                  :rotation-axis t :move-palm-end t)
+                            (send *baxter* arm :move-end-pos #f(0 0 -300)
+                                  (send (gethash bin-cand bin-cubes-) :worldcoords)
+                                  :rotation-axis t :move-palm-end t)))))
+            (when (null place-avs-)
+              (ros::ros-info "[main] try place motion rpy: ~a"
+                             (setq place-rpy (float-vector pi/2 0 (- pi/2 (/ pi 6)))))
+              (setq place-avs-
+                    (send self :verify-place-motion arm
+                          (gethash bin-cand bin-cubes-)
+                          (list
+                            (send self :ik->bin-center arm bin-cand
+                                  :offset (v+ #f(0 0 300) place-area-offset)
+                                  :rpy place-rpy
+                                  :rotation-axis t :move-palm-end t)
+                            (send *baxter* arm :move-end-pos #f(0 0 -300)
+                                  (send (gethash bin-cand bin-cubes-) :worldcoords)
+                                  :rotation-axis t :move-palm-end t)))))
+            (when (null place-avs-)
+              (ros::ros-info "[main] try place motion rpy: ~a"
+                             (setq place-rpy (float-vector -pi/2 0 (+ -pi/2 (/ pi 6)))))
+              (setq place-avs-
+                    (send self :verify-place-motion arm
+                          (gethash bin-cand bin-cubes-)
+                          (list
+                            (send self :ik->bin-center arm bin-cand
+                                  :offset (v+ #f(0 0 300) place-area-offset)
+                                  :rpy place-rpy
+                                  :rotation-axis t :move-palm-end t)
+                            (send *baxter* arm :move-end-pos #f(0 0 -300)
+                                  (send (gethash bin-cand bin-cubes-) :worldcoords)
+                                  :rotation-axis t :move-palm-end t)))))
+            (when place-avs- (setq target-bin- bin-cand) (return)))))
+      (if place-avs-
+        (progn
+          (ros::set-param (format nil "~a_hand/target_bin" (arm2str arm)) (symbol2str target-bin-))
+          (ros::ros-info "[main] target-bin: ~a" target-bin-)
+          (send self :update-bin-object-volumes target-bin-)
+          t)
+        (progn
+          (ros::ros-error "[main] unable to place, return to tote")
+          (send *baxter* :angle-vector prev-av)
+          nil))))
   (:return-object (arm)
     (send self :add-postponed-object arm target-obj- :tote)
     (when moveit-p- (send self :delete-tote-scene arm))
