@@ -527,7 +527,23 @@
             (send *baxter* :rotate-gripper arm 90 :relative nil)) ;; release object
           (send self :spin-off-by-wrist arm :times 5)
           (send *ri* :wait-interpolation)
-          (send *ri* :angle-vector-raw (cadr (reverse place-avs-)) 2000
+          (send *ri* :angle-vector-raw (car place-avs-) 2000
+                (if (eq grasp-style- :suction)
+                  (send *ri* :get-arm-controller arm)
+                  (send *ri* :get-arm-controller arm :gripper nil)) 0)
+          (send *ri* :wait-interpolation)
+          ;; push protruded object inside bin
+          (send *baxter* :angle-vector (car place-avs-))
+          (send *ri* :angle-vector-sequence-raw
+                (list
+                  (send *baxter* arm :move-end-pos #f(-100 0 0)
+                        (send (gethash target-bin- bin-cubes-) :worldcoords)
+                        :rotation-axis nil)
+                  (send *baxter* arm :move-end-pos #f(0 0 -250)
+                        (send (gethash target-bin- bin-cubes-) :worldcoords)
+                        :rotation-axis nil)
+                  (send *baxter* :angle-vector (car place-avs-)))
+                (list 1000 2000 2000)
                 (if (eq grasp-style- :suction)
                   (send *ri* :get-arm-controller arm)
                   (send *ri* :get-arm-controller arm :gripper nil)) 0)
