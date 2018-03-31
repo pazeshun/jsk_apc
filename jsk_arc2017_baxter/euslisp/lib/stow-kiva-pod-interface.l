@@ -524,7 +524,7 @@
           (ros::ros-info-green "[main] arm ~a: place object ~a in bin ~a" arm target-obj- target-bin-)
           (when moveit-p- (send self :delete-bin-scene target-bin-))
           (send *ri* :angle-vector-raw (car (reverse place-avs-))
-                2000 (send *ri* :get-arm-controller arm) 0)
+                3000 (send *ri* :get-arm-controller arm) 0)
           (send *ri* :wait-interpolation)
           ;; update *baxter* to current commanded pose of real robot
           (send *baxter* :angle-vector (car (reverse place-avs-)))
@@ -543,7 +543,7 @@
           (send *baxter* :angle-vector (car place-avs-))
           (send *ri* :angle-vector-sequence-raw
                 (list
-                  (send *baxter* arm :move-end-pos #f(-100 0 0)
+                  (send *baxter* arm :move-end-pos #f(-50 0 0)
                         (send (gethash target-bin- bin-cubes-) :worldcoords)
                         :rotation-axis nil)
                   (send *baxter* arm :move-end-pos #f(0 0 -250)
