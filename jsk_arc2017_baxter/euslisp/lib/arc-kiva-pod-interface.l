@@ -1908,7 +1908,7 @@
           (pushback (elt bin-list- i) bins)))
       (sort bins #'<= #'(lambda (bin) (gethash bin bin-object-volumes-)))
       bins))
-  (:update-bin-object-volumes (bin)
+  (:update-bin-object-volumes (arm bin)
     (let (obj-bbox obj-bbox-volume)
       (setq obj-bbox (elt (gethash arm object-boxes-) 0))
       (setq obj-bbox-volume (* (send obj-bbox :dimensions :x)

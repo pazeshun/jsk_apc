@@ -444,7 +444,7 @@
         (progn
           (ros::set-param (format nil "~a_hand/target_bin" (arm2str arm)) (symbol2str target-bin-))
           (ros::ros-info "[main] target-bin: ~a" target-bin-)
-          (send self :update-bin-object-volumes target-bin-)
+          (send self :update-bin-object-volumes arm target-bin-)
           t)
         (progn
           (ros::ros-error "[main] unable to place, return to tote")
