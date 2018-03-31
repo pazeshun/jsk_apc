@@ -485,50 +485,17 @@
     (if (eq grasp-style- :pinch)
       (send self :resolve-collision-between-fingers arm)))
   (:place-object (arm)
-    (let (gripper-p gripper-x dropped place-av)
+    (let (dropped)
       (send *ri* :speak
             (format nil "~a arm is placing ~a into bin ~a."
                     (arm2str arm) (underscore-to-space target-obj-) target-bin-))
       (ros::ros-info "[main] ~a, place object in bin ~a" arm target-bin-)
       (when moveit-p- (send self :add-object-in-hand-scene arm target-obj-))
-      (send *baxter* :head_pan :joint-angle (if (eq arm :larm) 70 -70))
-      ;; save current gripper angles
-      (setq gripper-p (send *baxter* arm :gripper-p :joint-angle))
-      (setq gripper-x (send *baxter* arm :gripper-x :joint-angle))
-      ;; initialize gripper for IK
-      (send *baxter* :rotate-gripper arm 0 :relative nil)
-      (send *baxter* :slide-gripper arm 0 :relative nil)
-      ;; not to use gripper overly in later IK
-      (send self :ik->bin-center arm target-bin-
-            :offset #f(0 0 300)
-            :rotation-axis :z :use-gripper nil)
-      ;; reproduce gripper angles
-      (send *baxter* :rotate-gripper arm gripper-p :relative nil)
-      (send *baxter* :slide-gripper arm gripper-x :relative nil)
-      (if (eq grasp-style- :suction)
-        (progn
-          (send self :ik->bin-center arm target-bin-
-                :offset #f(0 0 300)
-                :rotation-axis :z :use-gripper t
-                ;; to follow gravity
-                :parallel-with :world)
-          (send *baxter* :slide-gripper arm 120 :relative nil)
-          (send *ri* :angle-vector
-                (send self :ik->bin-center arm target-bin-
-                      :offset (v+ #f(0 0 300)
-                                  (send self :decide-bin-place-area arm target-bin- grasp-style-))
-                      :rotation-axis :z :use-gripper nil
-                      ;; to follow gravity
-                      :parallel-with :world)
-                4000 (send *ri* :get-arm-controller arm :head t) 0
-                :move-arm arm))
-        (send *ri* :angle-vector
-              (send self :ik->bin-center arm target-bin-
-                    :offset (v+ #f(0 0 300)
-                                (send self :decide-bin-place-area arm target-bin- grasp-style-))
-                    :rotation-axis nil :move-palm-end t)
-              4000 (send *ri* :get-arm-controller arm :gripper nil :head t) 0
-              :move-arm arm))
+      (send *ri* :angle-vector-sequence (reverse (cdr (reverse place-avs-))) 4000
+            (if (eq grasp-style- :suction)
+              (send *ri* :get-arm-controller arm :head t)
+              (send *ri* :get-arm-controller arm :gripper nil :head t))
+            0 :move-arm arm)
       (send *ri* :wait-interpolation)
       (setq dropped (not (send *ri* :graspingp arm grasp-style-)))
       (when moveit-p- (send self :delete-object-in-hand-scene arm))
@@ -551,33 +518,8 @@
           (send self :add-finished-object arm target-obj- :tote)
           (ros::ros-info-green "[main] arm ~a: place object ~a in bin ~a" arm target-obj- target-bin-)
           (when moveit-p- (send self :delete-bin-scene target-bin-))
-          (if (eq grasp-style- :suction)
-            (progn
-              (setq place-av
-                    (send *baxter* arm :move-end-pos #f(0 0 -350)
-                          (send (gethash target-bin- bin-cubes-) :worldcoords)
-                          :rotation-axis :z :use-gripper t))
-              (unless place-av
-                (setq place-av
-                      (send *baxter* arm :move-end-pos #f(0 0 -300)
-                            (send (gethash target-bin- bin-cubes-) :worldcoords)
-                            :rotation-axis :z :use-gripper t)))
-              (if place-av
-                (send *ri* :angle-vector-raw place-av
-                      2000 (send *ri* :get-arm-controller arm) 0)))
-            (progn
-              (setq place-av
-                    (send *baxter* arm :move-end-pos #f(0 0 -300)
-                          (send (gethash target-bin- bin-cubes-) :worldcoords)
-                          :rotation-axis nil))
-              (unless place-av
-                (setq place-av
-                      (send *baxter* arm :move-end-pos #f(0 0 -250)
-                            (send (gethash target-bin- bin-cubes-) :worldcoords)
-                            :rotation-axis nil)))
-              (if place-av
-                (send *ri* :angle-vector-raw place-av
-                      2000 (send *ri* :get-arm-controller arm) 0))))
+          (send *ri* :angle-vector-raw (car (reverse place-avs-))
+                2000 (send *ri* :get-arm-controller arm) 0)
           (send *ri* :wait-interpolation)
           (send *ri* :stop-grasp arm) ;; release object
           (when (eq grasp-style- :pinch)
@@ -585,19 +527,10 @@
             (send *baxter* :rotate-gripper arm 90 :relative nil)) ;; release object
           (send self :spin-off-by-wrist arm :times 5)
           (send *ri* :wait-interpolation)
-          (if (eq grasp-style- :suction)
-            (send *ri* :angle-vector-raw
-                  (send *baxter* arm :move-end-pos #f(0 0 350)
-                        (send (gethash target-bin- bin-cubes-) :worldcoords)
-                        :rotation-axis :z
-                        :use-gripper t)
-                  2000 (send *ri* :get-arm-controller arm) 0)
-            (if place-av
-              (send *ri* :angle-vector-raw
-                    (send *baxter* arm :move-end-pos #f(0 0 300)
-                          (send (gethash target-bin- bin-cubes-) :worldcoords)
-                          :rotation-axis nil)
-                    2000 (send *ri* :get-arm-controller arm) 0)))
+          (send *ri* :angle-vector-raw (cadr (reverse place-avs-)) 2000
+                (if (eq grasp-style- :suction)
+                  (send *ri* :get-arm-controller arm)
+                  (send *ri* :get-arm-controller arm :gripper nil)) 0)
           (send *ri* :wait-interpolation)
           (when moveit-p- (send self :add-bin-scene target-bin-))))))
   (:return-from-place-object (arm)
