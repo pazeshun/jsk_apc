@@ -267,13 +267,12 @@
       picking-failp))
   (:set-target-bin-and-place-motion (arm)
     (setq picking-fail-count- 0)
-    (let (prev-av gripper-p gripper-x place-rpy
-                  (place-area-offset (send self :decide-bin-place-area arm
-                                           bin-cand grasp-style-)))
+    (let (prev-av gripper-p gripper-x place-rpy place-area-offset)
       (setq prev-av (send *baxter* :angle-vector))
       ;; generate place motion
       (dolist (bin-cand (send self :get-stowing-bin-candidates arm))
         (ros::ros-info "[main] try bin ~a as place target" bin-cand)
+        (setq place-area-offset (send self :decide-bin-place-area arm bin-cand grasp-style-))
         (send *baxter* :angle-vector prev-av)
         (send *baxter* :head_pan :joint-angle (if (eq arm :larm) 70 -70))
         ;; save current gripper angles
