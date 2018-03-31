@@ -321,7 +321,7 @@
                             (send self :ik->bin-center arm bin-cand
                                   :offset (v+ #f(0 0 300) place-area-offset)
                                   :rpy place-rpy
-                                  :rotation-axis :z :use-gripper t
+                                  :rotation-axis t :use-gripper t
                                   ;; to follow gravity
                                   :parallel-with :world)
                             (send *baxter* arm :move-end-pos #f(0 0 -300)
@@ -337,7 +337,7 @@
                             (send self :ik->bin-center arm bin-cand
                                   :offset (v+ #f(0 0 300) place-area-offset)
                                   :rpy place-rpy
-                                  :rotation-axis :z :use-gripper t
+                                  :rotation-axis t :use-gripper t
                                   ;; to follow gravity
                                   :parallel-with :world)
                             (send *baxter* arm :move-end-pos #f(0 0 -300)

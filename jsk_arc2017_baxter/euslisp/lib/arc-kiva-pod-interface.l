@@ -1468,11 +1468,11 @@
             (float-vector 0.0 0.0 (/ (z-of-cube cube) 2.0))
             :local)
       (send cube-coords :translate offset :local)
+      (when (eq parallel-with :world)
+        (setq cube-coords (make-coords :pos (send cube-coords :worldpos))))
       (send cube-coords :rotate (aref rpy 0) :z)
       (send cube-coords :rotate (aref rpy 1) :y)
       (send cube-coords :rotate (aref rpy 2) :x)
-      (when (eq parallel-with :world)
-        (setq cube-coords (make-coords :pos (send cube-coords :worldpos))))
       (if use-rotate-wrist-ik
         (send *baxter* :rotate-wrist-ik arm cube-coords
               :rotation-axis rotation-axis
