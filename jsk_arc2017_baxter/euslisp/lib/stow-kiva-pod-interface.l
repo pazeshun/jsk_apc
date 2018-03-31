@@ -353,9 +353,13 @@
                           (send self :ik->bin-center arm bin-cand
                                 :offset (v+ #f(0 0 300) place-area-offset)
                                 :rotation-axis nil :move-palm-end t)
-                          (send *baxter* arm :move-end-pos #f(0 0 -300)
-                                (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                :rotation-axis nil :move-palm-end t))))
+                          ;; (send *baxter* arm :move-end-pos #f(0 0 -300)
+                          ;;       (send (gethash bin-cand bin-cubes-) :worldcoords)
+                          ;;       :rotation-axis nil :move-palm-end t)
+                          ;; TODO: fix this as this will cause failure in cardboard
+                          (send self :ik->bin-center arm bin-cand
+                                :offset (v+ #f(0 0 0) place-area-offset)
+                                :rotation-axis :z :move-palm-end t))))
             (when (null place-avs-)
               (ros::ros-info "[main] try place motion aligned with bin-coords")
               (setq place-avs-
