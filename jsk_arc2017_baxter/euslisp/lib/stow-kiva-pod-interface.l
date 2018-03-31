@@ -504,6 +504,8 @@
                 (format nil "~a arm dropped ~a to somewhere."
                         (arm2str arm) (underscore-to-space target-obj-)))
           (ros::ros-error "[main] arm ~a: dropped object" arm)
+          ;; update *baxter* to current commanded pose of real robot
+          (send *baxter* :angle-vector (cadr (reverse place-avs-)))
           (send *ri* :stop-grasp arm)
           (when (eq grasp-style- :pinch)
             (send *ri* :stop-grasp arm :pinch)
@@ -520,6 +522,8 @@
           (send *ri* :angle-vector-raw (car (reverse place-avs-))
                 2000 (send *ri* :get-arm-controller arm) 0)
           (send *ri* :wait-interpolation)
+          ;; update *baxter* to current commanded pose of real robot
+          (send *baxter* :angle-vector (car (reverse place-avs-)))
           (send *ri* :stop-grasp arm) ;; release object
           (when (eq grasp-style- :pinch)
             (send *ri* :stop-grasp arm :pinch)
