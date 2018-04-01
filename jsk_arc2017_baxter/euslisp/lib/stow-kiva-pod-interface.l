@@ -313,7 +313,9 @@
                                 :rotation-axis :z :use-gripper t))))
             (when (null place-avs-)
               (ros::ros-info "[main] try place motion rpy: ~a"
-                             (setq place-rpy (float-vector pi/2 0 (/ pi -6))))
+                             (setq place-rpy (if (eq arm :rarm)
+                                               (float-vector pi/2 0 (/ pi -6))
+                                               (float-vector -pi/2 0 (/ pi 6)))))
               (setq place-avs-
                     (send self :verify-place-motion arm
                           (gethash bin-cand bin-cubes-)
@@ -326,23 +328,7 @@
                                   :parallel-with :world)
                             (send *baxter* arm :move-end-pos #f(0 0 -300)
                                   (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                  :rotation-axis :z :use-gripper t)))))
-            (when (null place-avs-)
-              (ros::ros-info "[main] try place motion rpy: ~a"
-                             (setq place-rpy (float-vector -pi/2 0 (/ pi 6))))
-              (setq place-avs-
-                    (send self :verify-place-motion arm
-                          (gethash bin-cand bin-cubes-)
-                          (list
-                            (send self :ik->bin-center arm bin-cand
-                                  :offset (v+ #f(0 0 300) place-area-offset)
-                                  :rpy place-rpy
-                                  :rotation-axis t :use-gripper t
-                                  ;; to follow gravity
-                                  :parallel-with :world)
-                            (send *baxter* arm :move-end-pos #f(0 0 -300)
-                                  (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                  :rotation-axis :z :use-gripper t)))))
+                                  :rotation-axis t :use-gripper t)))))
             (when place-avs- (setq target-bin- bin-cand) (return)))
           ;; pinch
           (progn
