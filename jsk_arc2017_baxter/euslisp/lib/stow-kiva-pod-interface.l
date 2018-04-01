@@ -267,9 +267,12 @@
       picking-failp))
   (:set-target-bin-and-place-motion (arm)
     (setq picking-fail-count- 0)
-    (let (prev-av gripper-p gripper-x place-rpy place-area-offset)
+    (let (prev-ik-prepared-poses prev-av gripper-p gripper-x place-rpy place-area-offset)
       (setq prev-av (send *baxter* :angle-vector))
       ;; generate place motion
+      ;; in the following, IK result should be near previous pose
+      (setq prev-ik-prepared-poses (send *baxter* :ik-prepared-poses))
+      (send *baxter* :set-ik-prepared-poses nil)
       (dolist (bin-cand (send self :get-stowing-bin-candidates arm))
         (ros::ros-info "[main] try bin ~a as place target" bin-cand)
         (setq place-area-offset (send self :decide-bin-place-area arm bin-cand grasp-style-))
@@ -437,6 +440,8 @@
                                   (send (gethash bin-cand bin-cubes-) :worldcoords)
                                   :rotation-axis t :move-palm-end t)))))
             (when place-avs- (setq target-bin- bin-cand) (return)))))
+      ;; restore ik-prepared-poses-
+      (send *baxter* :set-ik-prepared-poses prev-ik-prepared-poses)
       (if place-avs-
         (progn
           (ros::set-param (format nil "~a_hand/target_bin" (arm2str arm)) (symbol2str target-bin-))
