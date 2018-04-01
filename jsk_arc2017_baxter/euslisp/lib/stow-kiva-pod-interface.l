@@ -320,15 +320,23 @@
                     (send self :verify-place-motion arm
                           (gethash bin-cand bin-cubes-)
                           (list
-                            (send self :ik->bin-center arm bin-cand
-                                  :offset (v+ #f(0 0 300) place-area-offset)
-                                  :rpy place-rpy
-                                  :rotation-axis t :use-gripper t
-                                  ;; to follow gravity
-                                  :parallel-with :world)
-                            (send *baxter* arm :move-end-pos #f(0 0 -300)
-                                  (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                  :rotation-axis t :use-gripper t)))))
+                            (progn
+                              (send *baxter* :slide-gripper arm 0 :relative nil)
+                              (send *baxter* :rotate-gripper arm 30 :relative nil)
+                              (send self :ik->bin-center arm bin-cand
+                                    :offset (v+ #f(0 0 300) place-area-offset)
+                                    :rpy place-rpy
+                                    :rotation-axis t :use-gripper nil
+                                    ;; to follow gravity
+                                    :parallel-with :world))
+                            (progn
+                              (send *baxter* :slide-gripper arm 120 :relative nil)
+                              (send self :ik->bin-center arm bin-cand
+                                    :offset (v+ #f(0 0 -40) place-area-offset)
+                                    :rpy place-rpy
+                                    :rotation-axis t :use-gripper t
+                                    ;; to follow gravity
+                                    :parallel-with :world))))))
             (when place-avs- (setq target-bin- bin-cand) (return)))
           ;; pinch
           (progn
