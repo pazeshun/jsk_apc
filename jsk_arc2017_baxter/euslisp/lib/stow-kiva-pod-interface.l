@@ -276,7 +276,7 @@
       (dolist (bin-cand (send self :get-stowing-bin-candidates arm))
         (ros::ros-info "[main] try bin ~a as place target" bin-cand)
         (setq place-area-offset (send self :decide-bin-place-area arm bin-cand grasp-style-))
-        (send *baxter* :angle-vector prev-av)
+        (ros::ros-info "[main] initial av: ~a" (send *baxter* :angle-vector prev-av))
         (send *baxter* :head_pan :joint-angle (if (eq arm :larm) 70 -70))
         ;; save current gripper angles
         (setq gripper-p (send *baxter* arm :gripper-p :joint-angle))
