@@ -1878,15 +1878,23 @@
       (setq region (send self :cube->movable-region bin-cube))
       (setq x-range (- (cadr (elt region 0)) (car (elt region 0))))
       (if (eq grasp-style :suction)
-        (progn
-          (setq index (random 3))
-          (cond
-           ((eq index 0)
-            (float-vector 0 0 0))
-           ((eq index 1)
-            (float-vector (/ x-range 5.0) 0 0))
-           ((eq index 2)
-            (float-vector (/ x-range -5.0) 0 0))))
+        (let ((grav-vec (v+ (send bin-cube :worldpos) #f(0 0 -1))))
+          (setq grav-vec (send bin-cube :inverse-transform-vector grav-vec))
+          (if (> (abs (aref grav-vec 0)) 0.5)
+            (progn
+              (float-vector (- (/ x-range 2.0)
+                               (+ (gethash arm (gethash :pad-link-l gripper-dims-))
+                                  (/ (gethash arm (gethash :tube-t gripper-dims-)) 2))
+                               20) 0 0))
+            (progn
+              (setq index (random 3))
+              (cond
+                ((eq index 0)
+                 (float-vector 0 0 0))
+                ((eq index 1)
+                 (float-vector (/ x-range 5.0) 0 0))
+                ((eq index 2)
+                 (float-vector (/ x-range -5.0) 0 0))))))
         (float-vector 0 0 0))))
   (:decide-cardboard-place-area (arm cardboard)
     (let (cardboard-cube region region-y)
