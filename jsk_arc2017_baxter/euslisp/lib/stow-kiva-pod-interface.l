@@ -548,10 +548,12 @@
                   (send *baxter* arm :move-end-pos #f(-150 0 0)
                         (send (gethash target-bin- bin-cubes-) :worldcoords)
                         :rotation-axis nil)
-                  (send *baxter* arm :move-end-pos #f(0 0 -150)
+                  (send *baxter* arm :move-end-pos
+                        (if (eq grasp-style- :suction) #f(0 0 -150) #f(0 0 -130))
                         (send (gethash target-bin- bin-cubes-) :worldcoords)
                         :rotation-axis nil)
-                  (send *baxter* arm :move-end-pos #f(0 0 -150)
+                  (send *baxter* arm :move-end-pos
+                        (if (eq grasp-style- :suction) #f(0 0 -150) #f(0 0 -130))
                         (send (gethash target-bin- bin-cubes-) :worldcoords)
                         :rotation-axis nil)
                   (send *baxter* :angle-vector (car place-avs-)))
