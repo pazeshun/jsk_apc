@@ -512,7 +512,7 @@
             (send self :get-object-position arm movable-region :object-index object-index))
       ;; get object cube in worldcoords
       (setq obj-cube (send self :bbox->cube (elt (gethash arm object-boxes-) object-index)))
-      (sethash arm attached-objects- obj-cube)
+      (sethash arm attached-objects- (copy-object obj-cube))
       ;; convert object cube from world to local
       (setq obj-local-cube (copy-object obj-cube))
       (send obj-local-cube :move-to
@@ -1098,7 +1098,16 @@
             :use-gripper t
             :rotation-axis rotation-axis)
       ;; assoc attached object to end-coords for stowing check
-      (send self :assoc-attached-object-to-end-coords arm :end-coords)
+      (let (vertex-values)
+        ;; update vertices
+        (send (gethash arm attached-objects-) :worldcoords)
+        (setq vertex-values
+              (mapcar #'(lambda (x) (aref (send obj-coords :inverse-transform-vector x) 2))
+                      (send (gethash arm attached-objects-) :vertices)))
+        ;; make attached object contact with vacuum pad
+        (send (gethash arm attached-objects-) :translate
+              (v- offset (float-vector 0 0 (apply #'max vertex-values))) obj-coords)
+        (send self :assoc-attached-object-to-end-coords arm :end-coords))
       (let ((prismatic-angle (send *baxter* arm :gripper-x :joint-angle)))
         (send *baxter* :slide-gripper arm 0 :relative nil)
         (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
@@ -1227,7 +1236,16 @@
             obj-coords-offset
             :rotation-axis rotation-axis)
       ;; assoc attached object to end-coords for stowing check
-      (send self :assoc-attached-object-to-end-coords arm :end-coords)
+      (let (vertex-values)
+        ;; update vertices
+        (send (gethash arm attached-objects-) :worldcoords)
+        (setq vertex-values
+              (mapcar #'(lambda (x) (aref (send obj-coords :inverse-transform-vector x) 2))
+                      (send (gethash arm attached-objects-) :vertices)))
+        ;; make attached object contact with vacuum pad
+        (send (gethash arm attached-objects-) :translate
+              (v- offset (float-vector 0 0 (apply #'max vertex-values))) obj-coords)
+        (send self :assoc-attached-object-to-end-coords arm :end-coords))
       (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
             1000 (send *ri* :get-arm-controller arm) 0)
       (send *ri* :wait-interpolation-until arm :grasp)
@@ -1347,6 +1365,7 @@
             1000 (if (eq arm :rarm) :rgripper-controller :lgripper-controller) 0)
       (send *ri* :wait-interpolation)
       ;; assoc attached object to end-coords to move object following lifting
+      (send (gethash arm attached-objects-) :translate offset obj-coords)
       (send self :assoc-attached-object-to-end-coords arm :end-coords)
       ;; start the vacuum gripper after hanging object
       (ros::ros-info "[:try-to-scrape-out-object] arm:~a start vacuum gripper" arm)
@@ -1398,7 +1417,16 @@
         (ros::ros-error "[:try-to-pinch-object] arm:~a IK to object fails. Abort picking" arm)
         (return-from :try-to-pinch-object :ik-failed))
       ;; assoc attached object to end-coords for stowing check
-      (send self :assoc-attached-object-to-end-coords arm :palm-endpoint)
+      (let (vertex-values)
+        ;; update vertices
+        (send (gethash arm attached-objects-) :worldcoords)
+        (setq vertex-values
+              (mapcar #'(lambda (x) (aref (send obj-coords :inverse-transform-vector x) 2))
+                      (send (gethash arm attached-objects-) :vertices)))
+        ;; make attached object contact with palm
+        (send (gethash arm attached-objects-) :translate
+              (v- offset (float-vector 0 0 (apply #'max vertex-values))) obj-coords)
+        (send self :assoc-attached-object-to-end-coords arm :palm-endpoint))
       (send *ri* :update-robot-state :wait-until-update t)
       (unless (send *ri* :angle-vector-raw av
                     3000 (send *ri* :get-arm-controller arm) 0 :end-coords-interpolation t)
