@@ -278,29 +278,18 @@
         (setq place-area-offset (send self :decide-bin-place-area arm bin-cand grasp-style-))
         (ros::ros-info "[main] initial av: ~a" (send *baxter* :angle-vector prev-av))
         (send *baxter* :head_pan :joint-angle (if (eq arm :larm) 70 -70))
-        ;; save current gripper angles
-        (setq gripper-p (send *baxter* arm :gripper-p :joint-angle))
-        (setq gripper-x (send *baxter* arm :gripper-x :joint-angle))
-        ;; initialize gripper for IK
-        (send *baxter* :rotate-gripper arm 0 :relative nil)
-        (send *baxter* :slide-gripper arm 0 :relative nil)
-        ;; not to use gripper overly in later IK
-        (send self :ik->bin-center arm bin-cand
-              :offset #f(0 0 300)
-              :rotation-axis :z :use-gripper nil)
-        ;; reproduce gripper angles
-        (send *baxter* :rotate-gripper arm gripper-p :relative nil)
-        (send *baxter* :slide-gripper arm gripper-x :relative nil)
         ;; TODO: don't access bin-cubes-
         (if (eq grasp-style- :suction)
           ;; suction
           (progn
             ;; rotate gripper depending on bin position
+            (send *baxter* :rotate-gripper arm 90 :relative nil)
             (send self :ik->bin-center arm bin-cand
                   :offset #f(0 0 300)
                   :rotation-axis :z :use-gripper t
                   ;; to follow gravity
                   :parallel-with :world)
+            (send *baxter* :rotate-gripper arm 90 :relative nil)
             (send *baxter* :slide-gripper arm 120 :relative nil)
             (setq place-avs-
                   (send self :verify-place-motion arm
@@ -308,7 +297,7 @@
                         (list
                           (send self :ik->bin-center arm bin-cand
                                 :offset (v+ #f(0 0 300) place-area-offset)
-                                :rotation-axis :z :use-gripper nil
+                                :rotation-axis :z :use-gripper t
                                 ;; to follow gravity
                                 :parallel-with :world)
                           (send *baxter* arm :move-end-pos #f(0 0 -350)
