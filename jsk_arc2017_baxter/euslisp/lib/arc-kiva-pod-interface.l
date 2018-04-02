@@ -1370,9 +1370,6 @@
       (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
             1000 (if (eq arm :rarm) :rgripper-controller :lgripper-controller) 0)
       (send *ri* :wait-interpolation)
-      ;; assoc attached object to end-coords to move object following lifting
-      (send (gethash arm attached-objects-) :translate offset obj-coords)
-      (send self :assoc-attached-object-to-end-coords arm :end-coords)
       ;; start the vacuum gripper after hanging object
       (ros::ros-info "[:try-to-scrape-out-object] arm:~a start vacuum gripper" arm)
       (send *ri* :start-grasp arm)
@@ -1382,7 +1379,20 @@
       (send *ri* :angle-vector-raw (send *baxter* :angle-vector) 1000)
       (send *ri* :wait-interpolation)
       ;; assoc attached object to end-coords for stowing check
-      (send self :assoc-attached-object-to-end-coords arm :palm-endpoint)
+      (let (vertex-values)
+        (send (gethash arm attached-objects-) :locate
+              (send *baxter* arm :palm-endpoint :worldpos) :world)
+        ;; update vertices
+        (send (gethash arm attached-objects-) :worldcoords)
+        (setq vertex-values
+              (mapcar #'(lambda (x) (aref (send (send *baxter* arm :palm-endpoint)
+                                                :inverse-transform-vector x) 2))
+                      (send (gethash arm attached-objects-) :vertices)))
+        ;; make attached object contact with palm
+        (send (gethash arm attached-objects-) :translate
+              (v- (float-vector 0 0 (apply #'max vertex-values)))
+              (send *baxter* arm :palm-endpoint))
+        (send self :assoc-attached-object-to-end-coords arm :palm-endpoint))
       ;; close fingers
       (send *ri* :move-hand arm
             (send *baxter* :hand-grasp-pose arm :cylindrical) 1000 :wait nil)
