@@ -1178,7 +1178,10 @@
             (send *ri* :wait-interpolation-until arm :hand :finger-proximity)
             ;; TODO: fix hard-coded value
             (setq finger-av (send *ri* :get-real-finger-av arm))
-            (if (> (aref finger-av (- (length finger-av) 1)) 30)
+            (ros::ros-info "[:try-to-suction-front-object] arm:~a finger-av: ~a"
+                           arm finger-av)
+            (if (and (> (aref finger-av (- (length finger-av) 1)) 30)
+                     (< (aref finger-av (- (length finger-av) 1)) 80))
               (progn
                 (send *ri* :move-hand arm
                       (send *baxter* :hand-grasp-pose arm support-style) 1000)
@@ -1294,7 +1297,10 @@
             (send *ri* :wait-interpolation-until arm :hand :finger-proximity)
             ;; TODO: fix hard-coded value
             (setq finger-av (send *ri* :get-real-finger-av arm))
-            (if (> (aref finger-av (- (length finger-av) 1)) 30)
+            (ros::ros-info "[:try-to-suction-side-object] arm:~a finger-av: ~a"
+                           arm finger-av)
+            (if (and (> (aref finger-av (- (length finger-av) 1)) 30)
+                     (< (aref finger-av (- (length finger-av) 1)) 120))
               (progn
                 (send *ri* :move-hand arm
                       (send *baxter* :hand-grasp-pose arm support-style) 1000)
