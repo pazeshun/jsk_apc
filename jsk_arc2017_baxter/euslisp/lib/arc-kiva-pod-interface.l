@@ -1953,28 +1953,34 @@
       (sethash bin bin-object-volumes-
                (+ (gethash bin bin-object-volumes-) obj-bbox-volume))))
   (:attached-obj-protruded-axes (arm place-target-cube)
-    (let (attached-obj-local vertex-values prot-axes)
+    (let (attached-obj-local part-in-entrance vertex-values prot-axes)
       (setq attached-obj-local (copy-object (gethash arm attached-objects-)))
       ;; transform object
       (send attached-obj-local :move-to
             (send place-target-cube :transformation
                   (send attached-obj-local :worldcoords) :local) :world)
+      ;; get part of attached object inside entrance of place target
+      (setq part-in-entrance
+            (body* attached-obj-local (make-cube (* (x-of-cube place-target-cube) 2)
+                                                 (* (y-of-cube place-target-cube) 2)
+                                                 (z-of-cube place-target-cube))))
       ;; update vertices
       (send attached-obj-local :worldcoords)
+      (send part-in-entrance :worldcoords)
       ;; check which axis will protrude
       (setq vertex-values (mapcar #'(lambda (x) (aref x 0))
-                                  (send attached-obj-local :vertices)))
+                                  (send part-in-entrance :vertices)))
       (when (or (> (apply #'max vertex-values) (/ (x-of-cube place-target-cube) 2))
                 (< (apply #'min vertex-values) (/ (x-of-cube place-target-cube) -2)))
         (pushback :x prot-axes))
       (setq vertex-values (mapcar #'(lambda (x) (aref x 1))
-                                  (send attached-obj-local :vertices)))
+                                  (send part-in-entrance :vertices)))
       (when (or (> (apply #'max vertex-values) (/ (y-of-cube place-target-cube) 2))
                 (< (apply #'min vertex-values) (/ (y-of-cube place-target-cube) -2)))
         (pushback :y prot-axes))
+      ;; z is depth, so check if object can be inserted by pushing
       (setq vertex-values (mapcar #'(lambda (x) (aref x 2))
                                   (send attached-obj-local :vertices)))
-      ;; z is depth, so check if object can be inserted by pushing
       (when (> (- (apply #'max vertex-values) (apply #'min vertex-values))
                (z-of-cube place-target-cube))
         (pushback :z prot-axes))
