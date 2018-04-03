@@ -221,7 +221,7 @@
                   :do-stop-grasp nil
                   :grasp-style grasp-style-))
       (when moveit-p- (send self :add-bin-scene target-bin-))
-      (when (eq pick-result :grasp-succeeded-with-support)
+      (when (eq (elt pick-result 0) :grasp-succeeded-with-support)
         (ros::ros-info-green
           "[main] arm: ~a Change grasp-style from suction to pinch for placing"
           arm)
@@ -244,7 +244,7 @@
       (send *ri* :angle-vector-raw (send *baxter* :angle-vector) 3000
             (send *ri* :get-arm-controller arm :gripper nil) 0)
       (send *ri* :wait-interpolation)
-      (if (or (eq pick-result :ik-failed) (eq pick-result :plan-failed))
+      (if (or (eq (elt pick-result 0) :ik-failed) (eq pick-result :plan-failed))
         (return-from :pick-object nil))
       ;; Trust pressure sensor
       (setq graspingp (send *ri* :graspingp arm grasp-style-))

@@ -176,11 +176,11 @@
                   :do-stop-grasp nil
                   :grasp-style grasp-style-))
       (when moveit-p- (send self :add-tote-scene arm))
-      (when (eq pick-result :grasp-succeeded-with-support)
-        (ros::ros-info-green
-          "[main] arm: ~a Change grasp-style from suction to pinch for placing"
-          arm)
-        (setq grasp-style- :pinch))
+      (when (and (eq grasp-style- :suction)
+                 (eq (elt pick-result 0) :grasp-succeeded-with-support))
+        (case (elt pick-result 1)
+          (:cylindrical (setq grasp-style- :suction-cylindrical-pinch))
+          (:opposed (setq grasp-style- :suction-opposed-pinch))))
       (if (eq grasp-style- :suction)
         (progn
           (send self :ik->tote-center arm
@@ -199,7 +199,7 @@
       (send *ri* :angle-vector-raw (send *baxter* :angle-vector) 3000
             (send *ri* :get-arm-controller arm :gripper nil) 0)
       (send *ri* :wait-interpolation)
-      (if (or (eq pick-result :ik-failed) (eq pick-result :plan-failed))
+      (if (or (eq (elt pick-result 0) :ik-failed) (eq (elt pick-result 0) :plan-failed))
         (return-from :pick-object nil))
       ;; Don't trust pressure sensor
       ;; (setq graspingp (send *ri* :graspingp arm grasp-style-))
@@ -222,7 +222,7 @@
           :fast (send *ri* :get-arm-controller arm :gripper (eq grasp-style- :suction))
           0 :scale 3.0)
     (send *ri* :wait-interpolation)
-    (if (eq grasp-style- :pinch)
+    (if (not (eq grasp-style- :suction))
       (send self :resolve-collision-between-fingers arm)))
   (:verify-object (arm)
     (let ((stamp (ros::time-now)))
@@ -342,30 +342,30 @@
             ;; restore ik-prepared-poses-
             (send *baxter* :set-ik-prepared-poses prev-ik-prepared-poses)
             (when place-avs- (setq target-bin- bin-cand) (return)))
-          ;; pinch
-          (progn
+          ;; supported suction & pinch
+          (let ((move-palm-end (not (eq grasp-style- :suction-opposed-pinch))))
             (setq place-avs-
                   (send self :verify-place-motion arm
                         (gethash bin-cand bin-cubes-)
                         (list
                           ;; (send self :ik->bin-center arm bin-cand
                           ;;       :offset (v+ #f(0 0 300) place-area-offset)
-                          ;;       :rotation-axis nil :move-palm-end t)
+                          ;;       :rotation-axis nil :move-palm-end move-palm-end)
                           ;; (send *baxter* arm :move-end-pos #f(0 0 -300)
                           ;;       (send (gethash bin-cand bin-cubes-) :worldcoords)
-                          ;;       :rotation-axis nil :move-palm-end t)
+                          ;;       :rotation-axis nil :move-palm-end move-palm-end)
                           ;; TODO: fix this as this will cause failure in cardboard
                           (send self :ik->bin-center arm bin-cand
                                 :offset (v+ #f(0 0 300) place-area-offset)
-                                :rotation-axis :z :move-palm-end t)
+                                :rotation-axis :z :move-palm-end move-palm-end)
                           (progn
                             (send *baxter* :set-ik-prepared-poses nil)
                             (send self :ik->bin-center arm bin-cand
                                   :offset (v+ #f(0 0 100) place-area-offset)
-                                  :rotation-axis :z :move-palm-end t))
+                                  :rotation-axis :z :move-palm-end move-palm-end))
                           (send self :ik->bin-center arm bin-cand
                                 :offset (v+ #f(0 0 0) place-area-offset)
-                                :rotation-axis :z :move-palm-end t))))
+                                :rotation-axis :z :move-palm-end move-palm-end))))
             ;; restore ik-prepared-poses-
             (send *baxter* :set-ik-prepared-poses prev-ik-prepared-poses)
             (when (null place-avs-)
@@ -376,15 +376,15 @@
                           (list
                             (send self :ik->bin-center arm bin-cand
                                   :offset (v+ #f(0 0 300) place-area-offset)
-                                  :rotation-axis t :move-palm-end t)
+                                  :rotation-axis t :move-palm-end move-palm-end)
                             (progn
                               (send *baxter* :set-ik-prepared-poses nil)
                               (send *baxter* arm :move-end-pos #f(0 0 -200)
                                     (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                    :rotation-axis t :move-palm-end t))
+                                    :rotation-axis t :move-palm-end move-palm-end))
                             (send *baxter* arm :move-end-pos #f(0 0 -100)
                                   (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                  :rotation-axis t :move-palm-end t)))))
+                                  :rotation-axis t :move-palm-end move-palm-end)))))
             ;; restore ik-prepared-poses-
             (send *baxter* :set-ik-prepared-poses prev-ik-prepared-poses)
             (when (null place-avs-)
@@ -397,15 +397,15 @@
                             (send self :ik->bin-center arm bin-cand
                                   :offset (v+ #f(0 0 300) place-area-offset)
                                   :rpy place-rpy
-                                  :rotation-axis t :move-palm-end t)
+                                  :rotation-axis t :move-palm-end move-palm-end)
                             (progn
                               (send *baxter* :set-ik-prepared-poses nil)
                               (send *baxter* arm :move-end-pos #f(0 0 -200)
                                     (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                    :rotation-axis t :move-palm-end t))
+                                    :rotation-axis t :move-palm-end move-palm-end))
                             (send *baxter* arm :move-end-pos #f(0 0 -100)
                                   (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                  :rotation-axis t :move-palm-end t)))))
+                                  :rotation-axis t :move-palm-end move-palm-end)))))
             ;; restore ik-prepared-poses-
             (send *baxter* :set-ik-prepared-poses prev-ik-prepared-poses)
             (when (null place-avs-)
@@ -418,15 +418,15 @@
                             (send self :ik->bin-center arm bin-cand
                                   :offset (v+ #f(0 0 300) place-area-offset)
                                   :rpy place-rpy
-                                  :rotation-axis t :move-palm-end t)
+                                  :rotation-axis t :move-palm-end move-palm-end)
                             (progn
                               (send *baxter* :set-ik-prepared-poses nil)
                               (send *baxter* arm :move-end-pos #f(0 0 -200)
                                     (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                    :rotation-axis t :move-palm-end t))
+                                    :rotation-axis t :move-palm-end move-palm-end))
                             (send *baxter* arm :move-end-pos #f(0 0 -100)
                                   (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                  :rotation-axis t :move-palm-end t)))))
+                                  :rotation-axis t :move-palm-end move-palm-end)))))
             ;; restore ik-prepared-poses-
             (send *baxter* :set-ik-prepared-poses prev-ik-prepared-poses)
             (when (null place-avs-)
@@ -439,15 +439,15 @@
                             (send self :ik->bin-center arm bin-cand
                                   :offset (v+ #f(0 0 300) place-area-offset)
                                   :rpy place-rpy
-                                  :rotation-axis t :move-palm-end t)
+                                  :rotation-axis t :move-palm-end move-palm-end)
                             (progn
                               (send *baxter* :set-ik-prepared-poses nil)
                               (send *baxter* arm :move-end-pos #f(0 0 -200)
                                     (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                    :rotation-axis t :move-palm-end t))
+                                    :rotation-axis t :move-palm-end move-palm-end))
                             (send *baxter* arm :move-end-pos #f(0 0 -100)
                                   (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                  :rotation-axis t :move-palm-end t)))))
+                                  :rotation-axis t :move-palm-end move-palm-end)))))
             ;; restore ik-prepared-poses-
             (send *baxter* :set-ik-prepared-poses prev-ik-prepared-poses)
             (when (null place-avs-)
@@ -460,15 +460,15 @@
                             (send self :ik->bin-center arm bin-cand
                                   :offset (v+ #f(0 0 300) place-area-offset)
                                   :rpy place-rpy
-                                  :rotation-axis t :move-palm-end t)
+                                  :rotation-axis t :move-palm-end move-palm-end)
                             (progn
                               (send *baxter* :set-ik-prepared-poses nil)
                               (send *baxter* arm :move-end-pos #f(0 0 -200)
                                     (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                    :rotation-axis t :move-palm-end t))
+                                    :rotation-axis t :move-palm-end move-palm-end))
                             (send *baxter* arm :move-end-pos #f(0 0 -100)
                                   (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                  :rotation-axis t :move-palm-end t)))))
+                                  :rotation-axis t :move-palm-end move-palm-end)))))
             ;; restore ik-prepared-poses-
             (send *baxter* :set-ik-prepared-poses prev-ik-prepared-poses)
             (when (null place-avs-)
@@ -481,15 +481,15 @@
                             (send self :ik->bin-center arm bin-cand
                                   :offset (v+ #f(0 0 300) place-area-offset)
                                   :rpy place-rpy
-                                  :rotation-axis t :move-palm-end t)
+                                  :rotation-axis t :move-palm-end move-palm-end)
                             (progn
                               (send *baxter* :set-ik-prepared-poses nil)
                               (send *baxter* arm :move-end-pos #f(0 0 -200)
                                     (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                    :rotation-axis t :move-palm-end t))
+                                    :rotation-axis t :move-palm-end move-palm-end))
                             (send *baxter* arm :move-end-pos #f(0 0 -100)
                                   (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                  :rotation-axis t :move-palm-end t)))))
+                                  :rotation-axis t :move-palm-end move-palm-end)))))
             ;; restore ik-prepared-poses-
             (send *baxter* :set-ik-prepared-poses prev-ik-prepared-poses)
             (when place-avs- (setq target-bin- bin-cand) (return)))))
@@ -522,7 +522,7 @@
             :fast (send *ri* :get-arm-controller arm :gripper nil) 0 :scale 5.0)))
     (send *ri* :wait-interpolation)
     (send *ri* :stop-grasp arm)
-    (when (eq grasp-style- :pinch)
+    (when (not (eq grasp-style- :suction))
       (send *ri* :stop-grasp arm :pinch)
       (send *baxter* :rotate-gripper arm 90 :relative nil))
     (send self :spin-off-by-wrist arm :times 3)
@@ -535,7 +535,7 @@
     (when moveit-p- (send self :add-tote-scene arm))
     (send self :arc-reset-pose arm 3000 (send *ri* :get-arm-controller arm) 0 :move-arm arm)
     (send *ri* :wait-interpolation)
-    (if (eq grasp-style- :pinch)
+    (if (not (eq grasp-style- :suction))
       (send self :resolve-collision-between-fingers arm)))
   (:place-object (arm)
     (let (dropped)
@@ -550,7 +550,8 @@
               (send *ri* :get-arm-controller arm :gripper nil :head t))
             0 :move-arm arm)
       (send *ri* :wait-interpolation)
-      (setq dropped (not (send *ri* :graspingp arm grasp-style-)))
+      (setq dropped (not (send *ri* :graspingp arm
+                               (if (eq grasp-style- :suction) :suction :pinch))))
       (when moveit-p- (send self :delete-object-in-hand-scene arm))
       (if dropped
         (progn
@@ -561,7 +562,7 @@
           ;; update *baxter* to current commanded pose of real robot
           (send *baxter* :angle-vector (car place-avs-))
           (send *ri* :stop-grasp arm)
-          (when (eq grasp-style- :pinch)
+          (when (not (eq grasp-style- :suction))
             (send *ri* :stop-grasp arm :pinch)
             (send *baxter* :rotate-gripper arm 90 :relative nil))
           ;; we assume object is dropped, but it can be just a mis-detection of grasp
@@ -579,7 +580,7 @@
           ;; update *baxter* to current commanded pose of real robot
           (send *baxter* :angle-vector (car (reverse place-avs-)))
           (send *ri* :stop-grasp arm) ;; release object
-          (when (eq grasp-style- :pinch)
+          (when (not (eq grasp-style- :suction))
             (send *ri* :stop-grasp arm :pinch)
             (send *baxter* :rotate-gripper arm 90 :relative nil)) ;; release object
           (send self :spin-off-by-wrist arm :times 5)
@@ -614,7 +615,7 @@
   (:return-from-place-object (arm)
     (send self :arc-reset-pose arm 3000 (send *ri* :get-arm-controller arm) 0 :move-arm arm)
     (send *ri* :wait-interpolation)
-    (if (eq grasp-style- :pinch)
+    (if (not (eq grasp-style- :suction))
       (send self :resolve-collision-between-fingers arm))
     (setq grasp-style- nil)))
 

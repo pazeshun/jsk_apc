@@ -501,7 +501,10 @@
   (:pick-object-with-movable-region
     (arm movable-region &key (n-trial 1) (n-trial-same-pos 1)
          (do-stop-grasp nil) (grasp-style :suction))
-    "Return value: :grasp-succeeded, :grasp-failed, :ik-failed or :plan-failed"
+    "Return value: (list pick-result support-style)
+     pick-result: :grasp-succeeded, :grasp-succeeded-with-support,
+                  :grasp-failed, :ik-failed or :plan-failed
+     support-style: nil, :cylindrical, :opposed or :scrape-out"
     (send *ri* :stop-grasp arm :pinch)
     (send *ri* :calib-proximity-threshold arm)
     (let (pick-result avs object-index obj-local-pos obj-cube obj-local-cube approach-rpy as-table)
@@ -525,7 +528,7 @@
                   arm obj-local-pos obj-local-cube movable-region grasp-style))
       (unless as-table
             (ros::ros-error "[:pick-object-with-movable-region] arm:~a Abort picking" arm)
-            (return-from :pick-object-with-movable-region :plan-failed))
+            (return-from :pick-object-with-movable-region (list :plan-failed nil)))
       (ros::ros-info
         "support-style: ~a, yaw-angle: ~a, gripper-angle: ~a, approach-pos: ~a, obj-moved-pos: ~a"
                      (gethash :support-style as-table)
@@ -602,7 +605,7 @@
         (dolist (av next-avs)
           (unless av
             (ros::ros-error "[:pick-object-with-movable-region] arm:~a IK before trying grasp fails. Abort picking" arm)
-            (return-from :pick-object-with-movable-region :ik-failed)))
+            (return-from :pick-object-with-movable-region (list :ik-failed nil))))
         ;; Move whole arm to location above of the target pose
         (send *ri* :angle-vector-sequence-raw next-avs
               :fast (send *ri* :get-arm-controller arm :head t) 0 :scale 5.0)
@@ -640,7 +643,7 @@
           (send *ri* :move-hand arm
                 (send *baxter* :hand-grasp-pre-pose arm :opposed) 1000 :wait nil)))
       (send *ri* :gripper-servo-on arm)
-      pick-result))
+      (list pick-result (gethash :support-style as-table))))
   (:get-object-position
     (arm movable-region &key (object-index 0))
     (let (obj-box obj-coords obj-local-pos)
