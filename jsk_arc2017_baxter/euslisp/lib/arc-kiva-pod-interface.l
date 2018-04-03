@@ -1186,7 +1186,7 @@
             (ros::ros-info "[:try-to-suction-front-object] arm:~a finger-av: ~a"
                            arm finger-av)
             (if (and (> (aref finger-av (- (length finger-av) 1)) 30)
-                     (< (aref finger-av (- (length finger-av) 1)) 80))
+                     (< (aref finger-av (- (length finger-av) 1)) 86))
               (progn
                 (send *ri* :move-hand arm
                       (send *baxter* :hand-grasp-pose arm support-style) 1000)
