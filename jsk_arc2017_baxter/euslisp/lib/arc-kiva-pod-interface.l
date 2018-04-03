@@ -2007,7 +2007,7 @@
         (when (null (elt ik-results i))
           (ros::ros-error "[:verify-place-motion] IK No.~a in place motion fails" i)
           (return-from :verify-place-motion nil))
-        (when (and (< i (- (length ik-results) 1))
+        (when (and (= i 0)
                    (null (send *ri* :angle-vector-make-trajectory (elt ik-results i)
                                :ctype (send *ri* :get-arm-controller arm :head t)
                                :move-arm arm :total-time 4000 :start-offset-time 0.01
