@@ -270,9 +270,7 @@
     (let (prev-ik-prepared-poses prev-av gripper-p gripper-x place-rpy place-area-offset)
       (setq prev-av (send *baxter* :angle-vector))
       ;; generate place motion
-      ;; in the following, IK result should be near previous pose
       (setq prev-ik-prepared-poses (send *baxter* :ik-prepared-poses))
-      (send *baxter* :set-ik-prepared-poses nil)
       (dolist (bin-cand (send self :get-stowing-bin-candidates arm))
         (ros::ros-info "[main] try bin ~a as place target" bin-cand)
         (setq place-area-offset (send self :decide-bin-place-area arm bin-cand grasp-style-))
@@ -282,6 +280,8 @@
         (if (eq grasp-style- :suction)
           ;; suction
           (progn
+            ;; in the following, IK result should be near previous pose
+            (send *baxter* :set-ik-prepared-poses nil)
             ;; rotate gripper depending on bin position
             (send *baxter* :rotate-gripper arm 90 :relative nil)
             (send self :ik->bin-center arm bin-cand
@@ -308,6 +308,7 @@
                              (setq place-rpy (if (eq arm :rarm)
                                                (float-vector pi/2 0 (/ pi -6))
                                                (float-vector -pi/2 0 (/ pi 6)))))
+              (send *baxter* :angle-vector prev-av)
               (setq place-avs-
                     (send self :verify-place-motion arm
                           (gethash bin-cand bin-cubes-)
@@ -329,6 +330,8 @@
                                     :rotation-axis t :use-gripper t
                                     ;; to follow gravity
                                     :parallel-with :world))))))
+            ;; restore ik-prepared-poses-
+            (send *baxter* :set-ik-prepared-poses prev-ik-prepared-poses)
             (when place-avs- (setq target-bin- bin-cand) (return)))
           ;; pinch
           (progn
@@ -346,9 +349,13 @@
                           (send self :ik->bin-center arm bin-cand
                                 :offset (v+ #f(0 0 300) place-area-offset)
                                 :rotation-axis :z :move-palm-end t)
-                          (send self :ik->bin-center arm bin-cand
-                                :offset (v+ #f(0 0 0) place-area-offset)
-                                :rotation-axis :z :move-palm-end t))))
+                          (progn
+                            (send *baxter* :set-ik-prepared-poses nil)
+                            (send self :ik->bin-center arm bin-cand
+                                  :offset (v+ #f(0 0 0) place-area-offset)
+                                  :rotation-axis :z :move-palm-end t)))))
+            ;; restore ik-prepared-poses-
+            (send *baxter* :set-ik-prepared-poses prev-ik-prepared-poses)
             (when (null place-avs-)
               (ros::ros-info "[main] try place motion aligned with bin-coords")
               (setq place-avs-
@@ -358,9 +365,13 @@
                             (send self :ik->bin-center arm bin-cand
                                   :offset (v+ #f(0 0 300) place-area-offset)
                                   :rotation-axis t :move-palm-end t)
-                            (send *baxter* arm :move-end-pos #f(0 0 -300)
-                                  (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                  :rotation-axis t :move-palm-end t)))))
+                            (progn
+                              (send *baxter* :set-ik-prepared-poses nil)
+                              (send *baxter* arm :move-end-pos #f(0 0 -300)
+                                    (send (gethash bin-cand bin-cubes-) :worldcoords)
+                                    :rotation-axis t :move-palm-end t))))))
+            ;; restore ik-prepared-poses-
+            (send *baxter* :set-ik-prepared-poses prev-ik-prepared-poses)
             (when (null place-avs-)
               (ros::ros-info "[main] try place motion rpy: ~a"
                              (setq place-rpy (float-vector pi/2 0 0)))
@@ -372,9 +383,13 @@
                                   :offset (v+ #f(0 0 300) place-area-offset)
                                   :rpy place-rpy
                                   :rotation-axis t :move-palm-end t)
-                            (send *baxter* arm :move-end-pos #f(0 0 -300)
-                                  (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                  :rotation-axis t :move-palm-end t)))))
+                            (progn
+                              (send *baxter* :set-ik-prepared-poses nil)
+                              (send *baxter* arm :move-end-pos #f(0 0 -300)
+                                    (send (gethash bin-cand bin-cubes-) :worldcoords)
+                                    :rotation-axis t :move-palm-end t))))))
+            ;; restore ik-prepared-poses-
+            (send *baxter* :set-ik-prepared-poses prev-ik-prepared-poses)
             (when (null place-avs-)
               (ros::ros-info "[main] try place motion rpy: ~a"
                              (setq place-rpy (float-vector -pi/2 0 0)))
@@ -386,9 +401,13 @@
                                   :offset (v+ #f(0 0 300) place-area-offset)
                                   :rpy place-rpy
                                   :rotation-axis t :move-palm-end t)
-                            (send *baxter* arm :move-end-pos #f(0 0 -300)
-                                  (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                  :rotation-axis t :move-palm-end t)))))
+                            (progn
+                              (send *baxter* :set-ik-prepared-poses nil)
+                              (send *baxter* arm :move-end-pos #f(0 0 -300)
+                                    (send (gethash bin-cand bin-cubes-) :worldcoords)
+                                    :rotation-axis t :move-palm-end t))))))
+            ;; restore ik-prepared-poses-
+            (send *baxter* :set-ik-prepared-poses prev-ik-prepared-poses)
             (when (null place-avs-)
               (ros::ros-info "[main] try place motion rpy: ~a"
                              (setq place-rpy (float-vector 0 (- pi/2 (/ pi 6)) 0)))
@@ -400,9 +419,13 @@
                                   :offset (v+ #f(0 0 300) place-area-offset)
                                   :rpy place-rpy
                                   :rotation-axis t :move-palm-end t)
-                            (send *baxter* arm :move-end-pos #f(0 0 -300)
-                                  (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                  :rotation-axis t :move-palm-end t)))))
+                            (progn
+                              (send *baxter* :set-ik-prepared-poses nil)
+                              (send *baxter* arm :move-end-pos #f(0 0 -300)
+                                    (send (gethash bin-cand bin-cubes-) :worldcoords)
+                                    :rotation-axis t :move-palm-end t))))))
+            ;; restore ik-prepared-poses-
+            (send *baxter* :set-ik-prepared-poses prev-ik-prepared-poses)
             (when (null place-avs-)
               (ros::ros-info "[main] try place motion rpy: ~a"
                              (setq place-rpy (float-vector pi/2 0 (- pi/2 (/ pi 6)))))
@@ -414,9 +437,13 @@
                                   :offset (v+ #f(0 0 300) place-area-offset)
                                   :rpy place-rpy
                                   :rotation-axis t :move-palm-end t)
-                            (send *baxter* arm :move-end-pos #f(0 0 -300)
-                                  (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                  :rotation-axis t :move-palm-end t)))))
+                            (progn
+                              (send *baxter* :set-ik-prepared-poses nil)
+                              (send *baxter* arm :move-end-pos #f(0 0 -300)
+                                    (send (gethash bin-cand bin-cubes-) :worldcoords)
+                                    :rotation-axis t :move-palm-end t))))))
+            ;; restore ik-prepared-poses-
+            (send *baxter* :set-ik-prepared-poses prev-ik-prepared-poses)
             (when (null place-avs-)
               (ros::ros-info "[main] try place motion rpy: ~a"
                              (setq place-rpy (float-vector -pi/2 0 (+ -pi/2 (/ pi 6)))))
@@ -428,12 +455,14 @@
                                   :offset (v+ #f(0 0 300) place-area-offset)
                                   :rpy place-rpy
                                   :rotation-axis t :move-palm-end t)
-                            (send *baxter* arm :move-end-pos #f(0 0 -300)
-                                  (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                  :rotation-axis t :move-palm-end t)))))
+                            (progn
+                              (send *baxter* :set-ik-prepared-poses nil)
+                              (send *baxter* arm :move-end-pos #f(0 0 -300)
+                                    (send (gethash bin-cand bin-cubes-) :worldcoords)
+                                    :rotation-axis t :move-palm-end t))))))
+            ;; restore ik-prepared-poses-
+            (send *baxter* :set-ik-prepared-poses prev-ik-prepared-poses)
             (when place-avs- (setq target-bin- bin-cand) (return)))))
-      ;; restore ik-prepared-poses-
-      (send *baxter* :set-ik-prepared-poses prev-ik-prepared-poses)
       (if place-avs-
         (progn
           (ros::set-param (format nil "~a_hand/target_bin" (arm2str arm)) (symbol2str target-bin-))
