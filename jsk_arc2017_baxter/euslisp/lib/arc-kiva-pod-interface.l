@@ -849,6 +849,8 @@
                       (send obj-approach-cube :move-to
                             (send approach-coords :transformation
                                   (send obj-approach-cube :worldcoords) :local) :world)
+                      ;; update vertices
+                      (send obj-approach-cube :worldcoords)
                       (setq obj-moved-pos
                             (send approach-coords :inverse-transform-vector obj-moved-pos))
                       (setq vertex-values (mapcar #'(lambda (x) (aref x 0))
