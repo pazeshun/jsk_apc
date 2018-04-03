@@ -591,6 +591,10 @@
                   (send *ri* :get-arm-controller arm :gripper nil)) 0)
           (send *ri* :wait-interpolation)
           ;; push protruded object inside bin
+          (send *ri* :move-hand arm
+                (send *baxter* :hand-grasp-pre-pose arm :cylindrical) 1000 :wait t)
+          (send *ri* :move-hand arm
+                (send *baxter* :hand-grasp-pose arm :cylindrical) 1000 :wait nil)
           (send *baxter* :angle-vector (car place-avs-))
           (send *ri* :angle-vector-sequence-raw
                 (list
@@ -611,6 +615,8 @@
                   (send *ri* :get-arm-controller arm)
                   (send *ri* :get-arm-controller arm :gripper nil)) 0)
           (send *ri* :wait-interpolation)
+          (send *ri* :move-hand arm
+                (send *baxter* :hand-grasp-pre-pose arm :cylindrical) 1000 :wait nil)
           (when moveit-p- (send self :add-bin-scene target-bin-))))))
   (:return-from-place-object (arm)
     (send self :arc-reset-pose arm 3000 (send *ri* :get-arm-controller arm) 0 :move-arm arm)
