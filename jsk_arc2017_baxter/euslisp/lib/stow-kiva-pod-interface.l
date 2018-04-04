@@ -563,7 +563,8 @@
           (send *baxter* :angle-vector (car place-avs-))
           (send *ri* :stop-grasp arm)
           (when (not (eq grasp-style- :suction))
-            (send *ri* :stop-grasp arm :pinch)
+            (send *ri* :stop-grasp arm :pinch))
+          (when (eq grasp-style- :pinch)
             (send *baxter* :rotate-gripper arm 90 :relative nil))
           ;; we assume object is dropped, but it can be just a mis-detection of grasp
           (send self :spin-off-by-wrist arm :times 3)
@@ -581,7 +582,8 @@
           (send *baxter* :angle-vector (car (reverse place-avs-)))
           (send *ri* :stop-grasp arm) ;; release object
           (when (not (eq grasp-style- :suction))
-            (send *ri* :stop-grasp arm :pinch)
+            (send *ri* :stop-grasp arm :pinch)) ;; release object
+          (when (eq grasp-style- :pinch)
             (send *baxter* :rotate-gripper arm 90 :relative nil)) ;; release object
           (send self :spin-off-by-wrist arm :times 5)
           (send *ri* :wait-interpolation)
