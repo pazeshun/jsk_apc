@@ -570,7 +570,7 @@
           (send self :spin-off-by-wrist arm :times 3)
           (send *ri* :wait-interpolation)
           (send self :add-postponed-object arm target-obj- :tote))
-        (progn
+        (let ((prev-ik-prepared-poses (send *baxter* :ik-prepared-poses)))
           (send self :update-json target-obj- :src :tote :dst (cons :bin target-bin-))
           (send self :add-finished-object arm target-obj- :tote)
           (ros::ros-info-green "[main] arm ~a: place object ~a in bin ~a" arm target-obj- target-bin-)
@@ -597,25 +597,29 @@
                 (send *baxter* :hand-grasp-pre-pose arm :cylindrical) 1000 :wait t)
           (send *ri* :move-hand arm
                 (send *baxter* :hand-grasp-pose arm :cylindrical) 1000 :wait nil)
+          (send *baxter* :set-ik-prepared-poses nil)
           (send *baxter* :angle-vector (car place-avs-))
           (send *ri* :angle-vector-sequence-raw
-                (list
-                  (send *baxter* arm :move-end-pos #f(-150 0 0)
-                        (send (gethash target-bin- bin-cubes-) :worldcoords)
-                        :rotation-axis nil)
-                  (send *baxter* arm :move-end-pos
-                        (if (eq grasp-style- :suction) #f(0 0 -150) #f(0 0 -130))
-                        (send (gethash target-bin- bin-cubes-) :worldcoords)
-                        :rotation-axis nil)
-                  (send *baxter* arm :move-end-pos
-                        (if (eq grasp-style- :suction) #f(0 0 -150) #f(0 0 -130))
-                        (send (gethash target-bin- bin-cubes-) :worldcoords)
-                        :rotation-axis nil)
-                  (send *baxter* :angle-vector (car place-avs-)))
+                (remove nil
+                        (list
+                          (send *baxter* arm :move-end-pos #f(-150 0 0)
+                                (send (gethash target-bin- bin-cubes-) :worldcoords)
+                                :rotation-axis t)
+                          (send *baxter* arm :move-end-pos
+                                (if (eq grasp-style- :suction) #f(0 0 -150) #f(0 0 -140))
+                                (send (gethash target-bin- bin-cubes-) :worldcoords)
+                                :rotation-axis nil)
+                          (send *baxter* arm :move-end-pos
+                                (if (eq grasp-style- :suction) #f(0 0 -150) #f(0 0 -140))
+                                (send (gethash target-bin- bin-cubes-) :worldcoords)
+                                :rotation-axis nil)
+                          (send *baxter* :angle-vector (car place-avs-))))
                 (list 1000 1000 1000 2000)
                 (if (eq grasp-style- :suction)
                   (send *ri* :get-arm-controller arm)
                   (send *ri* :get-arm-controller arm :gripper nil)) 0)
+          ;; restore ik-prepared-poses-
+          (send *baxter* :set-ik-prepared-poses prev-ik-prepared-poses)
           (send *ri* :wait-interpolation)
           (send *ri* :move-hand arm
                 (send *baxter* :hand-grasp-pre-pose arm :cylindrical) 1000 :wait nil)
