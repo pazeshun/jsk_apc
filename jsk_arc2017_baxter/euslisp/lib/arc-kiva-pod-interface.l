@@ -2012,12 +2012,13 @@
       (when (or (> (apply #'max vertex-values) (/ (y-of-cube place-target-cube) 2))
                 (< (apply #'min vertex-values) (/ (y-of-cube place-target-cube) -2)))
         (pushback :y prot-axes))
-      ;; z is depth, so check if object can be inserted by pushing
-      (setq vertex-values (mapcar #'(lambda (x) (aref x 2))
-                                  (send attached-obj-local :vertices)))
-      (when (> (- (apply #'max vertex-values) (apply #'min vertex-values))
-               (z-of-cube place-target-cube))
-        (pushback :z prot-axes))
+      ;; TODO: re-enable this by fixing bin size
+      ;;;; z is depth, so check if object can be inserted by pushing
+      ;;(setq vertex-values (mapcar #'(lambda (x) (aref x 2))
+      ;;                            (send attached-obj-local :vertices)))
+      ;;(when (> (- (apply #'max vertex-values) (apply #'min vertex-values))
+      ;;         (z-of-cube place-target-cube))
+      ;;  (pushback :z prot-axes))
       prot-axes))
   (:verify-place-motion (arm place-target-cube ik-results)
     (let ((place-avs (copy-object ik-results)) prot-axes)
