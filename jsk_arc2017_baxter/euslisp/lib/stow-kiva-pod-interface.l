@@ -561,9 +561,10 @@
           (ros::ros-error "[main] arm ~a: dropped object" arm)
           ;; update *baxter* to current commanded pose of real robot
           (send *baxter* :angle-vector (car place-avs-))
-          (send *ri* :stop-grasp arm)
           (when (not (eq grasp-style- :suction))
             (send *ri* :stop-grasp arm :pinch))
+          (send *ri* :stop-grasp arm)
+          (unix::sleep 3)
           (when (eq grasp-style- :pinch)
             (send *baxter* :rotate-gripper arm 90 :relative nil))
           ;; we assume object is dropped, but it can be just a mis-detection of grasp
@@ -580,9 +581,10 @@
           (send *ri* :wait-interpolation)
           ;; update *baxter* to current commanded pose of real robot
           (send *baxter* :angle-vector (car (reverse place-avs-)))
-          (send *ri* :stop-grasp arm) ;; release object
           (when (not (eq grasp-style- :suction))
             (send *ri* :stop-grasp arm :pinch)) ;; release object
+          (send *ri* :stop-grasp arm) ;; release object
+          (unix::sleep 3)
           (when (eq grasp-style- :pinch)
             (send *baxter* :rotate-gripper arm 90 :relative nil)) ;; release object
           (send self :spin-off-by-wrist arm :times 5)
