@@ -300,12 +300,16 @@
                                 :rotation-axis :z :use-gripper t
                                 ;; to follow gravity
                                 :parallel-with :world)
-                          (send *baxter* arm :move-end-pos #f(0 0 -250)
-                                (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                :rotation-axis :z :use-gripper t)
-                          (send *baxter* arm :move-end-pos #f(0 0 -100)
-                                (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                :rotation-axis :z :use-gripper t))))
+                          (send self :ik->bin-center arm bin-cand
+                                :offset (v+ #f(0 0 50) place-area-offset)
+                                :rotation-axis t :use-gripper t
+                                ;; to follow gravity
+                                :parallel-with :world)
+                          (progn
+                            (send *baxter* :slide-gripper arm 120 :relative nil)
+                            (send *baxter* arm :move-end-pos #f(0 0 -150)
+                                  (send (gethash bin-cand bin-cubes-) :worldcoords)
+                                  :rotation-axis t :use-gripper t)))))
             (when (null place-avs-)
               (ros::ros-info "[main] try place motion rpy: ~a"
                              (setq place-rpy (if (eq arm :rarm)
@@ -576,9 +580,9 @@
           (send self :add-finished-object arm target-obj- :tote)
           (ros::ros-info-green "[main] arm ~a: place object ~a in bin ~a" arm target-obj- target-bin-)
           (when moveit-p- (send self :delete-bin-scene target-bin-))
-          (send *ri* :angle-vector-sequence-raw (cdr place-avs-)
-                (list 2000 1000) (send *ri* :get-arm-controller arm) 0)
-          (send *ri* :wait-interpolation)
+          (dolist (av (cdr place-avs-))
+            (send *ri* :angle-vector-raw av 3000 (send *ri* :get-arm-controller arm) 0)
+            (send *ri* :wait-interpolation))
           ;; update *baxter* to current commanded pose of real robot
           (send *baxter* :angle-vector (car (reverse place-avs-)))
           (when (not (eq grasp-style- :suction))
