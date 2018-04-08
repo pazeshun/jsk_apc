@@ -703,7 +703,7 @@
     CAUTION: This algorithm depends on PCA in ClusterPointIndicesDecomposer"
     (let (return-table support-style yaw-angle gripper-angle approach-pos obj-moved-pos
                        approach-candidates approach-idx
-                       max-dist-bw-obj-bin
+                       min-dist-bw-obj-bin
                        (region-coords (elt movable-region 3))
                        (gravity-vec #f(0 0 -1))
                        (gripper-req-l (+ (gethash arm (gethash :pad-link-l gripper-dims-))
@@ -744,13 +744,13 @@
                   (elt approach-candidates (if (eq grasp-style :suction) 0 1))))
       ;; check which approach can be performed
       (dolist (candidate-list approach-candidates)
-        (setq max-dist-bw-obj-bin gripper-req-l)
+        (setq min-dist-bw-obj-bin *inf*)
         (dolist (candidate candidate-list)
           (let ((idx (elt candidate 0))
                 (sign (elt candidate 1))
                 (approach-coords (make-coords))
                 (obj-approach-cube (copy-object obj-local-cube))
-                vertex-values dist-bw-obj-bin object-t object-w object-h
+                vertex-values dist-bw-obj-bin opp-dist-bw-obj-bin object-t object-w object-h
                 obj-pos-to-walls)
             ;; decide approach-coords (minus z is approach direction)
             (cond ((and (= idx 0) (< sign 0))
@@ -942,14 +942,17 @@
                 (setq object-w (- (apply #'max vertex-values) (apply #'min vertex-values)))
                 (setq vertex-values (mapcar #'(lambda (x) (aref x 2))
                                             (send obj-approach-cube :vertices)))
-                (setq dist-bw-obj-bin (- (elt (elt movable-region idx) 1)
-                                         (apply #'max vertex-values)))
+                (setq dist-bw-obj-bin (- (apply #'min vertex-values)
+                                         (elt (elt movable-region idx) 0)))
+                (setq opp-dist-bw-obj-bin (- (elt (elt movable-region idx) 1)
+                                             (apply #'max vertex-values)))
                 ;; check if gripper can enter
                 ;; TODO: dismiss concern about little point cloud in bin
                 ;;       and add size check like above
                 ;; TODO: manage standing flat object not parallel to bin wall
                 ;; TODO: fix hard-coded variable
-                (when (and (> dist-bw-obj-bin max-dist-bw-obj-bin)
+                (when (and (> opp-dist-bw-obj-bin gripper-req-l)
+                           (< dist-bw-obj-bin min-dist-bw-obj-bin)
                            (> (car (elt sides 0))
                               (* (gethash arm (gethash :pad-r gripper-dims-)) 2))
                            (> (car (elt sides 1))
@@ -1012,7 +1015,7 @@
                     (if (< (aref approach-pos i) (+ (elt (elt movable-region i) 0) 30))
                       (setf (aref approach-pos i) (+ (elt (elt movable-region i) 0) 30))))
                   (setq approach-idx idx)
-                  (setq max-dist-bw-obj-bin dist-bw-obj-bin))))))
+                  (setq min-dist-bw-obj-bin dist-bw-obj-bin))))))
         (if approach-idx (return)))
       (if (null approach-idx)
         (progn
