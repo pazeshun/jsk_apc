@@ -1962,7 +1962,7 @@
         ;; TODO: check collision in robot pose by IK
         ;; (if (or (and (or (eq (elt bin-list- i) :a) (eq (elt bin-list- i) :d)) (eq arm :larm))
         ;;         (and (or (eq (elt bin-list- i) :c) (eq (elt bin-list- i) :f)) (eq arm :rarm)))
-        (if (or (eq (mod i 3) 1)
+        (if (or ;(eq (mod i 3) 1)
                 (and (eq (mod i 3) 0) (eq arm :larm))
                 (and (eq (mod i 3) 2) (eq arm :rarm)))
           (pushback (elt bin-list- i) bins)))
