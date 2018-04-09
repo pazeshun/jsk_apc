@@ -1476,7 +1476,7 @@
       (send *ri* :wait-interpolation-until arm
             :grasp :finger-flexion :finger-loaded :prismatic-loaded :finger-proximity)
       (send *baxter* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
-      (send *baxter* arm :move-end-pos #f(0 0 -20) :local :move-palm-end t)
+      (send *baxter* arm :move-end-pos #f(0 0 -20) (send *baxter* arm :palm-endpoint))
       (send *ri* :angle-vector-raw
             (send *baxter* :slide-gripper arm
                   (send (send *baxter* arm :gripper-x) :max-angle) :relative nil)
