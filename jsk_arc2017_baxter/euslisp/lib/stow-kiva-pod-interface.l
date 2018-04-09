@@ -348,47 +348,49 @@
             (when place-avs- (setq target-bin- bin-cand) (return)))
           ;; supported suction & pinch
           (let ((move-palm-end (not (eq grasp-style- :suction-opposed-pinch))))
+            ;; TODO: fix collision between finger and bin bottom wall
+            ;; (setq place-avs-
+            ;;       (send self :verify-place-motion arm
+            ;;             (gethash bin-cand bin-cubes-)
+            ;;             (list
+            ;;               ;; (send self :ik->bin-center arm bin-cand
+            ;;               ;;       :offset (v+ #f(0 0 300) place-area-offset)
+            ;;               ;;       :rotation-axis nil :move-palm-end move-palm-end)
+            ;;               ;; (send *baxter* arm :move-end-pos #f(0 0 -300)
+            ;;               ;;       (send (gethash bin-cand bin-cubes-) :worldcoords)
+            ;;               ;;       :rotation-axis nil :move-palm-end move-palm-end)
+            ;;               ;; TODO: fix this as this will cause failure in cardboard
+            ;;               (send self :ik->bin-center arm bin-cand
+            ;;                     :offset (v+ #f(0 0 300) place-area-offset)
+            ;;                     :rotation-axis :z :move-palm-end move-palm-end)
+            ;;               (progn
+            ;;                 (send *baxter* :set-ik-prepared-poses nil)
+            ;;                 (send self :ik->bin-center arm bin-cand
+            ;;                       :offset (v+ #f(0 0 100) place-area-offset)
+            ;;                       :rotation-axis :z :move-palm-end move-palm-end))
+            ;;               (send self :ik->bin-center arm bin-cand
+            ;;                     :offset (v+ #f(0 0 0) place-area-offset)
+            ;;                     :rotation-axis :z :move-palm-end move-palm-end))))
+            ;; restore ik-prepared-poses-
+            ;; (send *baxter* :set-ik-prepared-poses prev-ik-prepared-poses)
+            ;; (when (null place-avs-)
+            ;;   (ros::ros-info "[main] try place motion aligned with bin-coords")
             (setq place-avs-
                   (send self :verify-place-motion arm
                         (gethash bin-cand bin-cubes-)
                         (list
-                          ;; (send self :ik->bin-center arm bin-cand
-                          ;;       :offset (v+ #f(0 0 300) place-area-offset)
-                          ;;       :rotation-axis nil :move-palm-end move-palm-end)
-                          ;; (send *baxter* arm :move-end-pos #f(0 0 -300)
-                          ;;       (send (gethash bin-cand bin-cubes-) :worldcoords)
-                          ;;       :rotation-axis nil :move-palm-end move-palm-end)
-                          ;; TODO: fix this as this will cause failure in cardboard
                           (send self :ik->bin-center arm bin-cand
                                 :offset (v+ #f(0 0 300) place-area-offset)
-                                :rotation-axis :z :move-palm-end move-palm-end)
+                                :rotation-axis t :move-palm-end move-palm-end)
                           (progn
                             (send *baxter* :set-ik-prepared-poses nil)
-                            (send self :ik->bin-center arm bin-cand
-                                  :offset (v+ #f(0 0 100) place-area-offset)
-                                  :rotation-axis :z :move-palm-end move-palm-end))
-                          (send self :ik->bin-center arm bin-cand
-                                :offset (v+ #f(0 0 0) place-area-offset)
-                                :rotation-axis :z :move-palm-end move-palm-end))))
-            ;; restore ik-prepared-poses-
-            (send *baxter* :set-ik-prepared-poses prev-ik-prepared-poses)
-            (when (null place-avs-)
-              (ros::ros-info "[main] try place motion aligned with bin-coords")
-              (setq place-avs-
-                    (send self :verify-place-motion arm
-                          (gethash bin-cand bin-cubes-)
-                          (list
-                            (send self :ik->bin-center arm bin-cand
-                                  :offset (v+ #f(0 0 300) place-area-offset)
-                                  :rotation-axis t :move-palm-end move-palm-end)
-                            (progn
-                              (send *baxter* :set-ik-prepared-poses nil)
-                              (send *baxter* arm :move-end-pos #f(0 0 -200)
-                                    (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                    :rotation-axis t :move-palm-end move-palm-end))
-                            (send *baxter* arm :move-end-pos #f(0 0 -100)
+                            (send *baxter* arm :move-end-pos #f(0 0 -200)
                                   (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                  :rotation-axis t :move-palm-end move-palm-end)))))
+                                  :rotation-axis t :move-palm-end move-palm-end))
+                          (send *baxter* arm :move-end-pos #f(0 0 -100)
+                                (send (gethash bin-cand bin-cubes-) :worldcoords)
+                                :rotation-axis t :move-palm-end move-palm-end))))
+            ;;  )
             ;; restore ik-prepared-poses-
             (send *baxter* :set-ik-prepared-poses prev-ik-prepared-poses)
             (when (null place-avs-)
