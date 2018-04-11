@@ -480,7 +480,7 @@ Visualization Manager:
       Selectable: true
       Size (Pixels): 3
       Size (m): 0.01
-      Style: Flat Squares
+      Style: Points
       Topic: /left_hand_camera/extract_indices_tote/output
       Unreliable: false
       Use Fixed Frame: true
@@ -510,7 +510,7 @@ Visualization Manager:
       Selectable: true
       Size (Pixels): 3
       Size (m): 0.01
-      Style: Flat Squares
+      Style: Points
       Topic: /right_hand_camera/extract_indices_tote/output
       Unreliable: false
       Use Fixed Frame: true
@@ -783,7 +783,7 @@ Visualization Manager:
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
-      Size (Pixels): 10
+      Size (Pixels): 5
       Size (m): 0.01
       Style: Points
       Topic: /left_hand_camera/extract_indices_target0/output
@@ -813,7 +813,7 @@ Visualization Manager:
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
-      Size (Pixels): 10
+      Size (Pixels): 5
       Size (m): 0.01
       Style: Points
       Topic: /right_hand_camera/extract_indices_target0/output
