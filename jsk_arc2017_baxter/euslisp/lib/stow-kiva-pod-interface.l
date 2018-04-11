@@ -342,7 +342,11 @@
                                     :rpy place-rpy
                                     :rotation-axis t :use-gripper t
                                     ;; to follow gravity
-                                    :parallel-with :world))))))
+                                    :parallel-with :world))
+                            (send *baxter* arm :move-end-pos #f(-60 0 -40)
+                                  (send (gethash bin-cand bin-cubes-) :worldcoords)
+                                  :rotation-axis t :use-gripper t))
+                          :collision-check-index 2)))
             ;; restore ik-prepared-poses-
             (send *baxter* :set-ik-prepared-poses prev-ik-prepared-poses)
             (when place-avs- (setq target-bin- bin-cand) (return)))
@@ -453,7 +457,11 @@
                                     :rotation-axis t))
                             (send *baxter* arm :move-end-pos #f(0 0 -100)
                                   (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                  :rotation-axis t)))))
+                                  :rotation-axis t)
+                            (send *baxter* arm :move-end-pos #f(-40 0 0)
+                                  (send (gethash bin-cand bin-cubes-) :worldcoords)
+                                  :rotation-axis t))
+                          :collision-check-index 2)))
             ;; restore ik-prepared-poses-
             (send *baxter* :set-ik-prepared-poses prev-ik-prepared-poses)
             (when (null place-avs-)
@@ -474,7 +482,11 @@
                                     :rotation-axis t))
                             (send *baxter* arm :move-end-pos #f(0 0 -100)
                                   (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                  :rotation-axis t)))))
+                                  :rotation-axis t)
+                            (send *baxter* arm :move-end-pos #f(-40 0 0)
+                                  (send (gethash bin-cand bin-cubes-) :worldcoords)
+                                  :rotation-axis t))
+                          :collision-check-index 2)))
             ;; restore ik-prepared-poses-
             (send *baxter* :set-ik-prepared-poses prev-ik-prepared-poses)
             (when (null place-avs-)
@@ -495,7 +507,11 @@
                                     :rotation-axis t))
                             (send *baxter* arm :move-end-pos #f(0 0 -100)
                                   (send (gethash bin-cand bin-cubes-) :worldcoords)
-                                  :rotation-axis t)))))
+                                  :rotation-axis t)
+                            (send *baxter* arm :move-end-pos #f(-40 0 0)
+                                  (send (gethash bin-cand bin-cubes-) :worldcoords)
+                                  :rotation-axis t))
+                          :collision-check-index 2)))
             ;; restore ik-prepared-poses-
             (send *baxter* :set-ik-prepared-poses prev-ik-prepared-poses)
             (when place-avs- (setq target-bin- bin-cand) (return)))))

@@ -2023,7 +2023,8 @@
       ;;         (z-of-cube place-target-cube))
       ;;  (pushback :z prot-axes))
       prot-axes))
-  (:verify-place-motion (arm place-target-cube ik-results)
+  (:verify-place-motion (arm place-target-cube ik-results
+                             &key (collision-check-index (- (length ik-results) 1)))
     (let ((place-avs (copy-object ik-results)) prot-axes)
       (dotimes (i (length ik-results))
         (when (null (elt ik-results i))
@@ -2035,14 +2036,16 @@
                                :move-arm arm :total-time 4000 :start-offset-time 0.01
                                :clear-velocities t :use-torso nil)))
           (ros::ros-error "[:verify-place-motion] planning motion No.~a fails" i)
-          (return-from :verify-place-motion nil)))
-      (send *baxter* :angle-vector (car (reverse ik-results)))
-      (setq prot-axes
-            (send self :attached-obj-protruded-axes arm place-target-cube))
-      (when prot-axes
-        (ros::ros-error "[:verify-place-motion] with this place motion, ~a axis will protrude"
-                       prot-axes)
-        (return-from :verify-place-motion nil))
+          (return-from :verify-place-motion nil))
+        (when (= i collision-check-index)
+          (send *baxter* :angle-vector (elt ik-results i))
+          (setq prot-axes
+                (send self :attached-obj-protruded-axes arm place-target-cube))
+          (when prot-axes
+            (ros::ros-error
+              "[:verify-place-motion] with robot pose No.~a, obj will collide to wall in ~a axis"
+              i prot-axes)
+            (return-from :verify-place-motion nil))))
       place-avs)))
 
 (defun jsk_arc2017_baxter::arc-kiva-pod-init (&key (ctype :default-controller) (moveit nil))
