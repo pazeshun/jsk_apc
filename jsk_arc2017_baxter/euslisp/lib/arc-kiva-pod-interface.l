@@ -1937,7 +1937,7 @@
               (float-vector (- (/ x-range 2.0)
                                (+ (gethash arm (gethash :pad-link-l gripper-dims-))
                                   (/ (gethash arm (gethash :tube-t gripper-dims-)) 2))
-                               20) 0 0))
+                               30) 0 0))
             (progn
               (setq index (random 3))
               (cond
