@@ -330,7 +330,7 @@
                                     ;; to follow gravity
                                     :parallel-with :world))
                             (send self :ik->bin-center arm bin-cand
-                                  :offset (v+ #f(0 0 60) place-area-offset)
+                                  :offset (v+ #f(0 0 70) place-area-offset)
                                   :rpy place-rpy
                                   :rotation-axis t :use-gripper t
                                   ;; to follow gravity
