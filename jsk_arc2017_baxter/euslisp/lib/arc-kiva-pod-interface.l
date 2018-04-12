@@ -1989,7 +1989,7 @@
       (setq vertex-values (mapcar #'(lambda (x) (aref x 2))
                                   (send attached-obj-local :vertices)))
       (if (find t (mapcar #'(lambda (x)
-                              (< (abs (- (/ (z-of-cube place-target-cube) 2) x)) 1))
+                              (< (abs (- (/ (z-of-cube place-target-cube) 2) x)) 3))
                           vertex-values))
         ;; body* will fail
         (progn
