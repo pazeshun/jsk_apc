@@ -400,6 +400,7 @@
             (when (null place-avs-)
               (ros::ros-info "[main] try place motion rpy: ~a"
                              (setq place-rpy (float-vector pi/2 0 0)))
+              (send *baxter* :angle-vector prev-av)
               (setq place-avs-
                     (send self :verify-place-motion arm
                           (gethash bin-cand bin-cubes-)
@@ -421,6 +422,7 @@
             (when (null place-avs-)
               (ros::ros-info "[main] try place motion rpy: ~a"
                              (setq place-rpy (float-vector -pi/2 0 0)))
+              (send *baxter* :angle-vector prev-av)
               (setq place-avs-
                     (send self :verify-place-motion arm
                           (gethash bin-cand bin-cubes-)
@@ -442,6 +444,7 @@
             (when (null place-avs-)
               (ros::ros-info "[main] try place motion rpy: ~a"
                              (setq place-rpy (float-vector 0 (- pi/2 (/ pi 7)) 0)))
+              (send *baxter* :angle-vector prev-av)
               (setq place-avs-
                     (send self :verify-place-motion arm
                           (gethash bin-cand bin-cubes-)
@@ -467,6 +470,7 @@
             (when (null place-avs-)
               (ros::ros-info "[main] try place motion rpy: ~a"
                              (setq place-rpy (float-vector pi/2 0 (- pi/2 (/ pi 6)))))
+              (send *baxter* :angle-vector prev-av)
               (setq place-avs-
                     (send self :verify-place-motion arm
                           (gethash bin-cand bin-cubes-)
@@ -492,6 +496,7 @@
             (when (null place-avs-)
               (ros::ros-info "[main] try place motion rpy: ~a"
                              (setq place-rpy (float-vector -pi/2 0 (+ -pi/2 (/ pi 6)))))
+              (send *baxter* :angle-vector prev-av)
               (setq place-avs-
                     (send self :verify-place-motion arm
                           (gethash bin-cand bin-cubes-)
