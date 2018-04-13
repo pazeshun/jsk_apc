@@ -1204,11 +1204,11 @@
   (:try-to-suction-side-object
     (arm obj-coords support-style rotation-axis &key (offset #f(0 0 0)))
     "Return value: :grasp-failed, :grasp-succeeded or :grasp-succeeded-with-support"
-    (let (graspingp obj->end obj-above-av
+    (let (graspingp gripper-angle obj->end obj-above-av
                     (obj-coords-offset (send obj-coords :copy-worldcoords))
                     (coords-before-approach (send *baxter* arm :end-coords :copy-worldcoords)))
       (send obj-coords-offset :locate offset :local)
-      (let (av gripper-angle above-coords)
+      (let (av above-coords)
         (setq av (send *baxter* :angle-vector))
         (setq gripper-angle (send *baxter* arm :gripper-p :joint-angle))
         ;; change gripper angle not to push target object
@@ -1235,7 +1235,7 @@
         (send *ri* :wait-interpolation)
         (unix::sleep 1)
         ;; reproduce gripper angle
-        (send *baxter* :rotate-gripper arm gripper-angle :relative nil)
+        (send *baxter* :rotate-gripper arm (+ gripper-angle 10) :relative nil)
         (send *ri* :angle-vector-raw (send *baxter* :angle-vector) 1000)
         (send *ri* :wait-interpolation))
       ;; start the vacuum gripper before approaching to the object
@@ -1277,7 +1277,7 @@
       ;; lift object
       (ros::ros-info "[:try-to-suction-side-object] arm:~a lift the object" arm)
       (send *baxter* :angle-vector obj-above-av)
-      (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 40) :world)
+      (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 50) :world)
             1000 (send *ri* :get-arm-controller arm) 0)
       (send *ri* :wait-interpolation)
       ;; TODO: fix hard-coded value
@@ -1286,6 +1286,8 @@
       ;      (float-vector (aref (send obj->end :pos) 0) (aref (send obj->end :pos) 1) 0)
       ;      (send obj-coords-offset :copy-worldcoords)
       ;      :rotation-axis rotation-axis)
+      ;; reproduce gripper angle
+      (send *baxter* :rotate-gripper arm gripper-angle :relative nil)
       (send *baxter* arm :inverse-kinematics
             coords-before-approach
             :rotation-axis rotation-axis)
