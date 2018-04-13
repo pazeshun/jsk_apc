@@ -57,7 +57,7 @@ Visualization Manager:
       Unreliable: false
       Value: true
       alpha: 0.8
-      color: 0; 170; 255
+      color: 255; 0; 0
       coloring: Flat color
       line width: 0.005
       only edge: true
@@ -69,7 +69,7 @@ Visualization Manager:
       Unreliable: false
       Value: true
       alpha: 0.8
-      color: 255; 170; 0
+      color: 255; 0; 0
       coloring: Flat color
       line width: 0.005
       only edge: true
@@ -480,7 +480,7 @@ Visualization Manager:
       Selectable: true
       Size (Pixels): 3
       Size (m): 0.01
-      Style: Flat Squares
+      Style: Points
       Topic: /left_hand_camera/extract_indices_target_bin/output
       Unreliable: false
       Use Fixed Frame: true
@@ -510,7 +510,7 @@ Visualization Manager:
       Selectable: true
       Size (Pixels): 3
       Size (m): 0.01
-      Style: Flat Squares
+      Style: Points
       Topic: /right_hand_camera/extract_indices_target_bin/output
       Unreliable: false
       Use Fixed Frame: true
@@ -714,7 +714,7 @@ Visualization Manager:
       Unreliable: false
       Value: true
       alpha: 1
-      color: 25; 255; 0
+      color: 0; 0; 255
       coloring: Flat color
       line width: 0.01
       only edge: true
@@ -741,7 +741,7 @@ Visualization Manager:
       Unreliable: false
       Value: true
       alpha: 1
-      color: 25; 255; 0
+      color: 0; 0; 255
       coloring: Flat color
       line width: 0.01
       only edge: true
@@ -770,7 +770,7 @@ Visualization Manager:
       Axis: Z
       Channel Name: intensity
       Class: rviz/PointCloud2
-      Color: 0; 255; 0
+      Color: 0; 0; 255
       Color Transformer: FlatColor
       Decay Time: 0
       Enabled: true
@@ -783,7 +783,7 @@ Visualization Manager:
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
-      Size (Pixels): 10
+      Size (Pixels): 5
       Size (m): 0.01
       Style: Points
       Topic: /left_hand_camera/extract_indices_target0/output
@@ -800,7 +800,7 @@ Visualization Manager:
       Axis: Z
       Channel Name: intensity
       Class: rviz/PointCloud2
-      Color: 0; 255; 0
+      Color: 0; 0; 255
       Color Transformer: FlatColor
       Decay Time: 0
       Enabled: true
@@ -813,7 +813,7 @@ Visualization Manager:
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
-      Size (Pixels): 10
+      Size (Pixels): 5
       Size (m): 0.01
       Style: Points
       Topic: /right_hand_camera/extract_indices_target0/output
