@@ -1153,7 +1153,7 @@
             1000 (send *ri* :get-arm-controller arm) 0)
       (send *ri* :wait-interpolation)
       ;; lift a little to world-z for drawing obj
-      (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 30) :world)
+      (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 20) :world)
             1000 (send *ri* :get-arm-controller arm) 0)
       (send *ri* :wait-interpolation)
       ;; suction: prismatic-based approach
