@@ -159,7 +159,7 @@
         (send target-coords :rotate (deg2rad 180) :z :local))
       (if (= sign_y 0)
         (progn
-          (send robot :slide-gripper :rarm 50 :relative nil)
+          (send robot :slide-gripper :rarm (if (eq *bin* :tote) 124 50) :relative nil)
           (send robot :rotate-gripper :rarm 0 :relative nil)
           )
         (progn
@@ -172,9 +172,11 @@
       (send *irtviewer* :draw-objects)
       (unless (y-or-n-p "continue?") (return-from display-hand-poses))
       (send (send robot :rarm :end-coords) :assoc object)
-      (if (= sign_y 0)
-        (send robot :rarm :move-end-pos #f(0 0 200) :local)
-        (send robot :rarm :move-end-pos #f(200 0 0) :local)
+      (let ((draw-l (if (eq *bin* :tote) (+ (z-of-cube bin-cube) 30) 200)))
+        (if (= sign_y 0)
+          (send robot :rarm :move-end-pos (float-vector 0 0 draw-l) :local)
+          (send robot :rarm :move-end-pos (float-vector draw-l 0 0) :local)
+          )
         )
       (if (eq style :cylindrical)
         (send robot :hand-grasp-pose :rarm style :angle 37)
