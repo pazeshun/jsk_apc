@@ -5,6 +5,8 @@
 (defun demo-init ()
   (jsk_arc2017_baxter::pick-kiva-pod-init :ctype :default-controller :moveit nil)
   (send *baxter* :arc-reset-pose)
+  (send *baxter* :larm :angle-vector
+        #f(97.4991 8.64936 52.9704 104.111 40.58 62.197 90.0 0.0 0.0))
   (objects (list *baxter*))
   (send *ti* :recognize-bin-boxes :stamp (ros::time-now))
   (send *ti* :recognize-tote-boxes :stamp (ros::time-now))
@@ -15,6 +17,9 @@
   (&key (object-size (list 50 50 50)))
   (if (eq *bin* :tote)
     (progn
+      ;; make robot transparent
+      (send *baxter* :pedestal_lk :bodies :set-color nil 0)
+      (send *baxter* :torso_lk :bodies :set-color nil 0)
       (setq bin-cube (gethash :rarm (send *ti* :get-val 'tote-cubes-)))
       (setq wall-thickness 30)
       (setq bin-wall (make-cube
@@ -172,7 +177,7 @@
       (send *irtviewer* :draw-objects)
       (unless (y-or-n-p "continue?") (return-from display-hand-poses))
       (send (send robot :rarm :end-coords) :assoc object)
-      (let ((draw-l (if (eq *bin* :tote) (+ (z-of-cube bin-cube) 30) 200)))
+      (let ((draw-l (if (eq *bin* :tote) (- (z-of-cube bin-cube) 10) 200)))
         (if (= sign_y 0)
           (send robot :rarm :move-end-pos (float-vector 0 0 draw-l) :local)
           (send robot :rarm :move-end-pos (float-vector draw-l 0 0) :local)
