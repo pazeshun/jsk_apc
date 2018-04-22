@@ -1,12 +1,12 @@
 (require "package://jsk_arc2017_baxter/euslisp/lib/pick-kiva-pod-interface.l")
 
 (setq *bin* :c)
+(setq *larm-av* #f(67.4991 8.64936 2.9704 84.111 40.58 2.197 90.0 0.0 0.0))
 
 (defun demo-init ()
   (jsk_arc2017_baxter::pick-kiva-pod-init :ctype :default-controller :moveit nil)
   (send *baxter* :arc-reset-pose)
-  (send *baxter* :larm :angle-vector
-        #f(97.4991 8.64936 52.9704 104.111 40.58 62.197 90.0 0.0 0.0))
+  (send *baxter* :larm :angle-vector *larm-av*)
   (objects (list *baxter*))
   (send *ti* :recognize-bin-boxes :stamp (ros::time-now))
   (send *ti* :recognize-tote-boxes :stamp (ros::time-now))
@@ -465,8 +465,7 @@
                     (setf (aref coords-rpy i) (elt (car (send rpy-coords :rpy-angle)) i)))
                   (send *ti* :ik->bin-center :rarm :l
                         :offset #f(15 0 300)
-                        :rpy coords-rpy
-                        :rotation-axis t :move-palm-end t)
+                        :rpy coords-rpy :rotation-axis t :move-palm-end t)
                   (send *irtviewer* :draw-objects)
                   (unless (y-or-n-p "continue?") (return-from display-placing))
                   (send *ti* :ik->bin-center :rarm :l
@@ -479,5 +478,26 @@
            )
           )
     (send (send *baxter* :rarm :end-coords) :dissoc object)
+    )
+  )
+
+(defun display-kinematic-feasibility ()
+  (let (robot robots)
+    (setq robot (instance jsk_arc2017_baxter::baxter-robot :init))
+    (send robot :arc-reset-pose)
+    (send robot :larm :angle-vector *larm-av*)
+    (send robot :hand-grasp-pose :rarm :opposed :angle 70)
+    (pushback robot robots)
+    (setq robot (instance jsk_arc2017_baxter::baxter-robot :init))
+    (send robot :hand-grasp-pose :rarm :opposed :angle 70)
+    (send *baxter* :arc-reset-pose)
+    (send *baxter* :larm :angle-vector *larm-av*)
+    (send *ti* :ik->bin-center :rarm :c
+          :offset #f(0 0 300)
+          :rpy (float-vector 0 0 0)
+          :rotation-axis t)
+    (send robot :angle-vector (send *baxter* :angle-vector))
+    (pushback robot robots)
+    (objects (append robots (list bin-floor bin-wall)))
     )
   )
