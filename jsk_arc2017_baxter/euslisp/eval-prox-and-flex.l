@@ -4,13 +4,13 @@
 
 (setq *init-av*
       #f(9.51416 11.3599 -80.0244 -53.042 103.821 8.30566 69.5874 80.3979 1.1781 -0.178926
-         2.10937 -43.7476 10.8765 47.8784 -4.94385 86.1108 -42.1436 0.957204 1.25249))
+         2.17944 -43.9569 10.8806 46.7142 -4.91307 87.4745 -42.1617 0.957204 1.25249))
 
 (defun demo-init ()
-  (jsk_arc2017_baxter::baxter-init :type :default-controller :moveit nil)
+  (jsk_arc2017_baxter::baxter-init :type :rarm-controller :moveit nil)
   ;; initialize fingers
   (send *ri* :move-hand :rarm
-        (send *baxter* :hand-grasp-pose :rarm :cylindrical :angle 80) 1000)
+        (send *baxter* :hand-grasp-pose :rarm :cylindrical :angle 40) 1000)
   (send *ri* :angle-vector (send *ri* :state :potentio-vector) 1000)
   (send *ri* :angle-vector (send *baxter* :angle-vector *init-av*) 10000)
   (send *ri* :wait-interpolation)
