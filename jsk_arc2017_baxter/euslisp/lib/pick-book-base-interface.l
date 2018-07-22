@@ -1602,7 +1602,8 @@
               (offset-y (if (eq arm :larm) 280 -220)))
       (setq avs (list (send *baxter* :avoid-shelf-pose arm (if (eq arm :larm) :d :f))))
       (send *baxter* :reset-pose arm)
-      (send *baxter* :rotate-gripper arm gripper-angle :relative nil)
+      (send *baxter* :rotate-gripper arm
+            (if (eq arm :larm) (- gripper-angle) gripper-angle) :relative nil)
       (setq offset (float-vector offset-x offset-y 250))
       (setq rpy
             (float-vector 0 (if (eq arm :larm) -pi/2 pi/2) (if (eq arm :larm) pi/2 -pi/2)))
