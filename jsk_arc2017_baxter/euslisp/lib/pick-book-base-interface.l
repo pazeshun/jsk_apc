@@ -1162,7 +1162,7 @@
       (ros::ros-info "[:try-to-pick-edge] arm:~a graspingp: ~a" arm graspingp)
       (if (null graspingp)
         :grasp-failed
-        (let (finger-av)
+        (let (finger-av last-jt-angle)
           (unix::sleep 1)
           (send *ri* :calib-proximity-threshold arm)
           (send *ri* :move-hand arm
@@ -1170,16 +1170,19 @@
           (send *ri* :wait-interpolation-until arm :hand :finger-proximity)
           ;; TODO: fix hard-coded value
           (setq finger-av (send *ri* :get-real-finger-av arm))
-          (if (< (aref finger-av (- (length finger-av) 1)) 160)
+          (setq last-jt-angle (aref finger-av (- (length finger-av) 1)))
+          (if (< last-jt-angle 120)
             (progn
               (send *ri* :move-hand arm
                     (send *baxter* :hand-grasp-pose arm :cylindrical) 1000)
-              (ros::ros-info "[:try-to-pick-edge] arm:~a supporting succeeded" arm)
+              (ros::ros-info "[:try-to-pick-edge] arm:~a supporting succeeded. angle: ~a"
+                             arm last-jt-angle)
               :support-succeeded)
             (progn
               (send *ri* :move-hand arm
                     (send *baxter* :hand-grasp-pre-pose arm :cylindrical) 1000 :wait nil)
-              (ros::ros-info "[:try-to-pick-edge] arm:~a supporting failed" arm)
+              (ros::ros-info "[:try-to-pick-edge] arm:~a supporting failed. angle: ~a"
+                             arm last-jt-angle)
               (ros::ros-info "[:try-to-pick-edge] arm:~a return object to original pos" arm)
               (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 -300) :local)
                     3000 (send *ri* :get-arm-controller arm) 0)
