@@ -582,7 +582,7 @@
       (pushback (list (x-of-cube obj-cube)) sides)
       (pushback (list (y-of-cube obj-cube)) sides)
       (pushback (list (z-of-cube obj-cube)) sides)
-      (let (vec proj-vec t-axis)
+      (let (vec proj-vec t-axis rot)
         (dotimes (i 3)
           (setq vec (float-vector 0 0 0))
           (setf (aref vec i) 1)
@@ -596,11 +596,12 @@
         (if (>= (aref (cadr (elt sides 2)) 2) 0)
           (setq t-axis (float-vector 0 0 1))
           (setq t-axis (float-vector 0 0 -1)))
+        (setq cube-rot (rotation-matrix
+                         (vector-angle t-axis (cadr (elt sides 2)))
+                         (v* t-axis (cadr (elt sides 2)))))
         (setq cube-coords
               (make-coords :pos (send obj-cube :worldpos)
-                           :rot (rotation-matrix
-                                  (vector-angle t-axis (cadr (elt sides 2)))
-                                  (v* t-axis (cadr (elt sides 2))))))
+                           :rot (if cube-rot cube-rot #2f((1 0 0) (0 1 0) (0 0 1)))))
         (setq t-axis (float-vector 1 0 0))
         (setq t-axis (send cube-coords :rotate-vector t-axis))
         (send cube-coords :rotate
