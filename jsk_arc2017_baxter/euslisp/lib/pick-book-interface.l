@@ -345,8 +345,9 @@
       ;;       4000 (send *ri* :get-arm-controller arm) 0
       ;;       :path-constraints path-constraints)
       (setq tried-directions- nil)
-      (let (avs (offsets (list #f(-50 0 500) #f(-50 0 250)))
-                (rpys (list (float-vector pi/2 0 (/ (* pi 3) -5)) (float-vector pi/2 0 -pi/2))))
+      (let (avs (offsets (list #f(-50 0 500) #f(-50 0 500) #f(-50 0 500) #f(-50 0 250)))
+                (rpys (list (float-vector pi/2 0 -pi/2) (float-vector pi/2 0 (/ (* pi 2) -3))
+                            (float-vector pi/2 0 -pi/2) (float-vector pi/2 0 -pi/2))))
         (dotimes (i (length offsets))
           (pushback
             (send self :ik->cube-center arm place-target-cube-
@@ -356,6 +357,7 @@
                   :use-gripper nil
                   :use-rotate-wrist-ik t)
             avs))
+        (setq avs (cdr avs))
         (setq avs (remove nil avs))
         (setq place-z 180)
         (send *ri* :angle-vector-sequence avs :fast
