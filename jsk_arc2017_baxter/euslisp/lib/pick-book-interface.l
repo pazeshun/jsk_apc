@@ -107,6 +107,7 @@
           (setq order (send self :select-work-order-in-bin arm target-bin- :stamp stamp))
           (setq is-recognized
             (when order
+              (ros::ros-info-green "[main] arm: ~a, trial edge num: ~a" arm trial-edge-num-)
               (when (= trial-edge-num- 0)
                 (setq target-obj- (send order :item))
                 (setq target-box- (str2symbol (send order :box))))
