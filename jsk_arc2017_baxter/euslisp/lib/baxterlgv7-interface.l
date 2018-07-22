@@ -666,8 +666,8 @@
               (setq p-proximity (send self :get-proximity arm :palm))
               (if (if (null palm-prox-range)
                     (> p-proximity proximity-threshold-)
-                    (or (< p-proximity (elt palm-prox-range 0))
-                        (> p-proximity (elt palm-prox-range 1))))
+                    (or (if (elt palm-prox-range 0) (< p-proximity (elt palm-prox-range 0)) nil)
+                        (if (elt palm-prox-range 1) (> p-proximity (elt palm-prox-range 1)) nil)))
                 (progn
                   (ros::ros-info "[:wait-interpolation-until] Detected palm proximity. p: ~a"
                                  p-proximity)
