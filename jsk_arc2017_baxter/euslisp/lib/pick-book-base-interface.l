@@ -1666,8 +1666,8 @@
   (:ik->cardboard-center
     (arm cardboard &rest args)
     ;; use prismatic joint as much as possible
-    (let ((jnt (send *baxter* arm :gripper-x)))
-      (send jnt :joint-angle (send jnt :max-angle)))
+    ;(let ((jnt (send *baxter* arm :gripper-x)))
+    ;  (send jnt :joint-angle (send jnt :max-angle)))
     (send* self :ik->cube-center arm (gethash cardboard cardboard-cubes-) args))
   (:ik->tote-center
     (arm &rest args)
