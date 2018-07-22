@@ -639,7 +639,7 @@
           (setq obj-coords (send obj-cube :copy-worldcoords))
           ;; TODO: fix hard-coded value
           (send obj-coords :translate
-                (float-vector (- (+ (gethash arm (gethash :pad-r gripper-dims-)) 10)
+                (float-vector (- (+ (gethash arm (gethash :pad-r gripper-dims-)) 70)
                                  (/ (x-of-cube obj-cube) 2)) 0 0) :local)))
       (ros::ros-info "[:get-object-coords] axis swapped obj-cube: ~a" obj-cube)
       (ros::ros-info "[:get-object-coords] rotated obj-coords: ~a" obj-coords)
