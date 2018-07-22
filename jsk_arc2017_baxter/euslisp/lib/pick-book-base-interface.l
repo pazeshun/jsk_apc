@@ -572,7 +572,7 @@
       (send *ri* :gripper-servo-on arm)
       pick-result))
   (:get-object-coords
-    (arm &key (object-index 0) (trial-edge-num 1))
+    (arm &key (object-index 0) tried-directions)
     (let (obj-cube sides cube-coords obj-coords obj-offset)
       (setq obj-cube (send self :bbox->cube (elt (gethash arm object-boxes-) object-index)))
       (ros::ros-info "[:get-object-coords] original obj-cube: ~a" obj-cube)
@@ -657,39 +657,48 @@
           (send obj-coords :translate (float-vector obj-offset 0 0) :local)))
       (ros::ros-info "[:get-object-coords] axis swapped obj-cube: ~a" obj-cube)
       (ros::ros-info "[:get-object-coords] rotated obj-coords: ~a" obj-coords)
-      (case trial-edge-num
-        (1 t)
-        ;; rotate obj-coords
-        (2
-         (setq obj-coords (send obj-cube :copy-worldcoords))
-         ;; TODO: fix hard-coded value
-         (setq obj-offset (- (/ (x-of-cube obj-cube) 2)
-                             (+ (gethash arm (gethash :pad-r gripper-dims-)) 60)))
-         (if (< obj-offset 0) (setq obj-offset 0))  ;; not to offset obj-coords overly
-         (send obj-coords :translate
-               (float-vector obj-offset 0 0) :local)
-         (send obj-coords :rotate pi :z :local))
-        (3
-         (setq obj-coords (send obj-cube :copy-worldcoords))
-         ;; TODO: fix hard-coded value
-         (setq obj-offset (- (/ (y-of-cube obj-cube) 2)
-                             (+ (gethash arm (gethash :pad-r gripper-dims-)) 60)))
-         (if (< obj-offset 0) (setq obj-offset 0))  ;; not to offset obj-coords overly
-         (send obj-coords :translate
-               (float-vector 0 obj-offset 0) :local)
-         (send obj-coords :rotate -pi/2 :z :local))
-        (4
-         (setq obj-coords (send obj-cube :copy-worldcoords))
-         ;; TODO: fix hard-coded value
-         (setq obj-offset (- (+ (gethash arm (gethash :pad-r gripper-dims-)) 60)
-                             (/ (y-of-cube obj-cube) 2)))
-         (if (> obj-offset 0) (setq obj-offset 0))  ;; not to offset obj-coords overly
-         (send obj-coords :translate
-               (float-vector 0 obj-offset 0) :local)
-         (send obj-coords :rotate pi/2 :z :local))
-        (t (ros::ros-fatal "[:get-object-coords] invalid trial-edge-num: ~a" trial-edge-num)))
-      (ros::ros-info "[:get-object-coords] position changed obj-coords: ~a" obj-coords)
-      obj-coords))
+      (dotimes (i 4)
+        (case i
+          (0 t)
+          ;; rotate obj-coords
+          (1
+           (setq obj-coords (send obj-cube :copy-worldcoords))
+           ;; TODO: fix hard-coded value
+           (setq obj-offset (- (/ (x-of-cube obj-cube) 2)
+                               (+ (gethash arm (gethash :pad-r gripper-dims-)) 60)))
+           (if (< obj-offset 0) (setq obj-offset 0))  ;; not to offset obj-coords overly
+           (send obj-coords :translate
+                 (float-vector obj-offset 0 0) :local)
+           (send obj-coords :rotate pi :z :local))
+          (2
+           (setq obj-coords (send obj-cube :copy-worldcoords))
+           ;; TODO: fix hard-coded value
+           (setq obj-offset (- (/ (y-of-cube obj-cube) 2)
+                               (+ (gethash arm (gethash :pad-r gripper-dims-)) 60)))
+           (if (< obj-offset 0) (setq obj-offset 0))  ;; not to offset obj-coords overly
+           (send obj-coords :translate
+                 (float-vector 0 obj-offset 0) :local)
+           (send obj-coords :rotate -pi/2 :z :local))
+          (3
+           (setq obj-coords (send obj-cube :copy-worldcoords))
+           ;; TODO: fix hard-coded value
+           (setq obj-offset (- (+ (gethash arm (gethash :pad-r gripper-dims-)) 60)
+                               (/ (y-of-cube obj-cube) 2)))
+           (if (> obj-offset 0) (setq obj-offset 0))  ;; not to offset obj-coords overly
+           (send obj-coords :translate
+                 (float-vector 0 obj-offset 0) :local)
+           (send obj-coords :rotate pi/2 :z :local)))
+        (when (null
+                (remove nil
+                        (mapcar
+                          #'(lambda (x)
+                              (< (vector-angle x (send obj-coords :rotate-vector #f(1 0 0)))
+                                 (/ pi 4)))
+                          tried-directions)))
+          (ros::ros-info "[:get-object-coords] position changed obj-coords: ~a" obj-coords)
+          (return-from :get-object-coords obj-coords)))
+      (ros::ros-error "[:get-object-coords] every obj-coords candidates were already tried")
+      nil))
   (:check-near-walls
     (obj-pos movable-region &key (range 100))
     (let (near-walls)

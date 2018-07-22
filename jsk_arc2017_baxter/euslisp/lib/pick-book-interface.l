@@ -24,13 +24,13 @@
           target-bin-
           target-box-
           target-obj-
-          trial-edge-num-))
+          tried-directions-))
 
 (defmethod jsk_arc2017_baxter::pick-book-interface
   (:init (&key (moveit nil))
     (send-super :init)
     (setq picking-fail-count- 0)
-    (setq trial-edge-num- 0)
+    (setq tried-directions- nil)
     (setq recognize-fail-count- 0)
     (setq start-picking-fail-count- 0)
     (setq moveit-p- moveit)
@@ -107,8 +107,8 @@
           (setq order (send self :select-work-order-in-bin arm target-bin- :stamp stamp))
           (setq is-recognized
             (when order
-              (ros::ros-info-green "[main] arm: ~a, trial edge num: ~a" arm trial-edge-num-)
-              (when (= trial-edge-num- 0)
+              (ros::ros-info-green "[main] arm: ~a, tried directions: ~a" arm tried-directions-)
+              (when (null tried-directions-)
                 (setq target-obj- (send order :item))
                 (setq target-box- (str2symbol (send order :box))))
               (ros::set-param
@@ -184,12 +184,12 @@
         (setq prev-target-obj- nil)
         (setq start-picking-fail-count- 0))
       start-picking-failp))
-  (:check-trial-edge-num (arm)
+  (:check-tried-directions (arm)
     (send *ri* :stop-grasp arm)
-    (ros::ros-info "[main] arm: ~a, trial edge num: ~a" arm trial-edge-num-)
-    (if (>= trial-edge-num- 4)
+    (ros::ros-info "[main] arm: ~a, tried directions: ~a" arm tried-directions-)
+    (if (>= (length tried-directions-) 4)
       (progn
-        (setq trial-edge-num- 0)
+        (setq tried-directions- nil)
         nil)
       t))
   (:pick-object
@@ -203,7 +203,6 @@
       ;; slots reset
       (setq start-picking-fail-count- 0)
       (setq recognize-fail-count- 0)
-      (incf trial-edge-num-)
       (when moveit-p- (send self :delete-bin-scene target-bin-))
       (if (eq grasp-style- :suction)
         (send self :set-movable-region-for-bin :offset (list 35 35 0))
@@ -213,7 +212,15 @@
       (setq object-index 0)
       (setq obj-coords
             (send self :get-object-coords arm
-                  :object-index object-index :trial-edge-num trial-edge-num-))
+                  :object-index object-index :tried-directions tried-directions-))
+      (if obj-coords
+        (progn
+          (pushback (send obj-coords :rotate-vector #f(1 0 0)) tried-directions-))
+        (progn
+          (ros::ros-error "[main] arm: ~a set dummy tried directions" arm)
+          (setq tried-directions- (list t t t t))
+          (ros::ros-error "[main] arm: ~a abort picking" arm)
+          (return-from :pick-object nil)))
       (setq pick-result
             (send self :pick-object-in-bin arm target-bin- obj-coords
                   :n-trial 1
@@ -337,7 +344,7 @@
       ;;             :offset #f(0 0 200) :rotation-axis :z :use-gripper t)
       ;;       4000 (send *ri* :get-arm-controller arm) 0
       ;;       :path-constraints path-constraints)
-      (setq trial-edge-num- 0)
+      (setq tried-directions- nil)
       (let (avs (offsets (list #f(-50 0 500) #f(-50 0 250)))
                 (rpys (list (float-vector pi/2 0 (/ (* pi 3) -5)) (float-vector pi/2 0 -pi/2))))
         (dotimes (i (length offsets))
