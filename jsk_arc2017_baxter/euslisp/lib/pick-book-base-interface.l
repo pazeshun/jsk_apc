@@ -1105,43 +1105,51 @@
       (send *ri* :wait-interpolation)
       ;; try to pick object edge
       (setq palm-prox (send *ri* :get-proximity arm :palm))
+      (setq graspingp (send *ri* :graspingp arm :suction))
       ;; TODO: fix hard-coded value
-      (if (< palm-prox 1000)
-        (progn
-          (ros::ros-info "[:try-to-pick-edge] arm:~a edge is already picked. Proximity: ~a"
-                         arm palm-prox))
-        (progn
-          (ros::ros-info "[:try-to-pick-edge] arm:~a center is picked. Proximity: ~a"
-                         arm palm-prox)
-          (ros::ros-info "[:try-to-pick-edge] arm:~a try to detect edge" arm)
-          (send *ri* :stop-grasp arm)
-          (send *ri* :angle-vector (send *baxter* arm :move-end-pos #f(0 0 -10) :local) 1000)
-          (send *ri* :wait-interpolation)
-          (unix::sleep 2)
-          (send *ri* :calib-proximity-threshold arm)
-          (send *ri* :angle-vector (send *baxter* arm :move-end-pos #f(-100 0 0) :local)
-                5000 (send *ri* :get-arm-controller arm) 0)
-          ;; TODO: fix hard-coded value
-          (send *ri* :wait-interpolation-until arm :palm-proximity
-                :palm-prox-range (list -100 700))
-          (setq palm-prox (send *ri* :get-proximity arm :palm))
-          (send *baxter* :angle-vector
-                (send *ri* :state :potentio-vector :wait-until-update t))
-          (if (>= palm-prox -100)
-            (progn
-              (ros::ros-error "[:try-to-pick-edge] arm:~a cannot detect edge." arm)
-              (if (>= palm-prox 700)
-                (ros::ros-error "[:try-to-pick-edge] arm:~a object is collided to palm." arm)))
-            (progn
-              (ros::ros-info "[:try-to-pick-edge] arm:~a edge is detected." arm)
-              (ros::ros-info "[:try-to-pick-edge] arm:~a grasp again" arm)
-              (send *ri* :start-grasp arm)
-              (unix::sleep 1)
-              (send *ri* :angle-vector-raw
-                    (send *baxter* arm :move-end-pos #f(0 0 -40) :local) 1000)
-              (send *ri* :wait-interpolation-until arm :grasp)
-              (send *baxter* :angle-vector
-                    (send *ri* :state :potentio-vector :wait-until-update t))))))
+      (if graspingp
+        (if (< palm-prox 1000)
+          (progn
+            (ros::ros-info "[:try-to-pick-edge] arm:~a edge is already picked. Proximity: ~a"
+                           arm palm-prox))
+          (progn
+            (ros::ros-info "[:try-to-pick-edge] arm:~a center is picked. Proximity: ~a"
+                           arm palm-prox)
+            (ros::ros-info "[:try-to-pick-edge] arm:~a try to detect edge" arm)
+            (send *ri* :stop-grasp arm)
+            (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 -10) :local) 1000)
+            (send *ri* :wait-interpolation)
+            (unix::sleep 1)
+            ;; swing off object
+            (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 -20) :local) 500)
+            (send *ri* :wait-interpolation)
+            (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 20) :local) 500)
+            (send *ri* :wait-interpolation)
+            (unix::sleep 1)
+            (send *ri* :calib-proximity-threshold arm)
+            (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(-100 0 0) :local)
+                  5000 (send *ri* :get-arm-controller arm) 0)
+            ;; TODO: fix hard-coded value
+            (send *ri* :wait-interpolation-until arm :palm-proximity
+                  :palm-prox-range (list -100 700))
+            (setq palm-prox (send *ri* :get-proximity arm :palm))
+            (send *baxter* :angle-vector
+                  (send *ri* :state :potentio-vector :wait-until-update t))
+            (if (>= palm-prox -100)
+              (progn
+                (ros::ros-error "[:try-to-pick-edge] arm:~a cannot detect edge." arm)
+                (if (>= palm-prox 700)
+                  (ros::ros-error "[:try-to-pick-edge] arm:~a object is collided to palm." arm)))
+              (progn
+                (ros::ros-info "[:try-to-pick-edge] arm:~a edge is detected." arm)
+                (ros::ros-info "[:try-to-pick-edge] arm:~a grasp again" arm)
+                (send *ri* :start-grasp arm)
+                (unix::sleep 1)
+                (send *ri* :angle-vector-raw
+                      (send *baxter* arm :move-end-pos #f(0 0 -40) :local) 1000)
+                (send *ri* :wait-interpolation-until arm :grasp)
+                (send *baxter* :angle-vector
+                      (send *ri* :state :potentio-vector :wait-until-update t)))))))
       ;; lift object
       (ros::ros-info "[:try-to-pick-edge] arm:~a lift the object" arm)
       (send *ri* :gripper-servo-off arm)
