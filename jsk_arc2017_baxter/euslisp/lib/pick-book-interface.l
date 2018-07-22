@@ -399,7 +399,13 @@
           (send *ri* :wait-interpolation)
           (send *ri* :stop-grasp arm) ;; release object
           (send *ri* :stop-grasp arm :pinch)
-          (unix::sleep 3)
+          (unix::sleep 2)
+          (send *ri* :angle-vector-raw
+                (send *baxter* arm :move-end-pos (float-vector 10 0 0)
+                      (send place-target-cube- :worldcoords)
+                      :rotation-axis t)
+                1000 (send *ri* :get-arm-controller arm) 0)
+          (send *ri* :wait-interpolation)
           (when av
             (setq av (send *baxter* arm :move-end-pos (float-vector 0 0 place-z)
                            (send place-target-cube- :worldcoords)
