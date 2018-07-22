@@ -1083,32 +1083,45 @@
               :use-gripper nil
               :revert-if-fail nil
               :rotation-axis rotation-axis)
-        (send *baxter* arm :inverse-kinematics
-              (send (send obj-coords :copy-worldcoords) :locate offset :local)
-              :use-gripper t
-              :rotation-axis rotation-axis))
+        (setq av
+              (send *baxter* arm :inverse-kinematics
+                    (send (send obj-coords :copy-worldcoords) :locate offset :local)
+                    :use-gripper t
+                    :rotation-axis rotation-axis)))
+      (when av
+        ;; add offset only if IK can be solved instead of again approach
+        (send *baxter* arm :move-end-pos #f(0 0 -100) :local)
+        (setq av (send *baxter* :angle-vector)))
       (send *ri* :angle-vector-raw av
-            3000 (send *ri* :get-arm-controller arm) 0)
-      (send *ri* :wait-interpolation-until arm :grasp)
+            4000 (send *ri* :get-arm-controller arm) 0)
+      (send *ri* :wait-interpolation-until arm :grasp :palm-proximity
+            :palm-prox-range (list nil 12000))
+      (setq palm-prox (send *ri* :get-proximity arm :palm))
       (setq graspingp (send *ri* :graspingp arm :suction))
+      (when (and (null graspingp) (> palm-prox 12000))
+        (ros::ros-info
+          "[:try-to-pick-edge] arm:~a palm is touched before object is grasped. Proximity: ~a"
+          arm palm-prox)
+        (ros::ros-info "[:try-to-pick-edge] arm:~a slide gripper to grasp object" arm)
+        (send *baxter* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
+        (send *ri* :angle-vector-raw
+              (send *baxter* :slide-gripper arm
+                    (send (send *baxter* arm :gripper-x) :max-angle) :relative nil)
+              1000 (send *ri* :get-arm-controller arm) 0)
+        (send *ri* :wait-interpolation-until arm :grasp :prismatic-loaded)
+        (setq graspingp (send *ri* :graspingp arm :suction)))
       (ros::ros-info "[:try-to-pick-edge] arm:~a graspingp: ~a" arm graspingp)
-      (unless graspingp
-        (ros::ros-info "[:try-to-pick-edge] arm:~a again approach to the object" arm)
-        ;; only if robot can solve IK
-        (if (send *baxter* arm :move-end-pos #f(0 0 -100) :local)
-          (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
-                3000 (send *ri* :get-arm-controller arm) 0))
-        (send *ri* :wait-interpolation-until arm :grasp))
       (send *baxter* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
       (ros::ros-info "[:try-to-pick-edge] arm:~a lift object to check if edge is picked" arm)
       (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 40) :local) 1000)
       (send *ri* :wait-interpolation)
       ;; try to pick object edge
+      (unix::usleep 500000)
       (setq palm-prox (send *ri* :get-proximity arm :palm))
       (setq graspingp (send *ri* :graspingp arm :suction))
       ;; TODO: fix hard-coded value
       (if graspingp
-        (if (< palm-prox 1000)
+        (if (< palm-prox 1300)
           (progn
             (ros::ros-info "[:try-to-pick-edge] arm:~a edge is already picked. Proximity: ~a"
                            arm palm-prox))
@@ -1126,22 +1139,44 @@
             (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 20) :local) 500)
             (send *ri* :wait-interpolation)
             (unix::sleep 1)
-            (send *ri* :calib-proximity-threshold arm)
-            (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(-100 0 0) :local)
-                  5000 (send *ri* :get-arm-controller arm) 0)
-            ;; TODO: fix hard-coded value
-            (send *ri* :wait-interpolation-until arm :palm-proximity
-                  :palm-prox-range (list -100 700))
             (setq palm-prox (send *ri* :get-proximity arm :palm))
-            (send *baxter* :angle-vector
-                  (send *ri* :state :potentio-vector :wait-until-update t))
-            (if (>= palm-prox -100)
+            (if (> palm-prox 800)
               (progn
-                (ros::ros-error "[:try-to-pick-edge] arm:~a cannot detect edge." arm)
-                (if (>= palm-prox 700)
-                  (ros::ros-error "[:try-to-pick-edge] arm:~a object is collided to palm." arm)))
+                ;; can distinguish obj and floor
+                (ros::ros-info
+                  "[:try-to-pick-edge] arm:~a try to search object edge. Proximity: ~a"
+                  arm palm-prox)
+                (send *ri* :calib-proximity-threshold arm)
+                (setq av (send *baxter* arm :move-end-pos #f(-100 0 0) :local))
+                (unless av
+                  (setq av (send *baxter* arm :move-end-pos #f(-50 0 0) :local)))
+                (send *ri* :angle-vector-raw av 5000 (send *ri* :get-arm-controller arm) 0)
+                ;; TODO: fix hard-coded value
+                (send *ri* :wait-interpolation-until arm :palm-proximity
+                      :palm-prox-range (list -100 700))
+                (setq palm-prox (send *ri* :get-proximity arm :palm))
+                (send *baxter* :angle-vector
+                      (send *ri* :state :potentio-vector :wait-until-update t))
+                (if (>= palm-prox -100)
+                  (progn
+                    (ros::ros-error "[:try-to-pick-edge] arm:~a cannot detect edge." arm)
+                    (if (>= palm-prox 700)
+                      (ros::ros-error "[:try-to-pick-edge] arm:~a object is collided to palm." arm)))
+                  (progn
+                    (ros::ros-info "[:try-to-pick-edge] arm:~a edge is detected." arm)
+                    (ros::ros-info "[:try-to-pick-edge] arm:~a grasp again" arm)
+                    (send *ri* :start-grasp arm)
+                    (unix::sleep 1)
+                    (send *ri* :angle-vector-raw
+                          (send *baxter* arm :move-end-pos #f(0 0 -40) :local) 1000)
+                    (send *ri* :wait-interpolation-until arm :grasp)
+                    (send *baxter* :angle-vector
+                          (send *ri* :state :potentio-vector :wait-until-update t)))))
               (progn
-                (ros::ros-info "[:try-to-pick-edge] arm:~a edge is detected." arm)
+                ;; cannot distinguish obj and floor
+                (ros::ros-error
+                  "[:try-to-pick-edge] arm:~a don't try to search object edge. Proximity: ~a"
+                  arm palm-prox)
                 (ros::ros-info "[:try-to-pick-edge] arm:~a grasp again" arm)
                 (send *ri* :start-grasp arm)
                 (unix::sleep 1)
@@ -1154,42 +1189,49 @@
       (ros::ros-info "[:try-to-pick-edge] arm:~a lift the object" arm)
       (send *ri* :gripper-servo-off arm)
       ;; TODO: fix hard-coded value
-      (send *baxter* :slide-gripper arm 50 :relative nil)
-      (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 350) :local)
+      ;(send *baxter* :slide-gripper arm 40 :relative nil)
+      ;(send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 300) :local)
+      ;      3000 (send *ri* :get-arm-controller arm) 0)
+      (send *baxter* :slide-gripper arm 30 :relative nil)
+      (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 290) :local)
             3000 (send *ri* :get-arm-controller arm) 0)
       (send *ri* :wait-interpolation)
       (setq graspingp (send *ri* :graspingp arm :suction))
       (ros::ros-info "[:try-to-pick-edge] arm:~a graspingp: ~a" arm graspingp)
       (if (null graspingp)
         :grasp-failed
-        (let (finger-av last-jt-angle)
+        (let (r-prox l-prox)
           (unix::sleep 1)
           (send *ri* :calib-proximity-threshold arm)
           (send *ri* :move-hand arm
-                (send *baxter* :hand-grasp-pose arm :cylindrical) 1000 :wait nil)
-          (send *ri* :wait-interpolation-until arm :hand :finger-proximity)
+                (send *baxter* :hand-grasp-pose arm :cylindrical :angle 90) 1000)
+          (unix::sleep 1)
+          (setq r-prox (send *ri* :get-proximity arm :right))
+          (setq l-prox (send *ri* :get-proximity arm :left))
           ;; TODO: fix hard-coded value
-          (setq finger-av (send *ri* :get-real-finger-av arm))
-          (setq last-jt-angle (aref finger-av (- (length finger-av) 1)))
-          (if (< last-jt-angle 120)
+          (if (or (> r-prox 400) (> l-prox 400))
             (progn
+              (send *ri* :angle-vector-raw (send *baxter* :slide-gripper arm 0 :relative nil)
+                    1000 (send *ri* :get-arm-controller arm) 0)
               (send *ri* :move-hand arm
                     (send *baxter* :hand-grasp-pose arm :cylindrical) 1000)
-              (ros::ros-info "[:try-to-pick-edge] arm:~a supporting succeeded. angle: ~a"
-                             arm last-jt-angle)
+              (ros::ros-info
+                "[:try-to-pick-edge] arm:~a supporting succeeded. r-prox: ~a, l-prox: ~a"
+                arm r-prox l-prox)
               :support-succeeded)
             (progn
               (send *ri* :move-hand arm
                     (send *baxter* :hand-grasp-pre-pose arm :cylindrical) 1000 :wait nil)
-              (ros::ros-info "[:try-to-pick-edge] arm:~a supporting failed. angle: ~a"
-                             arm last-jt-angle)
+              (ros::ros-info
+                "[:try-to-pick-edge] arm:~a supporting failed. r-prox: ~a, l-prox: ~a"
+                arm r-prox l-prox)
               (ros::ros-info "[:try-to-pick-edge] arm:~a return object to original pos" arm)
-              (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 -300) :local)
+              (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 -260) :local)
                     3000 (send *ri* :get-arm-controller arm) 0)
               (send *ri* :wait-interpolation-smooth 1000)
               (send *ri* :stop-grasp arm)
               (unix::sleep 3)
-              (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 300) :local)
+              (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 260) :local)
                     1000 (send *ri* :get-arm-controller arm) 0)
               (send *ri* :wait-interpolation)
               :support-failed))))))
