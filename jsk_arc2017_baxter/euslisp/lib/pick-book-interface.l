@@ -349,7 +349,7 @@
                   :use-rotate-wrist-ik t)
             avs))
         (setq avs (remove nil avs))
-        (setq place-z 150)
+        (setq place-z 180)
         (send *ri* :angle-vector-sequence avs :fast
               (send *ri* :get-arm-controller arm :gripper nil :head t) 0 :scale 5.0)
         (send *ri* :wait-interpolation))
