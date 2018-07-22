@@ -638,14 +638,25 @@
                   (send cube-coords :rotate pi/2 :z :local)))
               (setq obj-cube
                     (make-cube (y-of-cube obj-cube) (x-of-cube obj-cube) (z-of-cube obj-cube)))
-              (send obj-cube :move-to cube-coords :world))))
+              (send obj-cube :move-to cube-coords :world)))
+          ;; add offset to obj-coords
+          ;; TODO: fix hard-coded value
+          (setq obj-local-pos (send obj-cube :inverse-transform-vector
+                                    (send obj-coords :worldpos)))
+          (setq obj-offset (- (+ (gethash arm (gethash :pad-r gripper-dims-)) 60)
+                              (/ (x-of-cube obj-cube) 2)))
+          (if (> obj-offset 0) (setq obj-offset 0))  ;; not to offset obj-coords overly
+          (when (< (aref obj-local-pos 0) obj-offset)
+            (setf (aref obj-local-pos 0) obj-offset)
+            (send obj-coords :locate (send obj-cube :transform-vector obj-local-pos) :world)))
         (progn
           ;; make obj-coords from obj-cube
           (setq obj-coords (send obj-cube :copy-worldcoords))
           ;; TODO: fix hard-coded value
-          (send obj-coords :translate
-                (float-vector (- (+ (gethash arm (gethash :pad-r gripper-dims-)) 70)
-                                 (/ (x-of-cube obj-cube) 2)) 0 0) :local)))
+          (setq obj-offset (- (+ (gethash arm (gethash :pad-r gripper-dims-)) 60)
+                              (/ (x-of-cube obj-cube) 2)))
+          (if (> obj-offset 0) (setq obj-offset 0))  ;; not to offset obj-coords overly
+          (send obj-coords :translate (float-vector obj-offset 0 0) :local)))
       (ros::ros-info "[:get-object-coords] axis swapped obj-cube: ~a" obj-cube)
       (ros::ros-info "[:get-object-coords] rotated obj-coords: ~a" obj-coords)
       (case trial-edge-num
@@ -653,18 +664,30 @@
         ;; rotate obj-coords
         (2
          (setq obj-coords (send obj-cube :copy-worldcoords))
+         ;; TODO: fix hard-coded value
+         (setq obj-offset (- (/ (x-of-cube obj-cube) 2)
+                             (+ (gethash arm (gethash :pad-r gripper-dims-)) 60)))
+         (if (< obj-offset 0) (setq obj-offset 0))  ;; not to offset obj-coords overly
          (send obj-coords :translate
-               (float-vector (- (/ (x-of-cube obj-cube) 2) (+ (gethash arm (gethash :pad-r gripper-dims-)) 10)) 0 0) :local)
+               (float-vector obj-offset 0 0) :local)
          (send obj-coords :rotate pi :z :local))
         (3
          (setq obj-coords (send obj-cube :copy-worldcoords))
+         ;; TODO: fix hard-coded value
+         (setq obj-offset (- (/ (y-of-cube obj-cube) 2)
+                             (+ (gethash arm (gethash :pad-r gripper-dims-)) 60)))
+         (if (< obj-offset 0) (setq obj-offset 0))  ;; not to offset obj-coords overly
          (send obj-coords :translate
-               (float-vector 0 (- (/ (y-of-cube obj-cube) 2) (+ (gethash arm (gethash :pad-r gripper-dims-)) 10)) 0) :local)
+               (float-vector 0 obj-offset 0) :local)
          (send obj-coords :rotate -pi/2 :z :local))
         (4
          (setq obj-coords (send obj-cube :copy-worldcoords))
+         ;; TODO: fix hard-coded value
+         (setq obj-offset (- (+ (gethash arm (gethash :pad-r gripper-dims-)) 60)
+                             (/ (y-of-cube obj-cube) 2)))
+         (if (> obj-offset 0) (setq obj-offset 0))  ;; not to offset obj-coords overly
          (send obj-coords :translate
-               (float-vector 0 (- (+ (gethash arm (gethash :pad-r gripper-dims-)) 10) (/ (y-of-cube obj-cube) 2)) 0) :local)
+               (float-vector 0 obj-offset 0) :local)
          (send obj-coords :rotate pi/2 :z :local))
         (t (ros::ros-fatal "[:get-object-coords] invalid trial-edge-num: ~a" trial-edge-num)))
       (ros::ros-info "[:get-object-coords] position changed obj-coords: ~a" obj-coords)
