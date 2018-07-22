@@ -1092,8 +1092,8 @@
       (if graspingp :grasp-succeeded :grasp-failed)))
   (:try-to-pick-edge
     (arm obj-coords rotation-axis &key (offset #f(0 0 0)))
-    "Return value: :grasp-failed, :support-failed or :support-succeeded"
-    (let (graspingp prev-av av palm-prox
+    "Return value: :ik-failed, :grasp-failed, :support-failed or :support-succeeded"
+    (let (graspingp prev-av av avs palm-prox
           (coords-before-approach (send *baxter* arm :end-coords :copy-worldcoords)))
       ;; start the vacuum gripper before approaching to the object
       (ros::ros-info "[:try-to-pick-edge] arm:~a start vacuum gripper" arm)
@@ -1104,22 +1104,15 @@
                   :use-gripper nil
                   :rotation-axis rotation-axis))
       (unless av
-        (send *baxter* arm :inverse-kinematics
-              (send (send obj-coords :copy-worldcoords) :locate offset :local)
-              :use-gripper nil
-              :revert-if-fail nil
-              :rotation-axis rotation-axis)
-        (setq av
-              (send *baxter* arm :inverse-kinematics
-                    (send (send obj-coords :copy-worldcoords) :locate offset :local)
-                    :use-gripper t
-                    :rotation-axis rotation-axis)))
+        (ros::ros-error "[:try-to-pinch-object] arm:~a IK to object fails. Abort picking" arm)
+        (return-from :try-to-pick-edge :ik-failed))
+      (pushback av avs)
       (when av
         ;; add offset only if IK can be solved instead of again approach
-        (send *baxter* arm :move-end-pos #f(0 0 -100) :local)
-        (setq av (send *baxter* :angle-vector)))
-      (send *ri* :angle-vector-raw av
-            6000 (send *ri* :get-arm-controller arm) 0)
+        (setq av (send *baxter* arm :move-end-pos #f(0 0 -100) :local))
+        (if av (pushback av avs)))
+      (send *ri* :angle-vector-sequence-raw avs
+            (list 4000 2000) (send *ri* :get-arm-controller arm) 0)
       (send *ri* :wait-interpolation-until arm :grasp :palm-proximity
             :palm-prox-range (list nil 12000))
       (setq palm-prox (send *ri* :get-proximity arm :palm))
