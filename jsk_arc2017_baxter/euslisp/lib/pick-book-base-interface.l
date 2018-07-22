@@ -324,7 +324,6 @@
           (setq box-list (send box-msg :boxes))
           (dotimes (i (length box-list))
             (setq cardboard (str2symbol (format nil "~c" (+ #\a i))))
-            (sethash bin bin-cubes- (send self :bbox->cube (elt box-list i)))
             (sethash cardboard cardboard-cubes- (send self :bbox->cube (elt box-list i)))
             ;; generate cardboard-list- dynamically
             (pushback cardboard cardboard-list-)))
