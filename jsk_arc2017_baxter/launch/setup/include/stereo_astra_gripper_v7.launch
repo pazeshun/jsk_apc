@@ -34,6 +34,12 @@
           <remap from="~input" to="$(arg LEFT_INPUT)/rgb/image_raw" />
           <remap from="~output" to="image_raw" />
         </node>
+        <node name="relay_img_compressed"
+              pkg="nodelet" type="nodelet"
+              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)">
+          <remap from="~input" to="$(arg LEFT_INPUT)/rgb/image_raw/compressed" />
+          <remap from="~output" to="image_raw/compressed" />
+        </node>
       </group>
       <group ns="left/depth">
         <node name="relay_camera_info"
@@ -47,6 +53,12 @@
               args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)">
           <remap from="~input" to="$(arg LEFT_INPUT)/depth/image_raw" />
           <remap from="~output" to="image_raw" />
+        </node>
+        <node name="relay_img_compressed"
+              pkg="nodelet" type="nodelet"
+              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)">
+          <remap from="~input" to="$(arg LEFT_INPUT)/depth/image_raw/compressedDepth" />
+          <remap from="~output" to="image_raw/compressedDepth" />
         </node>
       </group>
       <include file="$(find openni2_launch)/launch/openni2.launch">
@@ -120,6 +132,12 @@
           <remap from="~input" to="$(arg RIGHT_INPUT)/rgb/image_raw" />
           <remap from="~output" to="image_raw" />
         </node>
+        <node name="relay_img_compressed"
+              pkg="nodelet" type="nodelet"
+              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)">
+          <remap from="~input" to="$(arg RIGHT_INPUT)/rgb/image_raw/compressed" />
+          <remap from="~output" to="image_raw/compressed" />
+        </node>
       </group>
       <group ns="right/depth">
         <node name="relay_camera_info"
@@ -133,6 +151,12 @@
               args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)">
           <remap from="~input" to="$(arg RIGHT_INPUT)/depth/image_raw" />
           <remap from="~output" to="image_raw" />
+        </node>
+        <node name="relay_img_compressed"
+              pkg="nodelet" type="nodelet"
+              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)">
+          <remap from="~input" to="$(arg RIGHT_INPUT)/depth/image_raw/compressedDepth" />
+          <remap from="~output" to="image_raw/compressedDepth" />
         </node>
       </group>
       <include file="$(find openni2_launch)/launch/openni2.launch">
