@@ -327,7 +327,8 @@
       ;;             :offset #f(0 0 200) :rotation-axis :z :use-gripper t)
       ;;       4000 (send *ri* :get-arm-controller arm) 0
       ;;       :path-constraints path-constraints)
-      (let (avs (offsets (list #f(-50 0 500) #f(-50 0 200))))
+      (setq trial-edge-num- 0)
+      (let (avs (offsets (list #f(-50 0 500) #f(-50 0 250))))
         (dolist (offset offsets)
           (pushback
             (send self :ik->cube-center arm place-target-cube-
@@ -338,8 +339,8 @@
                   :use-rotate-wrist-ik t)
             avs))
         (setq avs (remove nil avs))
-        (setq place-z 50)
-        (send *ri* :angle-vector-sequence-raw avs :fast
+        (setq place-z 150)
+        (send *ri* :angle-vector-sequence avs :fast
               (send *ri* :get-arm-controller arm :gripper nil :head t) 0 :scale 7.0)
         (send *ri* :wait-interpolation))
       (setq dropped (not (send *ri* :graspingp arm :suction)))
