@@ -1154,7 +1154,8 @@
       (ros::ros-info "[:try-to-pick-edge] arm:~a lift the object" arm)
       (send *ri* :gripper-servo-off arm)
       ;; TODO: fix hard-coded value
-      (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 300) :local)
+      (send *baxter* :slide-gripper arm 50 :relative nil)
+      (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 350) :local)
             3000 (send *ri* :get-arm-controller arm) 0)
       (send *ri* :wait-interpolation)
       (setq graspingp (send *ri* :graspingp arm :suction))
