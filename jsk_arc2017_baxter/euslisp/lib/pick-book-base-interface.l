@@ -1119,7 +1119,7 @@
         (send *baxter* arm :move-end-pos #f(0 0 -100) :local)
         (setq av (send *baxter* :angle-vector)))
       (send *ri* :angle-vector-raw av
-            4000 (send *ri* :get-arm-controller arm) 0)
+            6000 (send *ri* :get-arm-controller arm) 0)
       (send *ri* :wait-interpolation-until arm :grasp :palm-proximity
             :palm-prox-range (list nil 12000))
       (setq palm-prox (send *ri* :get-proximity arm :palm))
