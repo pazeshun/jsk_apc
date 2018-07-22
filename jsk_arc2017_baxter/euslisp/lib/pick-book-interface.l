@@ -341,7 +341,7 @@
         (setq avs (remove nil avs))
         (setq place-z 150)
         (send *ri* :angle-vector-sequence avs :fast
-              (send *ri* :get-arm-controller arm :gripper nil :head t) 0 :scale 7.0)
+              (send *ri* :get-arm-controller arm :gripper nil :head t) 0 :scale 5.0)
         (send *ri* :wait-interpolation))
       (setq dropped (not (send *ri* :graspingp arm :suction)))
       ;; (when moveit-p- (send self :delete-object-in-hand-scene arm))
