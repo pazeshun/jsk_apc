@@ -1234,7 +1234,7 @@
           (setq r-prox (send *ri* :get-proximity arm :right))
           (setq l-prox (send *ri* :get-proximity arm :left))
           ;; TODO: fix hard-coded value
-          (if (or (> r-prox 600) (> l-prox 310))
+          (if (or (> r-prox 500) (> l-prox 310))
             (progn
               (send *ri* :angle-vector-raw (send *baxter* :slide-gripper arm 0 :relative nil)
                     1000 (send *ri* :get-arm-controller arm) 0)
