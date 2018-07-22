@@ -1236,12 +1236,12 @@
           (unix::sleep 1)
           (send *ri* :calib-proximity-threshold arm)
           (send *ri* :move-hand arm
-                (send *baxter* :hand-grasp-pose arm :cylindrical :angle 90) 1000)
+                (send *baxter* :hand-grasp-pose arm :cylindrical :angle 100) 1000)
           (unix::sleep 1)
           (setq r-prox (send *ri* :get-proximity arm :right))
           (setq l-prox (send *ri* :get-proximity arm :left))
           ;; TODO: fix hard-coded value
-          (if (or (> r-prox 400) (> l-prox 400))
+          (if (or (> r-prox 600) (> l-prox 310))
             (progn
               (send *ri* :angle-vector-raw (send *baxter* :slide-gripper arm 0 :relative nil)
                     1000 (send *ri* :get-arm-controller arm) 0)
