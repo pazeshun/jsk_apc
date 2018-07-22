@@ -575,14 +575,14 @@
       pick-result))
   (:get-object-coords
     (arm &key (object-index 0) (trial-edge-num 1))
-    (let (obj-cube sides cube-coords obj-coords)
+    (let (obj-cube sides cube-coords obj-coords obj-offset)
       (setq obj-cube (send self :bbox->cube (elt (gethash arm object-boxes-) object-index)))
       (ros::ros-info "[:get-object-coords] original obj-cube: ~a" obj-cube)
       ;; set proper z axis and x axis to obj-cube
       (pushback (list (x-of-cube obj-cube)) sides)
       (pushback (list (y-of-cube obj-cube)) sides)
       (pushback (list (z-of-cube obj-cube)) sides)
-      (let (vec proj-vec t-axis rot)
+      (let (vec proj-vec t-axis cube-rot vec-angle rot-axis)
         (dotimes (i 3)
           (setq vec (float-vector 0 0 0))
           (setf (aref vec i) 1)
@@ -596,9 +596,12 @@
         (if (>= (aref (cadr (elt sides 2)) 2) 0)
           (setq t-axis (float-vector 0 0 1))
           (setq t-axis (float-vector 0 0 -1)))
-        (setq cube-rot (rotation-matrix
-                         (vector-angle t-axis (cadr (elt sides 2)))
-                         (v* t-axis (cadr (elt sides 2)))))
+        (setq vec-angle (vector-angle t-axis (cadr (elt sides 2))))
+        (setq rot-axis (v* t-axis (cadr (elt sides 2))))
+        (setq cube-rot (rotation-matrix vec-angle rot-axis))
+        (when (and (null cube-rot) (> vec-angle pi/2))
+          ;; two axis is opposite
+          (setq cube-rot (rotation-matrix vec-angle #f(1 0 0))))
         (setq cube-coords
               (make-coords :pos (send obj-cube :worldpos)
                            :rot (if cube-rot cube-rot #2f((1 0 0) (0 1 0) (0 0 1)))))
