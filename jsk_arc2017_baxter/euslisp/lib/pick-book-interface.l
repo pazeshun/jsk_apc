@@ -203,34 +203,33 @@
       ;; slots reset
       (setq start-picking-fail-count- 0)
       (setq recognize-fail-count- 0)
-      (while (and (or (null pick-result) (eq pick-result :support-failed)) (< trial-edge-num- 4))
-        (incf trial-edge-num-)
-        (when moveit-p- (send self :delete-bin-scene target-bin-))
-        (if (eq grasp-style- :suction)
-          (send self :set-movable-region-for-bin :offset (list 35 35 0))
-          (send self :set-movable-region-for-bin :offset (list 35 35 0)))
-        (send *baxter* :head_pan :joint-angle (if (eq arm :larm) -70 70))
-        ;; pick largest bounding box
-        (setq object-index 0)
-        (setq obj-coords
-              (send self :get-object-coords arm
-                    :object-index object-index :trial-edge-num trial-edge-num-))
-        (setq pick-result
-              (send self :pick-object-in-bin arm target-bin- obj-coords
-                    :n-trial 1
-                    :n-trial-same-pos 1
-                    :do-stop-grasp nil
-                    :grasp-style grasp-style-))
-        (when moveit-p- (send self :add-bin-scene target-bin-))
-        (send self :ik->bin-center arm target-bin-
-              :offset #f(0 0 300)
-              :rpy (float-vector (if (eq arm :larm) -pi/2 pi/2) 0 0)
-              :rotation-axis t
-              :use-gripper nil
-              :use-rotate-wrist-ik t)
-        (send *ri* :angle-vector-raw (send *baxter* :angle-vector) 3000
-              (send *ri* :get-arm-controller arm :gripper nil) 0)
-        (send *ri* :wait-interpolation))
+      (incf trial-edge-num-)
+      (when moveit-p- (send self :delete-bin-scene target-bin-))
+      (if (eq grasp-style- :suction)
+        (send self :set-movable-region-for-bin :offset (list 35 35 0))
+        (send self :set-movable-region-for-bin :offset (list 35 35 0)))
+      (send *baxter* :head_pan :joint-angle (if (eq arm :larm) -70 70))
+      ;; pick largest bounding box
+      (setq object-index 0)
+      (setq obj-coords
+            (send self :get-object-coords arm
+                  :object-index object-index :trial-edge-num trial-edge-num-))
+      (setq pick-result
+            (send self :pick-object-in-bin arm target-bin- obj-coords
+                  :n-trial 1
+                  :n-trial-same-pos 1
+                  :do-stop-grasp nil
+                  :grasp-style grasp-style-))
+      (when moveit-p- (send self :add-bin-scene target-bin-))
+      (send self :ik->bin-center arm target-bin-
+            :offset #f(0 0 300)
+            :rpy (float-vector (if (eq arm :larm) -pi/2 pi/2) 0 0)
+            :rotation-axis t
+            :use-gripper nil
+            :use-rotate-wrist-ik t)
+      (send *ri* :angle-vector-raw (send *baxter* :angle-vector) 3000
+            (send *ri* :get-arm-controller arm :gripper nil) 0)
+      (send *ri* :wait-interpolation)
       (if (or (eq pick-result :ik-failed) (eq pick-result :plan-failed))
         (return-from :pick-object nil))
       ;; Trust pressure sensor
