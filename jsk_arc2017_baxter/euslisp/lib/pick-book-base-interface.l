@@ -1070,13 +1070,24 @@
     (let (graspingp av palm-prox
           (coords-before-approach (send *baxter* arm :end-coords :copy-worldcoords)))
       ;; start the vacuum gripper before approaching to the object
-      (ros::ros-info "[:try-to-suction-front-object] arm:~a start vacuum gripper" arm)
+      (ros::ros-info "[:try-to-pick-edge] arm:~a start vacuum gripper" arm)
       (send *ri* :start-grasp arm)
-      (send *ri* :angle-vector-raw
+      (setq av
             (send *baxter* arm :inverse-kinematics
                   (send (send obj-coords :copy-worldcoords) :locate offset :local)
                   :use-gripper nil
-                  :rotation-axis rotation-axis)
+                  :rotation-axis rotation-axis))
+      (unless av
+        (send *baxter* arm :inverse-kinematics
+              (send (send obj-coords :copy-worldcoords) :locate offset :local)
+              :use-gripper nil
+              :revert-if-fail nil
+              :rotation-axis rotation-axis)
+        (send *baxter* arm :inverse-kinematics
+              (send (send obj-coords :copy-worldcoords) :locate offset :local)
+              :use-gripper t
+              :rotation-axis rotation-axis))
+      (send *ri* :angle-vector-raw av
             3000 (send *ri* :get-arm-controller arm) 0)
       (send *ri* :wait-interpolation-until arm :grasp)
       (setq graspingp (send *ri* :graspingp arm :suction))
