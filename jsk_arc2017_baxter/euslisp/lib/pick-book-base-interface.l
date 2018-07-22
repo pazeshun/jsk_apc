@@ -522,10 +522,12 @@
         (send *baxter* :slide-gripper arm 0 :relative nil)
         (let ((target-pos (copy-object (send obj-coords :worldpos))))
           ;; movable-region: ((min-of-x max-of-x) (min-of-y max-of-y) (min-of-z max-of-z) center-coords)
-          (setf (elt target-pos 2) (+ (cadr (elt movable-region 2)) 100 (aref (send center-coords :worldpos) 2)))
+          (setf (elt target-pos 2) (+ (cadr (elt movable-region 2)) 100
+                                      (aref (send (elt movable-region 3) :worldpos) 2)))
           ;; location above of the target object in local z axis
           (pushback target-pos target-poss)
-          (setf (elt target-pos 2) (+ (cadr (elt movable-region 2)) (aref (send center-coords :worldpos) 2)))
+          (setf (elt target-pos 2) (+ (cadr (elt movable-region 2))
+                                      (aref (send (elt movable-region 3) :worldpos) 2)))
           (pushback target-pos target-poss))
         (setq approach-rpy (car (send obj-coords :rpy-angle)))
         (dolist (target-pos target-poss)
