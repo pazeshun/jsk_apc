@@ -1247,6 +1247,7 @@
             (progn
               (send *ri* :angle-vector-raw (send *baxter* :slide-gripper arm 0 :relative nil)
                     1000 (send *ri* :get-arm-controller arm) 0)
+              (send *ri* :wait-interpolation)
               (send *ri* :move-hand arm
                     (send *baxter* :hand-grasp-pose arm :cylindrical) 1000)
               (ros::ros-info
