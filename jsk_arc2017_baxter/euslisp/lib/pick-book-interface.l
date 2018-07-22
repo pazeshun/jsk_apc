@@ -248,7 +248,12 @@
           0 :scale 3.0)
     (send *ri* :wait-interpolation)
     (if (eq grasp-style- :pinch)
-      (send self :resolve-collision-between-fingers arm)))
+      (send self :resolve-collision-between-fingers arm))
+    (when (eq grasp-style- :edge)
+      (send *ri* :move-hand arm
+          (send *baxter* :hand-grasp-pre-pose arm :cylindrical) 1000)
+      (send *ri* :move-hand arm
+          (send *baxter* :hand-grasp-pre-pose arm :opposed) 1000)))
   (:verify-object (arm)
     (when moving-object-p-
       (setq moving-object-p- nil)
@@ -298,7 +303,12 @@
     (send self :arc-reset-pose arm)
     (send *ri* :wait-interpolation)
     (if (eq grasp-style- :pinch)
-      (send self :resolve-collision-between-fingers arm)))
+      (send self :resolve-collision-between-fingers arm))
+    (when (eq grasp-style- :edge)
+      (send *ri* :move-hand arm
+          (send *baxter* :hand-grasp-pre-pose arm :cylindrical) 1000)
+      (send *ri* :move-hand arm
+          (send *baxter* :hand-grasp-pre-pose arm :opposed) 1000)))
   (:place-object (arm)
     (let (dropped end-coords-name orientation path-constraints orientation-constraint place-z)
       ;; FIXME: moveit cannot solve path
@@ -390,6 +400,11 @@
       (send *ri* :wait-interpolation)
       (if (eq grasp-style- :pinch)
         (send self :resolve-collision-between-fingers arm))
+      (when (eq grasp-style- :edge)
+        (send *ri* :move-hand arm
+              (send *baxter* :hand-grasp-pre-pose arm :cylindrical) 1000)
+        (send *ri* :move-hand arm
+              (send *baxter* :hand-grasp-pre-pose arm :opposed) 1000))
       (setq grasp-style- nil))))
 
 
