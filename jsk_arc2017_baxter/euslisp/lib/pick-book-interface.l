@@ -185,6 +185,7 @@
       start-picking-failp))
   (:check-trial-edge-num (arm)
     (send *ri* :stop-grasp arm)
+    (ros::ros-info "[main] arm: ~a, trial edge num: ~a" arm trial-edge-num-)
     (if (>= trial-edge-num- 4)
       (progn
         (setq trial-edge-num- 0)
