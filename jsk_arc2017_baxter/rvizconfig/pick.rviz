@@ -489,7 +489,7 @@ Visualization Manager:
       Selectable: true
       Size (Pixels): 3
       Size (m): 0.005
-      Style: Flat Squares
+      Style: Points
       Topic: /left_hand_camera/extract_indices_target_bin/output
       Unreliable: false
       Use Fixed Frame: true
@@ -519,7 +519,7 @@ Visualization Manager:
       Selectable: true
       Size (Pixels): 3
       Size (m): 0.01
-      Style: Flat Squares
+      Style: Points
       Topic: /right_hand_camera/extract_indices_target_bin/output
       Unreliable: false
       Use Fixed Frame: true
@@ -723,7 +723,7 @@ Visualization Manager:
       Unreliable: false
       Value: true
       alpha: 1
-      color: 25; 255; 0
+      color: 255; 0; 0
       coloring: Flat color
       line width: 0.01
       only edge: true
@@ -750,7 +750,7 @@ Visualization Manager:
       Unreliable: false
       Value: true
       alpha: 1
-      color: 25; 255; 0
+      color: 255; 0; 0
       coloring: Flat color
       line width: 0.01
       only edge: true
@@ -768,7 +768,7 @@ Visualization Manager:
       Shaft Radius: 0.05
       Shape: Axes
       Topic: /left_hand_camera/poses_to_pose_target0/output
-      Unreliable: true
+      Unreliable: false
       Value: true
     - Alpha: 0.5
       Autocompute Intensity Bounds: true
@@ -779,7 +779,7 @@ Visualization Manager:
       Axis: Z
       Channel Name: intensity
       Class: rviz/PointCloud2
-      Color: 0; 255; 0
+      Color: 255; 0; 0
       Color Transformer: FlatColor
       Decay Time: 0
       Enabled: true
@@ -809,7 +809,7 @@ Visualization Manager:
       Axis: Z
       Channel Name: intensity
       Class: rviz/PointCloud2
-      Color: 0; 255; 0
+      Color: 255; 0; 0
       Color Transformer: FlatColor
       Decay Time: 0
       Enabled: true
