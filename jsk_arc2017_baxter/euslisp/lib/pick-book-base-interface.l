@@ -605,10 +605,9 @@
                            :rot (if cube-rot cube-rot #2f((1 0 0) (0 1 0) (0 0 1)))))
         (setq t-axis (float-vector 1 0 0))
         (setq t-axis (send cube-coords :rotate-vector t-axis))
-        (setq vec-angle (vector-angle t-axis (cadr (elt sides 1))))
-        (setq rot-axis (v* t-axis (cadr (elt sides 1))))
-        (when (< (norm rot-axis) 0.0001)
-          (setq rot-axis (send cube-coords :rotate-vector #f(0 0 1))))
+        ;; not to rotate z axis
+        (setq rot-axis (send cube-coords :rotate-vector #f(0 0 1)))
+        (setq vec-angle (vector-angle t-axis (cadr (elt sides 1)) rot-axis))
         (send cube-coords :rotate vec-angle rot-axis :world)
         (setq obj-cube (make-cube (car (elt sides 1)) (car (elt sides 0)) (car (elt sides 2))))
         (send obj-cube :move-to cube-coords :world))
