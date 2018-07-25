@@ -399,6 +399,14 @@
                   (> (+ (send stamp :to-sec) timeout) (send (ros::time-now) :to-sec)))
              (unix::usleep (* 50 1000))
              (ros::spin-once))
+      (when (or box-msg com-msg)
+        ;; get stable result
+        (setq stamp (ros::time+ (ros::time-now) (ros::time 0.5)))
+        (setq box-msg nil com-msg nil)
+        (while (and (not (and box-msg com-msg))
+                  (> (+ (send stamp :to-sec) timeout) (send (ros::time-now) :to-sec)))
+             (unix::usleep (* 50 1000))
+             (ros::spin-once)))
       (ros::unsubscribe box-topic)
       (ros::unsubscribe com-topic)
       (cond
