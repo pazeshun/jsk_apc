@@ -82,9 +82,9 @@
           object_y: 0.1
           object_z: 0.1
           initial_x: 0.04
-          initial_y: 0.018
+          initial_y: 0.019
           initial_z: -0.026
-          initial_orientation: [0.005, -0.023, 0.001, 1]
+          initial_orientation: [0.0, -0.019, 0.001, 1]
         </rosparam>
       </node>
       <node name="marker_6dof_left_tf_hand_to_depth"
@@ -97,10 +97,10 @@
           object_x: 0.1
           object_y: 0.1
           object_z: 0.1
-          initial_x: 0.083
-          initial_y: 0.046
-          initial_z: 0.007
-          initial_orientation: [-0.038, 0.018, -0.712, 0.700]
+          initial_x: 0.088
+          initial_y: 0.065
+          initial_z: 0.004
+          initial_orientation: [-0.012, -0.002, -0.697, 0.717]
         </rosparam>
       </node>
       <group ns="left/depth_registered">
