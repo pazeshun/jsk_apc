@@ -1184,14 +1184,14 @@
                     (send *ri* :angle-vector-raw av 8000 (send *ri* :get-arm-controller arm) 0)
                     ;; TODO: fix hard-coded value
                     (send *ri* :wait-interpolation-until arm :palm-proximity
-                          :palm-prox-range (list -100 100))
+                          :palm-prox-range (list -150 150))
                     (setq palm-prox (send *ri* :get-proximity arm :palm))
                     (send *baxter* :angle-vector
                           (send *ri* :state :potentio-vector :wait-until-update t))
-                    (if (>= palm-prox -100)
+                    (if (>= palm-prox -150)
                       (progn
                         (ros::ros-error "[:try-to-pick-edge] arm:~a cannot detect edge." arm)
-                        (if (>= palm-prox 100)
+                        (if (>= palm-prox 150)
                           (ros::ros-error
                             "[:try-to-pick-edge] arm:~a prox-obj dist is decreased overly."
                             arm)
