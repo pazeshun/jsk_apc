@@ -589,7 +589,7 @@
       (pushback (list (x-of-cube obj-cube)) sides)
       (pushback (list (y-of-cube obj-cube)) sides)
       (pushback (list (z-of-cube obj-cube)) sides)
-      (let (vec proj-vec t-axis cube-rot vec-angle rot-axis)
+      (let (vec proj-vec cube-rot cube-pos)
         (dotimes (i 3)
           (setq vec (float-vector 0 0 0))
           (setf (aref vec i) 1)
@@ -599,27 +599,19 @@
           (setf (aref proj-vec 2) 0)
           (pushback (copy-object proj-vec) (elt sides i)))
         (sort sides #'(lambda (x y) (> (norm (caddr x)) (norm (caddr y)))))
-        ;; align obj-cube (make z up)
+        (setq cube-rot (make-matrix 3 3))
+        ;; decide z axis from original z
+        ;; if original z is down, swap
         (if (>= (aref (cadr (elt sides 2)) 2) 0)
-          (setq t-axis (float-vector 0 0 1))
-          (setq t-axis (float-vector 0 0 -1)))
-        (setq vec-angle (vector-angle t-axis (cadr (elt sides 2))))
-        (setq rot-axis (v* t-axis (cadr (elt sides 2))))
-        (setq cube-rot (rotation-matrix vec-angle rot-axis))
-        (when (and (null cube-rot) (> vec-angle pi/2))
-          ;; two axis is opposite
-          (setq cube-rot (rotation-matrix vec-angle #f(1 0 0))))
-        (setq cube-coords
-              (make-coords :pos (send obj-cube :worldpos)
-                           :rot (if cube-rot cube-rot #2f((1 0 0) (0 1 0) (0 0 1)))))
-        (setq t-axis (float-vector 1 0 0))
-        (setq t-axis (send cube-coords :rotate-vector t-axis))
-        ;; not to rotate z axis
-        (setq rot-axis (send cube-coords :rotate-vector #f(0 0 1)))
-        (setq vec-angle (vector-angle t-axis (cadr (elt sides 1)) rot-axis))
-        (send cube-coords :rotate vec-angle rot-axis :world)
+          (setf (matrix-column cube-rot 2) (copy-object (cadr (elt sides 2))))
+          (setf (matrix-column cube-rot 2) (v- (copy-object (cadr (elt sides 2))))))
+        ;; decide x axis from original y
+        (setf (matrix-column cube-rot 0) (copy-object (cadr (elt sides 1))))
+        ;; decide y axis from other axes
+        (setf (matrix-column cube-rot 1) (v* (matrix-column cube-rot 2) (matrix-column cube-rot 0)))
+        (setq cube-pos (copy-object (send obj-cube :pos)))
         (setq obj-cube (make-cube (car (elt sides 1)) (car (elt sides 0)) (car (elt sides 2))))
-        (send obj-cube :move-to cube-coords :world))
+        (send obj-cube :newcoords cube-rot cube-pos))
       (if (gethash arm object-coords-)
         (let (obj-local-pos)
           (setq obj-coords
