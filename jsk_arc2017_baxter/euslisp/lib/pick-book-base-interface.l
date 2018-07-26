@@ -19,6 +19,7 @@
           bin-object-volumes-
           cardboard-cubes-
           cardboard-list-
+          cart-handle-cube-
           finished-objects-
           object-boxes-
           object-coords-
@@ -1806,6 +1807,12 @@
   (:delete-tote-scene (arm)
     (dolist (tmp-arm (if (eq arm :arms) (list :rarm :larm) (list arm)))
       (send *co* :delete-object (gethash tmp-arm tote-cubes-))))
+  (:add-cart-handle-scene ()
+    (setq cart-handle-cube- (make-cube 100 200 700))
+    (send cart-handle-cube- :locate #f(220 0 -295) :world)
+    (send self :add-labeled-obj-scene cart-handle-cube- "cart_handle"))
+  (:delete-cart-handle-scene ()
+    (send *co* :delete-object cart-handle-cube-))
   (:add-object-in-hand-scene (arm target-obj)
     ;; add object as attached collision object
     (let ((end-coords-name (format nil "~a_gripper_pad_with_base" (arm2str arm))) obj-cube)

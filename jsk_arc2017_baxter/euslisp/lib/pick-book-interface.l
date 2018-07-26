@@ -48,6 +48,7 @@
       (when moveit-p-
         (send self :add-shelf-scene)
         ;; (send self :add-cardboard-rack-scene)
+        (send self :add-cart-handle-scene)
         )
       (send *ri* :speak
             (format nil "~a arm is waiting for user input to start the picking task."
