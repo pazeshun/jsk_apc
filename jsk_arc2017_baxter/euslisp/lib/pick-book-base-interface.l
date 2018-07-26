@@ -423,6 +423,7 @@
              (sethash arm object-boxes- obj-box)
              (if (> (length obj-coords) 0)
                (progn
+                 ;; CAUTION: obj-coords may not be parallel to obj-box
                  (sethash arm object-coords- obj-coords))
                (progn
                  (ros::ros-error "[:recognize-target-object] arm: ~a obj-coords length ~a"
