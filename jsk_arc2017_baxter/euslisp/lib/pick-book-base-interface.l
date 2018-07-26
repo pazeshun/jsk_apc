@@ -1166,7 +1166,7 @@
             (send *ri* :wait-interpolation)
             (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 20) :local) 500)
             (send *ri* :wait-interpolation)
-            (unix::sleep 1)
+            (unix::sleep 8)
             (setq palm-prox (send *ri* :get-proximity arm :palm))
             (if (> palm-prox 810)
               (progn
@@ -1181,7 +1181,7 @@
                   (setq av (send *baxter* arm :move-end-pos #f(-50 0 0) :local)))
                 (if av
                   (progn
-                    (send *ri* :angle-vector-raw av 5000 (send *ri* :get-arm-controller arm) 0)
+                    (send *ri* :angle-vector-raw av 8000 (send *ri* :get-arm-controller arm) 0)
                     ;; TODO: fix hard-coded value
                     (send *ri* :wait-interpolation-until arm :palm-proximity
                           :palm-prox-range (list -100 100))
