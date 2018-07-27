@@ -662,6 +662,7 @@ Visualization Manager:
         LeftBinCloud: false
         LeftCamera: true
         LeftLabelViz: false
+        LeftSuctionViz: true
         LeftTargetBin: false
         LeftTargetBox: true
         LeftTargetCloud: true
@@ -698,6 +699,7 @@ Visualization Manager:
         ItemLocationJSON: false
         LeftBinCloud: false
         LeftLabelViz: false
+        LeftSuctionViz: true
         LeftTargetBin: true
         LeftTargetBox: true
         LeftTargetCloud: true
@@ -768,7 +770,7 @@ Visualization Manager:
       Shaft Radius: 0.05
       Shape: Axes
       Topic: /left_hand_camera/poses_to_pose_target0/output
-      Unreliable: true
+      Unreliable: false
       Value: true
     - Alpha: 0.5
       Autocompute Intensity Bounds: true
@@ -841,6 +843,17 @@ Visualization Manager:
       left: 1770
       top: 250
       width: 300
+    - Class: jsk_rviz_plugin/OverlayImage
+      Enabled: true
+      Name: LeftSuctionViz
+      Topic: /left_hand_camera/overlay_color_on_mono_prob_suction/output
+      Value: true
+      alpha: 1
+      height: 128
+      keep aspect ratio: true
+      left: 12
+      top: 260
+      width: 400
   Enabled: true
   Global Options:
     Background Color: 198; 198; 198
