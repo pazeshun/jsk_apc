@@ -1151,7 +1151,7 @@
       (setq graspingp (send *ri* :graspingp arm :suction))
       ;; TODO: fix hard-coded value
       (if graspingp
-        (if (< palm-prox 1300)
+        (if (< palm-prox 1500)
           (progn
             (ros::ros-info "[:try-to-pick-edge] arm:~a edge is already picked. Proximity: ~a"
                            arm palm-prox))
@@ -1170,7 +1170,7 @@
             (send *ri* :wait-interpolation)
             (unix::sleep 8)
             (setq palm-prox (send *ri* :get-proximity arm :palm))
-            (if (> palm-prox 810)
+            (if (> palm-prox 1000)
               (progn
                 ;; can distinguish obj and floor
                 (ros::ros-info
