@@ -1241,7 +1241,7 @@
           (unix::sleep 1)
           (send *ri* :calib-proximity-threshold arm)
           (send *ri* :move-hand arm
-                (send *baxter* :hand-grasp-pose arm :cylindrical :angle 90) 1000)
+                (send *baxter* :hand-grasp-pose arm :cylindrical :angle 100) 1000)
           (unix::sleep 1)
           (setq r-prox (send *ri* :get-proximity arm :right))
           (setq l-prox (send *ri* :get-proximity arm :left))
