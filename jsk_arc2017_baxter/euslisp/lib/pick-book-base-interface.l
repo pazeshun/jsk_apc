@@ -612,7 +612,8 @@
         (setf (matrix-column cube-rot 1) (v* (matrix-column cube-rot 2) (matrix-column cube-rot 0)))
         (setq cube-pos (copy-object (send obj-cube :pos)))
         (setq obj-cube (make-cube (car (elt sides 1)) (car (elt sides 0)) (car (elt sides 2))))
-        (send obj-cube :newcoords cube-rot cube-pos))
+        (setq cube-coords (make-coords :pos cube-pos :rot cube-rot))
+        (send obj-cube :move-to cube-coords :world))
       (if (gethash arm object-coords-)
         (let (obj-local-pos)
           (setq obj-coords
