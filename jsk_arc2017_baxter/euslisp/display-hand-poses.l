@@ -532,6 +532,12 @@
          (send object :translate (float-vector 0 0 (- (/ (z-of-cube object) -2) 5)) :local)
          (send *baxter* :hand-grasp-pose :rarm :cylindrical :angle 1)
          )
+        ((eq style :front-suc-cyl)
+         (make-bin-and-object :object-size (list 80 80 60))
+         (send object :move-to (send *baxter* :rarm :end-coords :worldcoords) :world)
+         (send object :translate (float-vector 0 0 (- (/ (z-of-cube object) -2) 5)) :local)
+         (send *baxter* :hand-grasp-pose :rarm :cylindrical :angle 91)
+         )
         )
   )
 
