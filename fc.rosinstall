@@ -65,3 +65,11 @@
     local-name: ros-drivers/rosserial
     uri: https://github.com/ros-drivers/rosserial
     version: 0.7.6
+- git:
+    local-name: FOR_GRIPPER_V8/sphand_ros
+    uri: https://github.com/pazeshun/sphand_ros.git
+    version: master
+- git:
+    local-name: FOR_GRIPPER_V8/vl53l0x_mraa_ros
+    uri: https://github.com/pazeshun/vl53l0x_mraa_ros.git
+    version: master

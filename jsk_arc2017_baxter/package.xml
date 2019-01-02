@@ -54,6 +54,8 @@
   <run_depend>rospy</run_depend>
   <run_depend>rosserial_python</run_depend>
   <run_depend>smach_viewer</run_depend>
+  <run_depend>sphand_driver_msgs</run_depend>
+  <run_depend>vl53l0x_mraa_ros</run_depend>
   <run_depend>std_msgs</run_depend>
   <run_depend>transmission_interface</run_depend>
   <run_depend>xacro</run_depend>
