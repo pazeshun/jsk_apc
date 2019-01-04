@@ -2,7 +2,7 @@
 
 (require "package://jsk_2015_05_baxter_apc/euslisp/lib/util.l")
 (require "package://jsk_2016_01_baxter_apc/euslisp/lib/util.l")
-(require "package://jsk_arc2017_baxter/euslisp/lib/baxterlgv7-interface.l")
+(require "package://jsk_arc2017_baxter/euslisp/lib/baxterlgv8-interface.l")
 
 (ros::load-ros-manifest "jsk_arc2017_baxter")
 
@@ -1126,7 +1126,7 @@
             (list 4000 2000) (send *ri* :get-arm-controller arm) 0)
       (send *ri* :wait-interpolation-until arm :grasp :palm-proximity
             :palm-prox-range (list nil 12000))
-      (setq palm-prox (send *ri* :get-proximity arm :palm))
+      (setq palm-prox (send *ri* :get-i-proximity arm :palm-bottom))
       (setq graspingp (send *ri* :graspingp arm :suction))
       (when (and (null graspingp) (> palm-prox 12000))
         (ros::ros-info
@@ -1147,7 +1147,7 @@
       (send *ri* :wait-interpolation)
       ;; try to pick object edge
       (unix::usleep 500000)
-      (setq palm-prox (send *ri* :get-proximity arm :palm))
+      (setq palm-prox (send *ri* :get-i-proximity arm :palm-bottom))
       (setq graspingp (send *ri* :graspingp arm :suction))
       ;; TODO: fix hard-coded value
       (if graspingp
@@ -1169,7 +1169,7 @@
             (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 20) :local) 500)
             (send *ri* :wait-interpolation)
             (unix::sleep 8)
-            (setq palm-prox (send *ri* :get-proximity arm :palm))
+            (setq palm-prox (send *ri* :get-i-proximity arm :palm-bottom))
             (if (> palm-prox 1000)
               (progn
                 ;; can distinguish obj and floor
@@ -1188,7 +1188,7 @@
                     ;; -150 seems almaity, but -300 adapts to composition book
                     (send *ri* :wait-interpolation-until arm :palm-proximity
                           :palm-prox-range (list -300 150))
-                    (setq palm-prox (send *ri* :get-proximity arm :palm))
+                    (setq palm-prox (send *ri* :get-i-proximity arm :palm-bottom))
                     (send *baxter* :angle-vector
                           (send *ri* :state :potentio-vector :wait-until-update t))
                     (if (>= palm-prox -300)
@@ -1243,8 +1243,8 @@
           (send *ri* :move-hand arm
                 (send *baxter* :hand-grasp-pose arm :cylindrical :angle 100) 1000)
           (unix::sleep 1)
-          (setq r-prox (send *ri* :get-proximity arm :right))
-          (setq l-prox (send *ri* :get-proximity arm :left))
+          (setq r-prox (send *ri* :get-i-proximity arm :right-root))
+          (setq l-prox (send *ri* :get-i-proximity arm :left-root))
           ;; TODO: fix hard-coded value
           (if (and (> r-prox 170) (> l-prox 120))
             (progn
@@ -2102,14 +2102,14 @@
 (defun jsk_arc2017_baxter::pick-book-base-init (&key (ctype :default-controller) (moveit nil))
   (let (mvit-env mvit-rb)
     (when moveit
-      (setq mvit-env (instance jsk_arc2017_baxter::baxterlgv7-moveit-environment))
-      (setq mvit-rb (instance jsk_arc2017_baxter::baxterlgv7-robot :init)))
+      (setq mvit-env (instance jsk_arc2017_baxter::baxterlgv8-moveit-environment))
+      (setq mvit-rb (instance jsk_arc2017_baxter::baxterlgv8-robot :init)))
     (unless (boundp '*ri*)
-      (setq *ri* (instance jsk_arc2017_baxter::baxterlgv7-interface :init :type ctype
+      (setq *ri* (instance jsk_arc2017_baxter::baxterlgv8-interface :init :type ctype
                            :moveit-environment mvit-env
                            :moveit-robot mvit-rb)))
     (unless (boundp '*baxter*)
-      (setq *baxter* (instance jsk_arc2017_baxter::baxterlgv7-robot :init)))
+      (setq *baxter* (instance jsk_arc2017_baxter::baxterlgv8-robot :init)))
     (unless (boundp '*co*)
       (setq *co* (when moveit (instance collision-object-publisher :init))))
     (unless (boundp '*ti*)

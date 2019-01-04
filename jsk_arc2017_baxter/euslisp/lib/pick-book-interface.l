@@ -435,14 +435,14 @@
 (defun jsk_arc2017_baxter::pick-book-init (&key (ctype :default-controller) (moveit nil))
   (let (mvit-env mvit-rb)
     (when moveit
-      (setq mvit-env (instance jsk_arc2017_baxter::baxterlgv7-moveit-environment))
-      (setq mvit-rb (instance jsk_arc2017_baxter::baxterlgv7-robot :init)))
+      (setq mvit-env (instance jsk_arc2017_baxter::baxterlgv8-moveit-environment))
+      (setq mvit-rb (instance jsk_arc2017_baxter::baxterlgv8-robot :init)))
     (unless (boundp '*ri*)
-      (setq *ri* (instance jsk_arc2017_baxter::baxterlgv7-interface :init :type ctype
+      (setq *ri* (instance jsk_arc2017_baxter::baxterlgv8-interface :init :type ctype
                            :moveit-environment mvit-env
                            :moveit-robot mvit-rb)))
     (unless (boundp '*baxter*)
-      (setq *baxter* (instance jsk_arc2017_baxter::baxterlgv7-robot :init)))
+      (setq *baxter* (instance jsk_arc2017_baxter::baxterlgv8-robot :init)))
     (unless (boundp '*co*)
       (setq *co* (when moveit (instance collision-object-publisher :init))))
     (unless (boundp '*ti*)
