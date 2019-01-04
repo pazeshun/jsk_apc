@@ -306,6 +306,12 @@
       (if full-msg
         msg
         (send (send msg :data) :range_millimeter))))
+  (:get-averaged-tof (arm side &key (data-num 5) (after-stamp))
+    (let ((sum 0) (stamp (copy-object after-stamp)))
+      (dotimes (i data-num)
+        (setq sum (+ sum (send self :get-tof-proximity arm side :after-stamp stamp)))
+        (setq stamp (ros::time-now)))
+      (/ (float sum) data-num)))
   (:get-real-finger-av (arm)
     (send self :update-robot-state :wait-until-update t)
     (if (eq arm :rarm)
