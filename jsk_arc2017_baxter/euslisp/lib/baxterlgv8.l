@@ -10,12 +10,12 @@
   (make-package "JSK_ARC2017_BAXTER"))
 
 
-(defclass jsk_arc2017_baxter::baxterlgv7-robot
+(defclass jsk_arc2017_baxter::baxterlgv8-robot
   :super baxter-robot
   :slots (view-hand-pos- ik-prepared-poses- hand-joints-
                          rarm-palm-end-coords- larm-palm-end-coords-))
 
-(defmethod jsk_arc2017_baxter::baxterlgv7-robot
+(defmethod jsk_arc2017_baxter::baxterlgv8-robot
   (:init
     (&rest args)
     (send-super* :init args)

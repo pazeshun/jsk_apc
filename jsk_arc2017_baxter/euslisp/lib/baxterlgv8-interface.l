@@ -1,6 +1,6 @@
 ;; -*- mode: lisp;-*-
 
-(require "package://jsk_arc2017_baxter/euslisp/lib/baxterlgv7.l")
+(require "package://jsk_arc2017_baxter/euslisp/lib/baxterlgv8.l")
 (require "package://baxtereus/baxter-interface.l")
 (require "package://jsk_2015_05_baxter_apc/euslisp/lib/util.l")
 (require "package://jsk_2016_01_baxter_apc/euslisp/lib/util.l")
@@ -11,7 +11,7 @@
 (unless (find-package "JSK_ARC2017_BAXTER")
   (make-package "JSK_ARC2017_BAXTER"))
 
-(defclass jsk_arc2017_baxter::baxterlgv7-interface
+(defclass jsk_arc2017_baxter::baxterlgv8-interface
   :super baxter-interface
   :slots (rarm-pressure-threshold-
           larm-pressure-threshold-
@@ -26,12 +26,12 @@
           proximities-
           proximity-init-values-))
 
-(defmethod jsk_arc2017_baxter::baxterlgv7-interface
+(defmethod jsk_arc2017_baxter::baxterlgv8-interface
   (:init
     (&rest args &key
            ((:moveit-environment mvit-env)
-            (instance jsk_arc2017_baxter::baxterlgv7-moveit-environment))
-           ((:moveit-robot mvit-rb) (instance jsk_arc2017_baxter::baxterlgv7-robot :init))
+            (instance jsk_arc2017_baxter::baxterlgv8-moveit-environment))
+           ((:moveit-robot mvit-rb) (instance jsk_arc2017_baxter::baxterlgv8-robot :init))
            &allow-other-keys)
     ;; initialize controllers
     (send-super* :init :joint-states-queue-size 3
@@ -724,10 +724,10 @@
       (setq proximity-threshold- 100)))
   )
 
-(defclass jsk_arc2017_baxter::baxterlgv7-moveit-environment
+(defclass jsk_arc2017_baxter::baxterlgv8-moveit-environment
   :super moveit-environment)
-(defmethod jsk_arc2017_baxter::baxterlgv7-moveit-environment
-  (:init (&key ((:robot rb) (instance jsk_arc2017_baxter::baxterlgv7-robot :init)) &rest args)
+(defmethod jsk_arc2017_baxter::baxterlgv8-moveit-environment
+  (:init (&key ((:robot rb) (instance jsk_arc2017_baxter::baxterlgv8-robot :init)) &rest args)
          (send-super* :init :robot rb :frame-id "world" args))
   (:default-configuration ()
    (list (list :rarm
@@ -750,17 +750,17 @@
                (cons :joint-list (append (send robot :larm :joint-list)
                                          (send robot :rarm :joint-list)))))))
 
-(defun jsk_arc2017_baxter::baxterlgv7-init
+(defun jsk_arc2017_baxter::baxterlgv8-init
   (&key (type :default-controller) (moveit nil))
   (let (mvit-env mvit-rb)
     (when moveit
-      (setq mvit-env (instance jsk_arc2017_baxter::baxterlgv7-moveit-environment))
-      (setq mvit-rb (instance jsk_arc2017_baxter::baxterlgv7-robot :init)))
+      (setq mvit-env (instance jsk_arc2017_baxter::baxterlgv8-moveit-environment))
+      (setq mvit-rb (instance jsk_arc2017_baxter::baxterlgv8-robot :init)))
     (when (not (boundp '*ri*))
-      (setq *ri* (instance jsk_arc2017_baxter::baxterlgv7-interface :init
+      (setq *ri* (instance jsk_arc2017_baxter::baxterlgv8-interface :init
                            :type type
                            :moveit-environment mvit-env
                            :moveit-robot mvit-rb)))
     (when (not (boundp '*baxter*))
-      (setq *baxter* (instance jsk_arc2017_baxter::baxterlgv7-robot :init))
+      (setq *baxter* (instance jsk_arc2017_baxter::baxterlgv8-robot :init))
       (send *baxter* :angle-vector (send *ri* :state :potentio-vector)))))
