@@ -23,8 +23,8 @@
           finger-load-
           prismatic-load-
           prismatic-vel-
-          proximities-
-          proximity-init-values-))
+          i-proximities-
+          tof-proximities-))
 
 (defmethod jsk_arc2017_baxter::baxterlgv8-interface
   (:init
@@ -97,8 +97,8 @@
     (setq finger-flex- (make-hash-table))
     (setq prismatic-load- (make-hash-table))
     (setq prismatic-vel- (make-hash-table))
-    (setq proximities- (make-hash-table))
-    (setq proximity-init-values- (make-hash-table))
+    (setq i-proximities- (make-hash-table))
+    (setq tof-proximities- (make-hash-table))
     (dolist (arm (list :rarm :larm))
       (ros::subscribe (format nil "/gripper_front/limb/~a/pressure/state" (arm2str arm))
                       std_msgs::Float64
@@ -115,31 +115,25 @@
                       dynamixel_msgs::JointState
                       #'send self :set-prismatic-state arm
                       :groupname groupname)
-      (ros::subscribe (format nil "/gripper_front/limb/~a/proximity_array"
+      (ros::subscribe (format nil "/gripper_front/limb/~a/intensity_prox_calibrator/output"
                               (arm2str arm))
-                      force_proximity_ros::ProximityArray
-                      #'send self :set-proximities arm
+                      sphand_driver_msgs::IntensityProxCalibInfoArray
+                      #'send self :set-i-proximities arm
+                      :groupname groupname)
+      (ros::subscribe (format nil "/gripper_front/limb/~a/tof_proximities"
+                              (arm2str arm))
+                      vl53l0x_mraa_ros::RangingMeasurementDataStampedArray
+                      #'send self :set-tof-proximities arm
                       :groupname groupname)
       (sethash arm finger-flex- (make-hash-table))
-      (sethash arm proximity-init-values- (make-hash-table))
-      (sethash arm proximities- (make-hash-table))
+      (sethash arm i-proximities- (make-hash-table))
+      (sethash arm tof-proximities- (make-hash-table))
       (dolist (side (list :right :left))
         (ros::subscribe (format nil "/gripper_front/limb/~a/flex/~a/state"
                                 (arm2str arm) (symbol2str side))
                         std_msgs::UInt16
                         #'send self :set-finger-flex arm side
-                        :groupname groupname)
-        ;; publish used proximity value for rosbag
-        (ros::advertise (format nil "/from_main/limb/~a/used_proximity/raw/~a"
-                                (arm2str arm) (symbol2str side)) std_msgs::Float64)
-        (ros::advertise (format nil "/from_main/limb/~a/used_proximity/init/~a"
-                                (arm2str arm) (symbol2str side)) std_msgs::Float64)
-        (ros::advertise (format nil "/from_main/limb/~a/used_proximity/result/~a"
-                                (arm2str arm) (symbol2str side)) std_msgs::Float64)))
-    ;; publish used proximity value for rosbag
-    (ros::advertise "/from_main/limb/left/used_proximity/raw/palm" std_msgs::Float64)
-    (ros::advertise "/from_main/limb/left/used_proximity/init/palm" std_msgs::Float64)
-    (ros::advertise "/from_main/limb/left/used_proximity/result/palm" std_msgs::Float64)
+                        :groupname groupname)))
     (if mvit-rb (setq moveit-robot mvit-rb))
     (if mvit-env (send self :set-moveit-environment (send mvit-env :init :robot moveit-robot))))
   ;; Overwrite super class's :rarm-controller
@@ -217,12 +211,26 @@
   (:set-finger-flex
     (arm side msg)
     (sethash side (gethash arm finger-flex-) (send msg :data)))
-  (:set-proximities
+  (:set-i-proximities
     (arm msg)
-    (sethash :left (gethash arm proximities-) (send (elt (send msg :proximities) 0) :average))
-    (sethash :right (gethash arm proximities-) (send (elt (send msg :proximities) 1) :average))
-    (if (eq arm :larm)
-      (sethash :palm (gethash arm proximities-) (send (elt (send msg :proximities) 2) :average))))
+    (sethash :left-root (gethash arm i-proximities-) (elt (send msg :data) 0))
+    (sethash :left-tip (gethash arm i-proximities-) (elt (send msg :data) 1))
+    (sethash :right-root (gethash arm i-proximities-) (elt (send msg :data) 2))
+    (sethash :right-tip (gethash arm i-proximities-) (elt (send msg :data) 3))
+    (sethash :palm-bottom (gethash arm i-proximities-) (elt (send msg :data) 4))
+    (sethash :palm-top (gethash arm i-proximities-) (elt (send msg :data) 5))
+    (sethash :palm-right (gethash arm i-proximities-) (elt (send msg :data) 6))
+    (sethash :palm-left (gethash arm i-proximities-) (elt (send msg :data) 7)))
+  (:set-tof-proximities
+    (arm msg)
+    (sethash :left-root (gethash arm tof-proximities-) (elt (send msg :array) 0))
+    (sethash :left-tip (gethash arm tof-proximities-) (elt (send msg :array) 1))
+    (sethash :right-root (gethash arm tof-proximities-) (elt (send msg :array) 2))
+    (sethash :right-tip (gethash arm tof-proximities-) (elt (send msg :array) 3))
+    (sethash :palm-bottom (gethash arm tof-proximities-) (elt (send msg :array) 4))
+    (sethash :palm-top (gethash arm tof-proximities-) (elt (send msg :array) 5))
+    (sethash :palm-right (gethash arm tof-proximities-) (elt (send msg :array) 6))
+    (sethash :palm-left (gethash arm tof-proximities-) (elt (send msg :array) 7)))
 
   ;; Hand interface
   ;; based on naoqi-interface and fetch-interface
@@ -274,57 +282,25 @@
   (:get-prismatic-vel (arm)
     (send self :spin-once)
     (gethash arm prismatic-vel-))
-  (:get-proximity (arm side &key (raw nil))
+  (:get-i-proximity (arm side &key (raw nil))
     (send self :spin-once)
-    (let ((l-init (gethash :left (gethash arm proximity-init-values-)))
-          (r-init (gethash :right (gethash arm proximity-init-values-)))
-          (p-init (gethash :palm (gethash arm proximity-init-values-)))
-          (l (gethash :left (gethash arm proximities-)))
-          (r (gethash :right (gethash arm proximities-)))
-          (p (gethash :palm (gethash arm proximities-)))
-          raw-msg init-msg res-msg val)
-      (if (null raw)
-        (cond
-          ;; for sparkfun proximity sensor
-          ((eq side :left)
-           (setq val (/ (- l l-init) (expt (/ l-init 2500.0) 1.5)))
-           (setq raw-msg (instance std_msgs::Float64 :init :data l))
-           (setq init-msg (instance std_msgs::Float64 :init :data l-init))
-           (setq res-msg (instance std_msgs::Float64 :init :data val)))
-          ((eq side :right)
-           (setq val (/ (- r r-init) (expt (/ r-init 2500.0) 1.5)))
-           (setq raw-msg (instance std_msgs::Float64 :init :data r))
-           (setq init-msg (instance std_msgs::Float64 :init :data r-init))
-           (setq res-msg (instance std_msgs::Float64 :init :data val)))
-          ((eq side :palm)
-           (setq val (/ (- p p-init) (expt (/ p-init 2500.0) 1.5)))
-           (setq raw-msg (instance std_msgs::Float64 :init :data p))
-           (setq init-msg (instance std_msgs::Float64 :init :data p-init))
-           (setq res-msg (instance std_msgs::Float64 :init :data val))))
-        (cond
-          ((eq side :left)
-           (setq val l)
-           (setq raw-msg (instance std_msgs::Float64 :init :data l)))
-          ((eq side :right)
-           (setq val r)
-           (setq raw-msg (instance std_msgs::Float64 :init :data r)))
-          ((eq side :palm)
-           (setq val p)
-           (setq raw-msg (instance std_msgs::Float64 :init :data p)))))
-      ;; publish used proximity value for rosbag
-      (if raw-msg
-        (ros::publish
-          (format nil "/from_main/limb/~a/used_proximity/raw/~a"
-                  (arm2str arm) (symbol2str side)) raw-msg))
-      (if init-msg
-        (ros::publish
-          (format nil "/from_main/limb/~a/used_proximity/init/~a"
-                  (arm2str arm) (symbol2str side)) init-msg))
-      (if res-msg
-        (ros::publish
-          (format nil "/from_main/limb/~a/used_proximity/result/~a"
-                  (arm2str arm) (symbol2str side)) res-msg))
-      val))
+    (let ((msg (gethash side (gethash arm i-proximities-))))
+      (unless msg
+        (ros::ros-error "Cannot get specified proximity")
+        (return-from :get-i-proximity nil))
+      (if raw
+        (+ (send msg :init_value)
+           (send msg :diff_from_init))
+        (send msg :diff_from_init))))
+  (:get-tof-proximity (arm side &key (full-msg nil))
+    (send self :spin-once)
+    (let ((msg (gethash side (gethash arm tof-proximities-))))
+      (unless msg
+        (ros::ros-error "Cannot get specified proximity")
+        (return-from :get-tof-proximity nil))
+      (if full-msg
+        msg
+        (send (send msg :data) :range_millimeter))))
   (:get-real-finger-av (arm)
     (send self :update-robot-state :wait-until-update t)
     (if (eq arm :rarm)
@@ -387,8 +363,8 @@
                  (if (send self :interpolatingp) (return))
                  (unix::usleep 1000))
                (while (and
-                        (< (max (send self :get-proximity l/r :right)
-                                (send self :get-proximity l/r :left))
+                        (< (max (send self :get-i-proximity l/r :right-root)
+                                (send self :get-i-proximity l/r :left-root))
                            proximity-threshold-)
                         (setq hand-interpolatingp (send self :hand-interpolatingp l/r)))
                  (unix::usleep 1000))
@@ -396,7 +372,8 @@
                  (send self :cancel-move-hand l/r)
                  (send self :update-robot-state :wait-until-update t)
                  (setq prev-av (send robot :angle-vector))
-                 (if (< (send self :get-proximity l/r :right) (send self :get-proximity l/r :left))
+                 (if (< (send self :get-i-proximity l/r :right-root)
+                        (send self :get-i-proximity l/r :left-root))
                    (progn
                      (send robot l/r :wrist-r :joint-angle 45 :relative t)
                      (setq av (send robot :angle-vector))
@@ -406,8 +383,8 @@
                      (dotimes (x 100)
                        (if (send self :interpolatingp) (return))
                        (unix::usleep 1000))
-                     (while (and (< (send self :get-proximity l/r :right)
-                                    (send self :get-proximity l/r :left))
+                     (while (and (< (send self :get-i-proximity l/r :right-root)
+                                    (send self :get-i-proximity l/r :left-root))
                                  (send self :interpolatingp))
                        (unix::usleep 1000)))
                    (progn
@@ -419,8 +396,8 @@
                      (dotimes (x 100)
                        (if (send self :interpolatingp) (return))
                        (unix::usleep 1000))
-                     (while (and (> (send self :get-proximity l/r :right)
-                                    (send self :get-proximity l/r :left))
+                     (while (and (> (send self :get-i-proximity l/r :right-root)
+                                    (send self :get-i-proximity l/r :left-root))
                                  (send self :interpolatingp))
                        (unix::usleep 1000))))
                  (send self :cancel-move-hand l/r)
@@ -650,8 +627,8 @@
         (ros::ros-info "[:wait-interpolation-until] Prepare for finger proximity")
         (pushback
           #'(lambda ()
-              (setq r-proximity (send self :get-proximity arm :right))
-              (setq l-proximity (send self :get-proximity arm :left))
+              (setq r-proximity (send self :get-i-proximity arm :right-root))
+              (setq l-proximity (send self :get-i-proximity arm :left-root))
               (if (> (max r-proximity l-proximity) proximity-threshold-)
                 (progn
                   (ros::ros-info "[:wait-interpolation-until] Detected finger proximity. r: ~a, l: ~a"
@@ -663,7 +640,7 @@
         (ros::ros-info "[:wait-interpolation-until] Prepare for palm proximity")
         (pushback
           #'(lambda ()
-              (setq p-proximity (send self :get-proximity arm :palm))
+              (setq p-proximity (send self :get-i-proximity arm :palm-bottom))
               (if (if (null palm-prox-range)
                     (> p-proximity proximity-threshold-)
                     (or (if (elt palm-prox-range 0) (< p-proximity (elt palm-prox-range 0)) nil)
@@ -711,17 +688,19 @@
                    rarm-pressure-threshold- larm-pressure-threshold-))
   (:calib-proximity-threshold
     (&optional (arm :arms))
-    (send self :spin-once)
     (dolist (l/r (if (eq arm :arms) (list :rarm :larm) (list arm)))
-      (sethash :left (gethash l/r proximity-init-values-)
-               (send self :get-proximity l/r :left :raw t))
-      (sethash :right (gethash l/r proximity-init-values-)
-               (send self :get-proximity l/r :right :raw t))
       (if (eq l/r :larm)
-        (sethash :palm (gethash l/r proximity-init-values-)
-                 (send self :get-proximity l/r :palm :raw t)))
+        (let ((service-name
+                (format nil "/gripper_front/limb/~a/intensity_prox_calibrator/set_init_proximities"
+                        (arm2str l/r))) res)
+          (ros::wait-for-service service-name)
+          (setq res (ros::service-call service-name (instance std_srvs::TriggerRequest :init)))
+          (unless (send res :success)
+            (ros::ros-error "~a" (send res :message))))
+        (ros::ros-error "Cannot use proximities on right hand"))
       ;; TODO: decide proper threshold 100 -> ???
-      (setq proximity-threshold- 100)))
+      (setq proximity-threshold- 100))
+    (send self :spin-once))
   )
 
 (defclass jsk_arc2017_baxter::baxterlgv8-moveit-environment
