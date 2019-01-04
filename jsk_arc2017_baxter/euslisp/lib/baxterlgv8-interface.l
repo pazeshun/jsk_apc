@@ -292,12 +292,17 @@
         (+ (send msg :init_value)
            (send msg :diff_from_init))
         (send msg :diff_from_init))))
-  (:get-tof-proximity (arm side &key (full-msg nil))
+  (:get-tof-proximity (arm side &key (full-msg nil) (after-stamp))
     (send self :spin-once)
     (let ((msg (gethash side (gethash arm tof-proximities-))))
       (unless msg
         (ros::ros-error "Cannot get specified proximity")
         (return-from :get-tof-proximity nil))
+      (when after-stamp
+        (while (ros::time<= (send msg :header :stamp) after-stamp)
+          (unix::usleep (* 50 1000))
+          (send self :spin-once)
+          (setq msg (gethash side (gethash arm tof-proximities-)))))
       (if full-msg
         msg
         (send (send msg :data) :range_millimeter))))
