@@ -200,7 +200,7 @@
                   (arm2str arm)
                   (underscore-to-space target-obj-)
                   (if moving-object-p- " not" "")))
-    (let (object-index obj-coords pick-result graspingp)
+    (let (object-index obj-coords obj-cube pick-result graspingp)
       ;; slots reset
       (setq start-picking-fail-count- 0)
       (setq recognize-fail-count- 0)
@@ -211,9 +211,10 @@
       (send *baxter* :head_pan :joint-angle (if (eq arm :larm) -70 70))
       ;; pick largest bounding box
       (setq object-index 0)
-      (setq obj-coords
-            (send self :get-object-coords arm
-                  :object-index object-index :tried-directions tried-directions-))
+      (let ((cc-list (send self :get-object-coords-cube arm
+                           :object-index object-index :tried-directions tried-directions-)))
+        (setq obj-coords (elt cc-list 0))
+        (setq obj-cube (elt cc-list 1)))
       (if obj-coords
         (progn
           (pushback (send obj-coords :rotate-vector #f(1 0 0)) tried-directions-))
@@ -223,7 +224,7 @@
           (ros::ros-error "[main] arm: ~a abort picking" arm)
           (return-from :pick-object nil)))
       (setq pick-result
-            (send self :pick-object-in-bin arm target-bin- obj-coords
+            (send self :pick-object-in-bin arm target-bin- obj-coords obj-cube
                   :n-trial 1
                   :n-trial-same-pos 1
                   :do-stop-grasp nil
