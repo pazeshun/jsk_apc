@@ -1165,17 +1165,17 @@
       (if graspingp
         (let (edge-dir)
           (cond
-            ((and (> palm-bottom-tof 90) (< palm-top-tof 90))
+            ((and (> palm-bottom-tof 100) (< palm-top-tof 100))
              (ros::ros-info
                "[:try-to-pick-edge] arm:~a edge is inside palm. Bottom ToF: ~a, Top ToF: ~a"
                arm palm-bottom-tof palm-top-tof)
              (setq edge-dir nil))
-            ((and (< palm-bottom-tof 90) (< palm-top-tof 90))
+            ((and (< palm-bottom-tof 100) (< palm-top-tof 100))
              (ros::ros-info
                "[:try-to-pick-edge] arm:~a center is picked. Bottom ToF: ~a, Top ToF: ~a"
                arm palm-bottom-tof palm-top-tof)
              (setq edge-dir -1))
-            ((and (> palm-bottom-tof 90) (> palm-top-tof 90))
+            ((and (> palm-bottom-tof 100) (> palm-top-tof 100))
              (ros::ros-info
                "[:try-to-pick-edge] arm:~a edge is too close. Bottom ToF: ~a, Top ToF: ~a"
                arm palm-bottom-tof palm-top-tof)
