@@ -537,16 +537,19 @@
       (error ":wait-interpolation-until set arm for first arg~%"))
     (let (conds r-init-flex l-init-flex init-load r-flex l-flex
                 finger-load prismatic-load flex-thre-offset
-                r-proximity l-proximity p-proximity palm-prox-range)
+                r-proximity l-proximity p-i-prox palm-i-prox-range p-tof palm-tof-range)
       (setq r-init-flex (send self :get-finger-flex arm :right))
       (setq l-init-flex (send self :get-finger-flex arm :left))
       (setq init-load (send self :get-finger-load arm))
       (setq flex-thre-offset
             (if (member :flex-thre-offset args)
               (cadr (member :flex-thre-offset args)) nil))
-      (setq palm-prox-range
-            (if (member :palm-prox-range args)
-              (cadr (member :palm-prox-range args)) nil))
+      (setq palm-i-prox-range
+            (if (member :palm-i-prox-range args)
+              (cadr (member :palm-i-prox-range args)) nil))
+      (setq palm-tof-range
+            (if (member :palm-tof-range args)
+              (cadr (member :palm-tof-range args)) nil))
       (ros::ros-info
         "[:wait-interpolation-until] Init flex:  r: ~a l: ~a" r-init-flex l-init-flex)
       (ros::ros-info "[:wait-interpolation-until] Init load: ~a" init-load)
@@ -647,18 +650,33 @@
                   t)
                 nil))
           conds))
-      (when (member :palm-proximity args)
-        (ros::ros-info "[:wait-interpolation-until] Prepare for palm proximity")
+      (when (member :palm-i-prox args)
+        (ros::ros-info "[:wait-interpolation-until] Prepare for palm intensity prox")
         (pushback
           #'(lambda ()
-              (setq p-proximity (send self :get-i-proximity arm :palm-bottom))
-              (if (if (null palm-prox-range)
-                    (> p-proximity proximity-threshold-)
-                    (or (if (elt palm-prox-range 0) (< p-proximity (elt palm-prox-range 0)) nil)
-                        (if (elt palm-prox-range 1) (> p-proximity (elt palm-prox-range 1)) nil)))
+              (setq p-i-prox (send self :get-i-proximity arm :palm-bottom))
+              (if (if (null palm-i-prox-range)
+                    (> p-i-prox proximity-threshold-)
+                    (or (if (elt palm-i-prox-range 0) (< p-i-prox (elt palm-i-prox-range 0)) nil)
+                        (if (elt palm-i-prox-range 1) (> p-i-prox (elt palm-i-prox-range 1)) nil)))
                 (progn
-                  (ros::ros-info "[:wait-interpolation-until] Detected palm proximity. p: ~a"
-                                 p-proximity)
+                  (ros::ros-info "[:wait-interpolation-until] Detected palm intensity prox. p: ~a"
+                                 p-i-prox)
+                  t)
+                nil))
+          conds))
+      (when (member :palm-tof args)
+        (ros::ros-info "[:wait-interpolation-until] Prepare for palm ToF")
+        (pushback
+          #'(lambda ()
+              (setq p-tof (send self :get-tof-proximity arm :palm-bottom))
+              (if (if (null palm-tof-range)
+                    (< p-tof 40)
+                    (or (if (elt palm-tof-range 0) (< p-tof (elt palm-tof-range 0)) nil)
+                        (if (elt palm-tof-range 1) (> p-tof (elt palm-tof-range 1)) nil)))
+                (progn
+                  (ros::ros-info "[:wait-interpolation-until] Detected palm ToF. p: ~a"
+                                 p-tof)
                   t)
                 nil))
           conds))
