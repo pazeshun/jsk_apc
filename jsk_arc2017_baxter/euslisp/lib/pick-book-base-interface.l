@@ -1347,15 +1347,23 @@
                 (and (> (- rt-tof rr-tof) 10) (< (/ (+ rt-tof rr-tof) 2.0) (+ finger-obj-d 5))))
           (progn
             (send *ri* :move-hand arm
-                  (send *baxter* :hand-grasp-pose arm :cylindrical :angle 70) 1000)
-            (send *ri* :move-hand arm
-                  (send *baxter* :hand-grasp-pose arm :cylindrical) 1000)
+                  (send *baxter* :hand-grasp-pose arm :cylindrical :angle 100) 1000)
             (send *ri* :angle-vector-raw (send *baxter* :slide-gripper arm 0 :relative nil)
                   1000 (send *ri* :get-arm-controller arm) 0)
             (send *ri* :wait-interpolation)
+            (send *ri* :move-hand arm
+                  (send *baxter* :hand-grasp-pose arm :cylindrical) 1000)
             (ros::ros-info
               "[:try-to-pick-edge] arm:~a supporting succeeded. (lr, lt, rr, rt)-tof: ~a"
               arm (list lr-tof lt-tof rr-tof rt-tof))
+            ;; close fingers more using floor
+            (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 -70) :local)
+                  1000 (send *ri* :get-arm-controller arm) 0)
+            (send *ri* :wait-interpolation)
+            ;; lift object
+            (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 290) :local)
+                  1000 (send *ri* :get-arm-controller arm) 0)
+            (send *ri* :wait-interpolation)
             :support-succeeded)
           (progn
             (send *ri* :move-hand arm
