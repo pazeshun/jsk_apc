@@ -118,9 +118,10 @@
                 (format nil "/~a_hand_camera/label_to_mask" (arm2str arm))
                 (cons "label_value" (position target-obj- label-names- :test #'string=)))
               (ros::ros-info-blue "[~a] [main] :recognize-object, target-bin: ~a, target-obj: ~a" (ros::get-name) target-bin- target-obj-)
-              (ros::service-call
-                (format nil "/~a_hand_camera/image_buffer/save" (arm2str arm))
-                (instance std_srvs::TriggerRequest :init))
+              ;; Segmentation Fault
+              ;; (ros::service-call
+              ;;   (format nil "/~a_hand_camera/image_buffer/save" (arm2str arm))
+              ;;   (instance std_srvs::TriggerRequest :init))
               (send self :recognize-target-object arm :stamp (ros::time-now))))
           (incf recognition-count)))
       (unless is-recognized
