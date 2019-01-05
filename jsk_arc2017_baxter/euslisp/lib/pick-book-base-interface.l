@@ -1222,7 +1222,7 @@
                   (progn
                     (ros::ros-error "[:try-to-pick-edge] arm:~a IK failed. Abort searching edge."
                                     arm))
-                  (while (detect-cnt)
+                  (while detect-cnt
                     (send *ri* :angle-vector-raw av 5000 (send *ri* :get-arm-controller arm) 0)
                     ;; TODO: fix hard-coded value
                     (send *ri* :wait-interpolation-until arm :palm-i-prox :palm-tof
