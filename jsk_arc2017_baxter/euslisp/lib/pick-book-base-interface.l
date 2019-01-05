@@ -1343,8 +1343,8 @@
         (setq rr-tof (send *ri* :get-tof-proximity arm :right-root :after-stamp stamp))
         (setq rt-tof (send *ri* :get-tof-proximity arm :right-tip :after-stamp stamp))
         ;; TODO: fix hard-coded value
-        (if (and (and (> (- lt-tof lr-tof) 10) (< (/ (+ lt-tof lr-tof) 2.0) (+ finger-obj-d 5)))
-                 (and (> (- rt-tof rr-tof) 10) (< (/ (+ rt-tof rr-tof) 2.0) (+ finger-obj-d 5))))
+        (if (or (and (> (- lt-tof lr-tof) 10) (< (/ (+ lt-tof lr-tof) 2.0) (+ finger-obj-d 5)))
+                (and (> (- rt-tof rr-tof) 10) (< (/ (+ rt-tof rr-tof) 2.0) (+ finger-obj-d 5))))
           (progn
             (send *ri* :move-hand arm
                   (send *baxter* :hand-grasp-pose arm :cylindrical :angle 70) 1000)
