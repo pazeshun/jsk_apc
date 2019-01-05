@@ -1335,7 +1335,7 @@
           "[:try-to-pick-edge] arm:~a finger-obj-d: ~a, finger-yaw: ~a"
           arm finger-obj-d finger-yaw)
         (send *ri* :move-hand arm
-              (send *baxter* :hand arm :angle-vector (float-vector finger-yaw 80 80)) 1000)
+              (send *baxter* :hand arm :angle-vector (float-vector finger-yaw 75 75)) 1000)
         (unix::sleep 1)
         (setq stamp (ros::time-now))
         (setq lr-tof (send *ri* :get-tof-proximity arm :left-root :after-stamp stamp))
