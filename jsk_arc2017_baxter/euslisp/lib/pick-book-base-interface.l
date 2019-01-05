@@ -1330,7 +1330,7 @@
                               (gethash arm (gethash :palm-to-finger gripper-dims-))))
         (setq finger-obj-y (/ (gethash arm (gethash :finger-to-finger gripper-dims-)) 2))
         (setq finger-obj-d (sqrt (+ (expt finger-obj-x 2) (expt finger-obj-y 2))))
-        (setq finger-yaw (atan (/ finger-obj-x finger-obj-y)))
+        (setq finger-yaw (rad2deg (atan (/ finger-obj-x finger-obj-y))))
         (ros::ros-info
           "[:try-to-pick-edge] arm:~a finger-obj-d: ~a, finger-yaw: ~a"
           arm finger-obj-d finger-yaw)
