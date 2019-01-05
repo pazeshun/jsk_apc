@@ -1198,7 +1198,7 @@
             (send *ri* :wait-interpolation)
             (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 10) :local) 500)
             (send *ri* :wait-interpolation)
-            (unix::sleep 3)
+            (unix::sleep 5)
             (setq palm-i-prox (send *ri* :get-i-proximity arm :palm-bottom))
             (if (and (= edge-dir -1) (<= palm-i-prox 30))
               (progn
