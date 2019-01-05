@@ -1213,7 +1213,6 @@
                   arm palm-i-prox)
                 (setq init-tof (send *ri* :get-averaged-tof arm :palm-bottom
                                      :after-stamp (ros::time-now)))
-                (send *ri* :calib-proximity-threshold arm)
                 (setq prev-av (send *baxter* :angle-vector))
                 (setq av (send *baxter* arm :move-end-pos (scale edge-dir #f(100 0 0)) :local))
                 (unless av
@@ -1223,6 +1222,7 @@
                     (ros::ros-error "[:try-to-pick-edge] arm:~a IK failed. Abort searching edge."
                                     arm))
                   (while detect-cnt
+                    (send *ri* :calib-proximity-threshold arm)
                     (send *ri* :angle-vector-raw av 5000 (send *ri* :get-arm-controller arm) 0)
                     ;; TODO: fix hard-coded value
                     (send *ri* :wait-interpolation-until arm :palm-i-prox :palm-tof
