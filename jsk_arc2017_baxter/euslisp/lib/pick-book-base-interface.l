@@ -1311,11 +1311,11 @@
           (return-from :try-to-pick-edge :grasp-failed))
         (setq palm-top-tof (send *ri* :get-averaged-tof arm :palm-top
                                  :after-stamp (ros::time-now)))
+        (ros::ros-info "[:try-to-pick-edge] arm:~a palm ToF: Init: ~a, Now: ~a"
+                       arm init-tof palm-top-tof)
         ;; TODO: fix hard-coded value
         (when (> (- init-tof palm-top-tof) 7)
-          (ros::ros-info
-            "[:try-to-pick-edge] arm:~a supporting was canceled by palm ToF. Init: ~a, Now: ~a"
-            arm init-tof palm-top-tof)
+          (ros::ros-info "[:try-to-pick-edge] arm:~a supporting was canceled by palm ToF" arm)
           (ros::ros-info "[:try-to-pick-edge] arm:~a return object to original pos" arm)
           (send *ri* :stop-grasp arm)
           (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 -55) :local)
