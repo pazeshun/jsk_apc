@@ -1954,6 +1954,17 @@
     (send *ri* :angle-vector-sequence-raw
           (send *baxter* :spin-off-by-wrist arm :times times)
           :fast (send *ri* :get-arm-controller arm) 0))
+  (:spin-off-around-axis
+    (arm axis &key (times 10))
+    (let (avs)
+      (pushback (send *baxter* :angle-vector) avs)
+      (dotimes (i times)
+        (pushback (send *baxter* arm :move-end-rot 10 axis :local) avs)
+        (pushback (send *baxter* arm :move-end-rot -20 axis :local) avs)
+        (pushback (send *baxter* arm :move-end-rot 20 axis :local) avs)
+        (pushback (send *baxter* arm :move-end-rot -10 axis :local) avs))
+      (send *ri* :angle-vector-sequence-raw avs
+            :fast (send *ri* :get-arm-controller arm) 0)))
   (:send-av
     (&optional (tm 3000) (ctype nil))
     (send *ri* :angle-vector (send *baxter* :angle-vector) tm ctype))
