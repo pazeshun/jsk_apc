@@ -297,7 +297,7 @@
     (send *ri* :angle-vector-raw
           (send self :ik->bin-center arm target-bin-
                 :offset (send self :decide-bin-return-area arm target-bin-)
-                :rotation-axis :z :use-gripper t)
+                :rotation-axis :z :move-palm-end t)
           :fast (send *ri* :get-arm-controller arm) 0 :scale 5.0)
     (send *ri* :wait-interpolation)
     (send *ri* :stop-grasp arm)
