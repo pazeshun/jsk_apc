@@ -1151,9 +1151,6 @@
         (setq graspingp (send *ri* :graspingp arm :suction)))
       (ros::ros-info "[:try-to-pick-edge] arm:~a graspingp: ~a" arm graspingp)
       (send *baxter* :angle-vector (send *ri* :state :potentio-vector :wait-until-update t))
-      (ros::ros-info "[:try-to-pick-edge] arm:~a lift object to check if edge is picked" arm)
-      (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 20) :local) 500)
-      (send *ri* :wait-interpolation)
       (let ((ec (send *baxter* arm :end-coords :copy-worldcoords)))
         (send *baxter* :slide-gripper arm 50 :relative nil)
         (send *baxter* arm :inverse-kinematics ec))
@@ -1169,17 +1166,17 @@
       (if graspingp
         (let (edge-dir)
           (cond
-            ((and (> palm-bottom-tof 100) (< palm-top-tof 100))
+            ((and (>= palm-bottom-tof 80) (< palm-top-tof 87))
              (ros::ros-info
                "[:try-to-pick-edge] arm:~a edge is inside palm. Bottom ToF: ~a, Top ToF: ~a"
                arm palm-bottom-tof palm-top-tof)
              (setq edge-dir nil))
-            ((and (< palm-bottom-tof 100) (< palm-top-tof 100))
+            ((and (< palm-bottom-tof 80) (< palm-top-tof 87))
              (ros::ros-info
                "[:try-to-pick-edge] arm:~a center is picked. Bottom ToF: ~a, Top ToF: ~a"
                arm palm-bottom-tof palm-top-tof)
              (setq edge-dir -1))
-            ((and (> palm-bottom-tof 100) (> palm-top-tof 100))
+            ((and (>= palm-bottom-tof 80) (>= palm-top-tof 87))
              (ros::ros-info
                "[:try-to-pick-edge] arm:~a edge is too close. Bottom ToF: ~a, Top ToF: ~a"
                arm palm-bottom-tof palm-top-tof)
@@ -1190,7 +1187,8 @@
           (when edge-dir
             (ros::ros-info "[:try-to-pick-edge] arm:~a try to detect edge to dir ~a" arm edge-dir)
             (send *ri* :stop-grasp arm)
-            (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 20) :local) 500)
+            (unix::sleep 3)
+            (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 40) :local) 1000)
             (send *ri* :wait-interpolation)
             (let ((ec (send *baxter* arm :end-coords :copy-worldcoords)))
               (send *baxter* :slide-gripper arm 0 :relative nil)
@@ -1290,9 +1288,6 @@
             (send *ri* :wait-interpolation-until arm :grasp)
             (send *baxter* :angle-vector
                   (send *ri* :state :potentio-vector :wait-until-update t))
-            (ros::ros-info "[:try-to-pick-edge] arm:~a back to prev state" arm)
-            (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 20) :local) 500)
-            (send *ri* :wait-interpolation)
             (let ((ec (send *baxter* arm :end-coords :copy-worldcoords)))
               (send *baxter* :slide-gripper arm 50 :relative nil)
               (send *baxter* arm :inverse-kinematics ec))
@@ -1303,8 +1298,8 @@
       (let (init-tof)
         (setq init-tof (send *ri* :get-averaged-tof arm :palm-top
                              :after-stamp (ros::time-now)))
-        (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 45) :local)
-              500 (send *ri* :get-arm-controller arm) 0)
+        (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 55) :local)
+              1000 (send *ri* :get-arm-controller arm) 0)
         (send *ri* :wait-interpolation)
         (setq graspingp (send *ri* :graspingp arm :suction))
         (ros::ros-info "[:try-to-pick-edge] arm:~a graspingp: ~a" arm graspingp)
