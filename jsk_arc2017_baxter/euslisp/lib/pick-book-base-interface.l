@@ -1314,7 +1314,7 @@
         (ros::ros-info "[:try-to-pick-edge] arm:~a palm ToF: Init: ~a, Now: ~a"
                        arm init-tof palm-top-tof)
         ;; TODO: fix hard-coded value
-        (when (> (- init-tof palm-top-tof) 7)
+        (when (> (- init-tof palm-top-tof) 5)
           (ros::ros-info "[:try-to-pick-edge] arm:~a supporting was canceled by palm ToF" arm)
           (ros::ros-info "[:try-to-pick-edge] arm:~a return object to original pos" arm)
           (send *ri* :stop-grasp arm)
