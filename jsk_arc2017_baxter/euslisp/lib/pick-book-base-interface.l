@@ -1202,7 +1202,9 @@
             (send *ri* :wait-interpolation)
             ;; Turn off unused proximities. Don't forget to turn on afterwords
             (send *ri* :turn-off-proximity :intensity arm (list :palm-top :palm-right :palm-left))
-            (send *ri* :turn-off-proximity :tof arm (list :palm-top :palm-right :palm-left))
+            (send *ri* :turn-off-proximity :tof arm
+                  (list :left-root :left-tip :right-root :right-tip
+                        :palm-top :palm-right :palm-left))
             (unix::sleep 2)
             (setq palm-i-prox (send *ri* :get-i-proximity arm :palm-bottom))
             (let (init-tof (detect-cnt 0))
