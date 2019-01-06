@@ -23,6 +23,7 @@
           finger-load-
           prismatic-load-
           prismatic-vel-
+          proximity-sides-
           i-proximities-
           tof-proximities-))
 
@@ -99,6 +100,8 @@
     (setq prismatic-vel- (make-hash-table))
     (setq i-proximities- (make-hash-table))
     (setq tof-proximities- (make-hash-table))
+    (setq proximity-sides- (list :left-root :left-tip :right-root :right-tip
+                                 :palm-bottom :palm-top :palm-right :palm-left))
     (dolist (arm (list :rarm :larm))
       (ros::subscribe (format nil "/gripper_front/limb/~a/pressure/state" (arm2str arm))
                       std_msgs::Float64
@@ -213,24 +216,12 @@
     (sethash side (gethash arm finger-flex-) (send msg :data)))
   (:set-i-proximities
     (arm msg)
-    (sethash :left-root (gethash arm i-proximities-) (elt (send msg :data) 0))
-    (sethash :left-tip (gethash arm i-proximities-) (elt (send msg :data) 1))
-    (sethash :right-root (gethash arm i-proximities-) (elt (send msg :data) 2))
-    (sethash :right-tip (gethash arm i-proximities-) (elt (send msg :data) 3))
-    (sethash :palm-bottom (gethash arm i-proximities-) (elt (send msg :data) 4))
-    (sethash :palm-top (gethash arm i-proximities-) (elt (send msg :data) 5))
-    (sethash :palm-right (gethash arm i-proximities-) (elt (send msg :data) 6))
-    (sethash :palm-left (gethash arm i-proximities-) (elt (send msg :data) 7)))
+    (dotimes (i (length proximity-sides-))
+      (sethash (elt proximity-sides- i) (gethash arm i-proximities-) (elt (send msg :data) i))))
   (:set-tof-proximities
     (arm msg)
-    (sethash :left-root (gethash arm tof-proximities-) (elt (send msg :array) 0))
-    (sethash :left-tip (gethash arm tof-proximities-) (elt (send msg :array) 1))
-    (sethash :right-root (gethash arm tof-proximities-) (elt (send msg :array) 2))
-    (sethash :right-tip (gethash arm tof-proximities-) (elt (send msg :array) 3))
-    (sethash :palm-bottom (gethash arm tof-proximities-) (elt (send msg :array) 4))
-    (sethash :palm-top (gethash arm tof-proximities-) (elt (send msg :array) 5))
-    (sethash :palm-right (gethash arm tof-proximities-) (elt (send msg :array) 6))
-    (sethash :palm-left (gethash arm tof-proximities-) (elt (send msg :array) 7)))
+    (dotimes (i (length proximity-sides-))
+      (sethash (elt proximity-sides- i) (gethash arm tof-proximities-) (elt (send msg :array) i))))
 
   ;; Hand interface
   ;; based on naoqi-interface and fetch-interface
@@ -730,6 +721,19 @@
       ;; TODO: decide proper threshold 100 -> ???
       (setq proximity-threshold- 100))
     (send self :spin-once))
+  (:turn-off-proximity
+    (ptype arm sides)
+    (let ((service-name
+            (format nil "/gripper_front/limb/~a/turn_off_~a" (arm2str arm) (symbol2str ptype)))
+          res ids)
+      (setq ids (mapcar #'(lambda (side) (position side proximity-sides-)) sides))
+      (ros::wait-for-service service-name)
+      (setq res
+            (ros::service-call service-name
+                               (instance sphand_driver_msgs::TurnOffSensorsRequest :init
+                                         :sensor_ids ids)))
+      (unless (send res :success)
+        (ros::ros-error "~a" (send res :message)))))
   )
 
 (defclass jsk_arc2017_baxter::baxterlgv8-moveit-environment
