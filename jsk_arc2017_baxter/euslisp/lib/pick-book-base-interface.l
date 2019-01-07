@@ -1189,9 +1189,11 @@
                "[:try-to-pick-edge] arm:~a edge is too close. Bottom ToF: ~a, Top ToF: ~a"
                arm palm-bottom-tof palm-top-tof)
              (setq edge-dir 1))
-            (t (error
+            (t (ros::ros-info
                  "[:try-to-pick-edge] arm:~a unsupported pattern. Bottom ToF: ~a, Top ToF: ~a"
-                 arm palm-bottom-tof palm-top-tof)))
+                 arm palm-bottom-tof palm-top-tof)
+               (ros::ros-info "[:try-to-pick-edge] arm:~a assume center is picked" arm)
+               (setq edge-dir -1)))
           (when (numberp edge-dir)
             (ros::ros-info "[:try-to-pick-edge] arm:~a try to detect edge to dir ~a" arm edge-dir)
             (send *ri* :stop-grasp arm)
