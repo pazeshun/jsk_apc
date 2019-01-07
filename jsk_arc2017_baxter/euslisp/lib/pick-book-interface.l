@@ -213,7 +213,9 @@
       ;; pick largest bounding box
       (setq object-index 0)
       (let ((cc-list (send self :get-object-coords-cube arm
-                           :object-index object-index :tried-directions tried-directions-)))
+                           :object-index object-index
+                           :tried-directions tried-directions-
+                           :grasp-style grasp-style-)))
         (setq obj-coords (elt cc-list 0))
         (setq obj-cube (elt cc-list 1)))
       (if obj-coords

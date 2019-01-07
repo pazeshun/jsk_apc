@@ -591,7 +591,7 @@
       (send *ri* :gripper-servo-on arm)
       pick-result))
   (:get-object-coords-cube
-    (arm &key (object-index 0) tried-directions)
+    (arm &key (object-index 0) tried-directions (grasp-style :edge))
     (let (obj-cube sides cube-coords obj-coords obj-offset)
       (setq obj-cube (send self :bbox->cube (elt (gethash arm object-boxes-) object-index)))
       (ros::ros-info "[:get-object-coords-cube] original obj-cube: ~a" obj-cube)
@@ -648,24 +648,26 @@
               (setq obj-cube
                     (make-cube (y-of-cube obj-cube) (x-of-cube obj-cube) (z-of-cube obj-cube)))
               (send obj-cube :move-to cube-coords :world)))
-          ;; add offset to obj-coords
-          ;; TODO: fix hard-coded value
-          (setq obj-local-pos (send obj-cube :inverse-transform-vector
-                                    (send obj-coords :worldpos)))
-          (setq obj-offset (- (+ (gethash arm (gethash :pad-r gripper-dims-)) 60)
-                              (/ (x-of-cube obj-cube) 2)))
-          (if (> obj-offset 0) (setq obj-offset 0))  ;; not to offset obj-coords overly
-          (when (< (aref obj-local-pos 0) obj-offset)
-            (setf (aref obj-local-pos 0) obj-offset)
-            (send obj-coords :locate (send obj-cube :transform-vector obj-local-pos) :world)))
+          (when (eq grasp-style :edge)
+            ;; add offset to obj-coords
+            ;; TODO: fix hard-coded value
+            (setq obj-local-pos (send obj-cube :inverse-transform-vector
+                                      (send obj-coords :worldpos)))
+            (setq obj-offset (- (+ (gethash arm (gethash :pad-r gripper-dims-)) 60)
+                                (/ (x-of-cube obj-cube) 2)))
+            (if (> obj-offset 0) (setq obj-offset 0))  ;; not to offset obj-coords overly
+            (when (< (aref obj-local-pos 0) obj-offset)
+              (setf (aref obj-local-pos 0) obj-offset)
+              (send obj-coords :locate (send obj-cube :transform-vector obj-local-pos) :world))))
         (progn
           ;; make obj-coords from obj-cube
           (setq obj-coords (send obj-cube :copy-worldcoords))
-          ;; TODO: fix hard-coded value
-          (setq obj-offset (- (+ (gethash arm (gethash :pad-r gripper-dims-)) 60)
-                              (/ (x-of-cube obj-cube) 2)))
-          (if (> obj-offset 0) (setq obj-offset 0))  ;; not to offset obj-coords overly
-          (send obj-coords :translate (float-vector obj-offset 0 0) :local)))
+          (when (eq grasp-style :edge)
+            ;; TODO: fix hard-coded value
+            (setq obj-offset (- (+ (gethash arm (gethash :pad-r gripper-dims-)) 60)
+                                (/ (x-of-cube obj-cube) 2)))
+            (if (> obj-offset 0) (setq obj-offset 0))  ;; not to offset obj-coords overly
+            (send obj-coords :translate (float-vector obj-offset 0 0) :local))))
       (ros::ros-info "[:get-object-coords-cube] axis swapped obj-cube: ~a" obj-cube)
       (ros::ros-info "[:get-object-coords-cube] rotated obj-coords: ~a" obj-coords)
       (dotimes (i 4)
@@ -699,13 +701,14 @@
            (send obj-coords :translate
                  (float-vector 0 obj-offset 0) :local)
            (send obj-coords :rotate pi/2 :z :local)))
-        (when (null
-                (remove nil
-                        (mapcar
-                          #'(lambda (x)
-                              (< (vector-angle x (send obj-coords :rotate-vector #f(1 0 0)))
-                                 (/ pi 4)))
-                          tried-directions)))
+        (when (or (eq grasp-style :suction)
+                  (null
+                    (remove nil
+                            (mapcar
+                              #'(lambda (x)
+                                  (< (vector-angle x (send obj-coords :rotate-vector #f(1 0 0)))
+                                     (/ pi 4)))
+                              tried-directions))))
           (ros::ros-info "[:get-object-coords-cube] position changed obj-coords: ~a" obj-coords)
           (return-from :get-object-coords-cube (list obj-coords obj-cube))))
       (ros::ros-error "[:get-object-coords-cube] every obj-coords candidates were already tried")
@@ -1062,7 +1065,10 @@
   (:try-to-pick-object
     (arm obj-coords obj-cube &key (offset #f(0 0 0)) (grasp-style :suction) support-style
          (rotation-axis :z) (gripper-angle 0))
-    (send self :try-to-pick-edge arm obj-coords obj-cube rotation-axis :offset offset))
+    (case grasp-style
+      (:edge (send self :try-to-pick-edge arm obj-coords obj-cube rotation-axis :offset offset))
+      (:suction (send self :try-to-suction-front-object arm obj-coords nil rotation-axis
+                      :offset offset))))
   (:try-to-suction-object-with-gripper-v4
     (arm obj-pos &key (offset #f(0 0 0)))
     "Return value: :grasp-succeeded or :grasp-failed"
