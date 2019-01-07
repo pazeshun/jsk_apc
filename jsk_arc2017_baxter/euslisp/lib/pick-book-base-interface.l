@@ -1119,7 +1119,7 @@
   (:try-to-pick-edge
     (arm obj-coords obj-cube rotation-axis &key (offset #f(0 0 0)))
     "Return value: :ik-failed, :grasp-failed, :support-failed or :support-succeeded"
-    (let (graspingp prev-av av avs palm-i-prox palm-bottom-tof palm-top-tof stamp
+    (let (graspingp prev-av av avs palm-i-prox palm-bottom-tof palm-top-tof tofs stamp
           (coords-before-approach (send *baxter* arm :end-coords :copy-worldcoords)))
       ;; start the vacuum gripper before approaching to the object
       (ros::ros-info "[:try-to-pick-edge] arm:~a start vacuum gripper" arm)
@@ -1163,10 +1163,12 @@
       (send *ri* :angle-vector-raw (send *baxter* :angle-vector) 1000)
       (send *ri* :wait-interpolation)
       ;; try to pick object edge
-      (unix::usleep 500000)
-      (setq stamp (ros::time-now))
-      (setq palm-bottom-tof (send *ri* :get-tof-proximity arm :palm-bottom :after-stamp stamp))
-      (setq palm-top-tof (send *ri* :get-tof-proximity arm :palm-top :after-stamp stamp))
+      (unix::usleep (* 500 1000))
+      (setq tofs
+            (send *ri* :get-averaged-tof arm (list :palm-bottom :palm-top)
+                  :after-stamp (ros::time-now)))
+      (setq palm-bottom-tof (elt tofs 0))
+      (setq palm-top-tof (elt tofs 1))
       (setq graspingp (send *ri* :graspingp arm :suction))
       ;; TODO: fix hard-coded value
       (if graspingp
@@ -1353,7 +1355,7 @@
                 1000 (send *ri* :get-arm-controller arm) 0)
           (send *ri* :wait-interpolation)
           (return-from :try-to-pick-edge :support-failed)))
-      (let (finger-obj-x finger-obj-y finger-obj-d finger-yaw tofs lr-tof lt-tof rr-tof rt-tof)
+      (let (finger-obj-x finger-obj-y finger-obj-d finger-yaw lr-tof lt-tof rr-tof rt-tof)
         (setq finger-obj-x (+ (/ (x-of-cube obj-cube) 2.0)
                               (gethash arm (gethash :palm-to-finger gripper-dims-))))
         (setq finger-obj-y (/ (gethash arm (gethash :finger-to-finger gripper-dims-)) 2))
