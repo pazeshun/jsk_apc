@@ -42,6 +42,16 @@
                  ;; initialize slots
                  (send *ti* :init :moveit *moveit*)
                  (send *ti* :update-state *arm* :init)
+                 (if (not *ignore-suction-pt*)
+                   (setq *skip-dirs* nil)
+                   (progn
+                     (setq *skip-dirs*
+                           (list
+                             (list #f(0 1 0) #f(-1 0 0) #f(0 -1 0))
+                             (list #f(1 0 0) #f(-1 0 0) #f(0 -1 0))
+                             (list #f(1 0 0) #f(0 1 0) #f(0 -1 0))
+                             (list #f(1 0 0) #f(0 1 0) #f(-1 0 0))))
+                     (send *ti* :set-val 'tried-directions- (pop *skip-dirs*))))
                  (ros::ros-info "start ~a picking" (arm2str *arm*))
                  t))
             (:recognize-bboxes
@@ -77,6 +87,8 @@
             (:check-tried-directions
               '(lambda (userdata)
                  (send *ti* :update-state *arm* :check-tried-directions)
+                 (when *skip-dirs*
+                   (send *ti* :set-val 'tried-directions- (pop *skip-dirs*)))
                  (send *ti* :check-tried-directions *arm*)))
             (:pick-object
               '(lambda (userdata)
@@ -137,8 +149,9 @@
   (objects (list *baxter*))
   t)
 
-(defun pick-book-eval-mainloop (arm)
+(defun pick-book-eval-mainloop (arm &key (ignore-suction-pt nil))
   (setq *arm* arm)
+  (setq *ignore-suction-pt* ignore-suction-pt)
   (when (not (boundp '*sm*))
     (make-eval-state-machine))
   (exec-state-machine *sm* nil :root-name (format nil "SM_~a_ROOT" (string-upcase (arm2str arm))) :hz 2.0))
