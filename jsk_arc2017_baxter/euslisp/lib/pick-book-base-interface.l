@@ -1294,6 +1294,10 @@
                             (ros::ros-info
                               "[:try-to-pick-edge] arm:~a ToF confirmed edge. Init: ~a, Now: ~a"
                               arm init-tof palm-bottom-tof)
+                            (when (= edge-dir 1)
+                              ;; move palm to include edge
+                              (send *ri* :angle-vector-raw
+                                    (send *baxter* arm :move-end-pos #f(-20 0 0) :local) 1000))
                             (setq detect-cnt nil)
                             (setq edge-dir 0))
                           (progn
@@ -1305,10 +1309,6 @@
             ;; Turn on all proximities
             (send *ri* :turn-off-proximity :intensity arm nil)
             (send *ri* :turn-off-proximity :tof arm nil)
-            (when (= edge-dir 1)
-              ;; move palm to include edge
-              (send *ri* :angle-vector-raw
-                    (send *baxter* arm :move-end-pos #f(-20 0 0) :local) 1000))
             (ros::ros-info "[:try-to-pick-edge] arm:~a grasp again" arm)
             (send *ri* :start-grasp arm)
             (unix::sleep 1)
