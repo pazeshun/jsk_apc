@@ -1214,12 +1214,12 @@
             (unix::sleep 2)
             (setq palm-i-prox (send *ri* :get-i-proximity arm :palm-bottom))
             (let (init-tof (detect-cnt 0))
-              ;; can distinguish obj and floor
-              (ros::ros-info
-                "[:try-to-pick-edge] arm:~a try to search object edge. Proximity: ~a"
-                arm palm-i-prox)
+              (ros::ros-info "[:try-to-pick-edge] arm:~a try to search object edge." arm)
               (setq init-tof (send *ri* :get-averaged-tof arm :palm-bottom
                                    :after-stamp (ros::time-now)))
+              (ros::ros-info
+                "[:try-to-pick-edge] arm:~a Init proximity: ~a, ToF: ~a"
+                arm palm-i-prox init-tof)
               (setq prev-av (send *baxter* :angle-vector))
               (setq av (send *baxter* arm :move-end-pos (scale edge-dir #f(100 0 0)) :local))
               (unless av
@@ -1248,6 +1248,8 @@
                              (>= palm-bottom-tof (- init-tof 15))))
                     (progn
                       (ros::ros-error "[:try-to-pick-edge] arm:~a cannot detect edge." arm)
+                      (ros::ros-error "[:try-to-pick-edge] arm:~a Proximity: ~a, ToF: ~a"
+                                      arm palm-i-prox palm-bottom-tof)
                       (cond ((and (= edge-dir -1) (<= palm-bottom-tof 40))
                              (ros::ros-error
                                "[:try-to-pick-edge] arm:~a prox-obj dist is decreased overly."
