@@ -1190,7 +1190,7 @@
             (t (error
                  "[:try-to-pick-edge] arm:~a unsupported pattern. Bottom ToF: ~a, Top ToF: ~a"
                  arm palm-bottom-tof palm-top-tof)))
-          (when edge-dir
+          (when (numberp edge-dir)
             (ros::ros-info "[:try-to-pick-edge] arm:~a try to detect edge to dir ~a" arm edge-dir)
             (send *ri* :stop-grasp arm)
             (unix::sleep 3)
@@ -1248,7 +1248,6 @@
                              (>= palm-bottom-tof (- init-tof 15))))
                     (progn
                       (ros::ros-error "[:try-to-pick-edge] arm:~a cannot detect edge." arm)
-                      (setq detect-cnt nil)
                       (cond ((and (= edge-dir -1) (<= palm-bottom-tof 40))
                              (ros::ros-error
                                "[:try-to-pick-edge] arm:~a prox-obj dist is decreased overly."
@@ -1261,7 +1260,11 @@
                               (ros::ros-info
                                 "[:try-to-pick-edge] arm:~a back to previous pose."
                                 arm)
-                              (send *baxter* :angle-vector prev-av))))
+                              (send *ri* :angle-vector-raw
+                                    (send *baxter* :angle-vector prev-av) 1000)
+                              (send *ri* :wait-interpolation)))
+                      (setq detect-cnt nil)
+                      (setq edge-dir 0))
                     (progn
                       (ros::ros-info "[:try-to-pick-edge] arm:~a edge is detected." arm)
                       (unix::sleep 1)
