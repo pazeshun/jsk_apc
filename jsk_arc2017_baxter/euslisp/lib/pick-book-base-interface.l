@@ -1353,7 +1353,7 @@
                 1000 (send *ri* :get-arm-controller arm) 0)
           (send *ri* :wait-interpolation)
           (return-from :try-to-pick-edge :support-failed)))
-      (let (finger-obj-x finger-obj-y finger-obj-d finger-yaw lr-tof lt-tof rr-tof rt-tof)
+      (let (finger-obj-x finger-obj-y finger-obj-d finger-yaw tofs lr-tof lt-tof rr-tof rt-tof)
         (setq finger-obj-x (+ (/ (x-of-cube obj-cube) 2.0)
                               (gethash arm (gethash :palm-to-finger gripper-dims-))))
         (setq finger-obj-y (/ (gethash arm (gethash :finger-to-finger gripper-dims-)) 2))
@@ -1365,11 +1365,14 @@
         (send *ri* :move-hand arm
               (send *baxter* :hand arm :angle-vector (float-vector finger-yaw 75 75)) 1000)
         (unix::sleep 1)
-        (setq stamp (ros::time-now))
-        (setq lr-tof (send *ri* :get-tof-proximity arm :left-root :after-stamp stamp))
-        (setq lt-tof (send *ri* :get-tof-proximity arm :left-tip :after-stamp stamp))
-        (setq rr-tof (send *ri* :get-tof-proximity arm :right-root :after-stamp stamp))
-        (setq rt-tof (send *ri* :get-tof-proximity arm :right-tip :after-stamp stamp))
+        (setq tofs
+              (send *ri* :get-averaged-tof arm (list :left-root :left-tip :right-root :right-tip)
+                    :after-stamp (ros::time-now)))
+        ;; Add offset to ToF
+        (setq lr-tof (elt tofs 0))
+        (setq lt-tof (elt tofs 1))
+        (setq rr-tof (- (elt tofs 2) 3))
+        (setq rt-tof (elt tofs 3))
         ;; TODO: fix hard-coded value
         (if (or (and (> (- lt-tof lr-tof) 10) (< (/ (+ lt-tof lr-tof) 2.0) (+ finger-obj-d 5)))
                 (and (> (- rt-tof rr-tof) 10) (< (/ (+ rt-tof rr-tof) 2.0) (+ finger-obj-d 5))))
