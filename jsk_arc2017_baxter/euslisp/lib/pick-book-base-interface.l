@@ -1172,17 +1172,17 @@
       (if graspingp
         (let (edge-dir)
           (cond
-            ((and (>= palm-bottom-tof 80) (< palm-top-tof 87))
+            ((and (>= palm-bottom-tof 85) (< palm-top-tof 92))
              (ros::ros-info
-               "[:try-to-pick-edge] arm:~a edge is inside palm. Bottom ToF: ~a, Top ToF: ~a"
+               "[:try-to-pick-edge] arm:~a edge is inside palm? Bottom ToF: ~a, Top ToF: ~a"
                arm palm-bottom-tof palm-top-tof)
-             (setq edge-dir nil))
-            ((and (< palm-bottom-tof 80) (< palm-top-tof 87))
+             (setq edge-dir 1))
+            ((and (< palm-bottom-tof 85) (< palm-top-tof 92))
              (ros::ros-info
-               "[:try-to-pick-edge] arm:~a center is picked. Bottom ToF: ~a, Top ToF: ~a"
+               "[:try-to-pick-edge] arm:~a center is picked? Bottom ToF: ~a, Top ToF: ~a"
                arm palm-bottom-tof palm-top-tof)
              (setq edge-dir -1))
-            ((and (>= palm-bottom-tof 80) (>= palm-top-tof 87))
+            ((and (>= palm-bottom-tof 85) (>= palm-top-tof 92))
              (ros::ros-info
                "[:try-to-pick-edge] arm:~a edge is too close. Bottom ToF: ~a, Top ToF: ~a"
                arm palm-bottom-tof palm-top-tof)
@@ -1211,82 +1211,97 @@
             (send *ri* :turn-off-proximity :tof arm
                   (list :left-root :left-tip :right-root :right-tip
                         :palm-top :palm-right :palm-left))
-            (unix::sleep 2)
-            (setq palm-i-prox (send *ri* :get-i-proximity arm :palm-bottom))
-            (let (init-tof (detect-cnt 0))
-              (ros::ros-info "[:try-to-pick-edge] arm:~a try to search object edge." arm)
-              (setq init-tof (send *ri* :get-averaged-tof arm :palm-bottom
-                                   :after-stamp (ros::time-now)))
-              (ros::ros-info
-                "[:try-to-pick-edge] arm:~a Init proximity: ~a, ToF: ~a"
-                arm palm-i-prox init-tof)
-              (setq prev-av (send *baxter* :angle-vector))
-              (setq av (send *baxter* arm :move-end-pos (scale edge-dir #f(100 0 0)) :local))
-              (unless av
-                (setq av (send *baxter* arm :move-end-pos (scale edge-dir #f(50 0 0)) :local)))
-              (if (null av)
-                (progn
-                  (ros::ros-error "[:try-to-pick-edge] arm:~a IK failed. Abort searching edge."
-                                  arm))
-                (while detect-cnt
-                  (send *ri* :calib-proximity-threshold arm)
-                  (send *ri* :angle-vector-raw av 5000 (send *ri* :get-arm-controller arm) 0)
-                  ;; TODO: fix hard-coded value
-                  (send *ri* :wait-interpolation-until arm :palm-i-prox :palm-tof
-                        :palm-i-prox-range (if (= edge-dir -1) (list -15 15) (list -15 15))
-                        :palm-tof-range (if (= edge-dir -1)
-                                          (list 40 (+ init-tof 15))
-                                          (list (- init-tof 15) 110)))
-                  (setq palm-i-prox (send *ri* :get-i-proximity arm :palm-bottom))
-                  (setq palm-bottom-tof (send *ri* :get-tof-proximity arm :palm-bottom))
-                  (send *baxter* :angle-vector
-                        (send *ri* :state :potentio-vector :wait-until-update t))
-                  (if (if (= edge-dir -1)
-                        (and (>= palm-i-prox -15) (<= palm-i-prox 15)
-                             (<= palm-bottom-tof (+ init-tof 15)))
-                        (and (>= palm-i-prox -15) (<= palm-i-prox 15)
-                             (>= palm-bottom-tof (- init-tof 15))))
-                    (progn
-                      (ros::ros-error "[:try-to-pick-edge] arm:~a cannot detect edge." arm)
-                      (ros::ros-error "[:try-to-pick-edge] arm:~a Proximity: ~a, ToF: ~a"
-                                      arm palm-i-prox palm-bottom-tof)
-                      (cond ((and (= edge-dir -1) (<= palm-bottom-tof 40))
-                             (ros::ros-error
-                               "[:try-to-pick-edge] arm:~a prox-obj dist is decreased overly."
-                               arm))
-                            ((and (= edge-dir 1) (>= palm-bottom-tof 110))
-                             (ros::ros-error
-                               "[:try-to-pick-edge] arm:~a prox-obj dist is increased overly."
-                               arm))
-                            (t
-                              (ros::ros-info
-                                "[:try-to-pick-edge] arm:~a back to previous pose."
-                                arm)
-                              (send *ri* :angle-vector-raw
-                                    (send *baxter* :angle-vector prev-av) 1000)
-                              (send *ri* :wait-interpolation)))
-                      (setq detect-cnt nil)
-                      (setq edge-dir 0))
-                    (progn
-                      (ros::ros-info "[:try-to-pick-edge] arm:~a edge is detected." arm)
-                      (unix::sleep 1)
-                      (setq palm-bottom-tof (send *ri* :get-averaged-tof arm :palm-bottom
-                                                  :after-stamp (ros::time-now)))
-                      ;; TODO: fix hard-coded value
-                      (if (if (= edge-dir -1)
-                            (> palm-bottom-tof (+ init-tof 7))
-                            (< palm-bottom-tof (- init-tof 7)))
-                        (progn
-                          (ros::ros-info
-                            "[:try-to-pick-edge] arm:~a ToF confirmed edge. Init: ~a, Now: ~a"
-                            arm init-tof palm-bottom-tof)
-                          (setq detect-cnt nil))
-                        (progn
-                          (ros::ros-info
-                            "[:try-to-pick-edge] arm:~a ToF doubted edge. Init: ~a, Now: ~a"
-                            arm init-tof palm-bottom-tof)
-                          (ros::ros-info "[:try-to-pick-edge] arm:~a retry detecting" arm)
-                          (incf detect-cnt))))))))
+            (while (not (= edge-dir 0))
+              (unix::sleep 2)
+              (setq palm-i-prox (send *ri* :get-i-proximity arm :palm-bottom))
+              (let (init-tof (detect-cnt 0))
+                (ros::ros-info "[:try-to-pick-edge] arm:~a try to search object edge." arm)
+                (setq init-tof (send *ri* :get-averaged-tof arm :palm-bottom
+                                     :after-stamp (ros::time-now)))
+                (ros::ros-info
+                  "[:try-to-pick-edge] arm:~a Init proximity: ~a, ToF: ~a"
+                  arm palm-i-prox init-tof)
+                (setq prev-av (send *baxter* :angle-vector))
+                (setq av (send *baxter* arm :move-end-pos (scale edge-dir #f(100 0 0)) :local))
+                (unless av
+                  (setq av (send *baxter* arm :move-end-pos (scale edge-dir #f(50 0 0)) :local)))
+                (if (null av)
+                  (progn
+                    (ros::ros-error "[:try-to-pick-edge] arm:~a IK failed. Abort searching edge."
+                                    arm)
+                    (setq edge-dir 0))
+                  (while detect-cnt
+                    (send *ri* :calib-proximity-threshold arm)
+                    (send *ri* :angle-vector-raw av 5000 (send *ri* :get-arm-controller arm) 0)
+                    ;; TODO: fix hard-coded value
+                    (send *ri* :wait-interpolation-until arm :palm-i-prox :palm-tof
+                          :palm-i-prox-range (if (= edge-dir -1) (list -15 15) (list -15 15))
+                          :palm-tof-range (if (= edge-dir -1)
+                                            (list 40 (+ init-tof 15))
+                                            (list (- init-tof 15) 110)))
+                    (setq palm-i-prox (send *ri* :get-i-proximity arm :palm-bottom))
+                    (setq palm-bottom-tof (send *ri* :get-tof-proximity arm :palm-bottom))
+                    (send *baxter* :angle-vector
+                          (send *ri* :state :potentio-vector :wait-until-update t))
+                    (if (if (= edge-dir -1)
+                          (and (>= palm-i-prox -15) (<= palm-i-prox 15)
+                               (<= palm-bottom-tof (+ init-tof 15)))
+                          (and (>= palm-i-prox -15) (<= palm-i-prox 15)
+                               (>= palm-bottom-tof (- init-tof 15))))
+                      (progn
+                        (ros::ros-error "[:try-to-pick-edge] arm:~a cannot detect edge." arm)
+                        (ros::ros-error "[:try-to-pick-edge] arm:~a Proximity: ~a, ToF: ~a"
+                                        arm palm-i-prox palm-bottom-tof)
+                        (setq detect-cnt nil)
+                        (cond ((and (= edge-dir -1) (<= palm-bottom-tof 40))
+                               (ros::ros-error
+                                 "[:try-to-pick-edge] arm:~a prox-obj dist is decreased overly."
+                                 arm)
+                               (setq edge-dir 0))
+                              ((and (= edge-dir 1) (>= palm-bottom-tof 110))
+                               (ros::ros-error
+                                 "[:try-to-pick-edge] arm:~a prox-obj dist is increased overly."
+                                 arm)
+                               (setq edge-dir 0))
+                              (t
+                                (if (= edge-dir -1)
+                                  (progn
+                                    (ros::ros-info
+                                      "[:try-to-pick-edge] arm:~a edge-dir: -1 edge is opposite"
+                                      arm)
+                                    (ros::ros-info
+                                      "[:try-to-pick-edge] arm:~a change edge-dir to 1"
+                                      arm)
+                                    (setq edge-dir 1))
+                                  (progn
+                                    (setq edge-dir 0)))
+                                (ros::ros-info
+                                  "[:try-to-pick-edge] arm:~a back to previous pose."
+                                  arm)
+                                (send *ri* :angle-vector-raw
+                                      (send *baxter* :angle-vector prev-av) 1000)
+                                (send *ri* :wait-interpolation))))
+                      (progn
+                        (ros::ros-info "[:try-to-pick-edge] arm:~a edge is detected." arm)
+                        (unix::sleep 1)
+                        (setq palm-bottom-tof (send *ri* :get-averaged-tof arm :palm-bottom
+                                                    :after-stamp (ros::time-now)))
+                        ;; TODO: fix hard-coded value
+                        (if (if (= edge-dir -1)
+                              (> palm-bottom-tof (+ init-tof 7))
+                              (< palm-bottom-tof (- init-tof 7)))
+                          (progn
+                            (ros::ros-info
+                              "[:try-to-pick-edge] arm:~a ToF confirmed edge. Init: ~a, Now: ~a"
+                              arm init-tof palm-bottom-tof)
+                            (setq detect-cnt nil)
+                            (setq edge-dir 0))
+                          (progn
+                            (ros::ros-info
+                              "[:try-to-pick-edge] arm:~a ToF doubted edge. Init: ~a, Now: ~a"
+                              arm init-tof palm-bottom-tof)
+                            (ros::ros-info "[:try-to-pick-edge] arm:~a retry detecting" arm)
+                            (incf detect-cnt)))))))))
             ;; Turn on all proximities
             (send *ri* :turn-off-proximity :intensity arm nil)
             (send *ri* :turn-off-proximity :tof arm nil)
