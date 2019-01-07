@@ -1239,7 +1239,7 @@
                     (send *ri* :wait-interpolation-until arm :palm-i-prox :palm-tof
                           :palm-i-prox-range (if (= edge-dir -1) (list -15 15) (list -15 15))
                           :palm-tof-range (if (= edge-dir -1)
-                                            (list 40 (+ init-tof 15))
+                                            (list 20 (+ init-tof 15))
                                             (list (- init-tof 15) 110)))
                     (setq palm-i-prox (send *ri* :get-i-proximity arm :palm-bottom))
                     (setq palm-bottom-tof (send *ri* :get-tof-proximity arm :palm-bottom))
@@ -1255,7 +1255,7 @@
                         (ros::ros-error "[:try-to-pick-edge] arm:~a Proximity: ~a, ToF: ~a"
                                         arm palm-i-prox palm-bottom-tof)
                         (setq detect-cnt nil)
-                        (cond ((and (= edge-dir -1) (<= palm-bottom-tof 40))
+                        (cond ((and (= edge-dir -1) (<= palm-bottom-tof 20))
                                (ros::ros-error
                                  "[:try-to-pick-edge] arm:~a prox-obj dist is decreased overly."
                                  arm)
