@@ -1218,7 +1218,7 @@
             (while (not (= edge-dir 0))
               (unix::sleep 2)
               (setq palm-i-prox (send *ri* :get-i-proximity arm :palm-bottom))
-              (let (init-tof (detect-cnt 0))
+              (let (init-tof move-dist move-tm (detect-cnt 0))
                 (ros::ros-info "[:try-to-pick-edge] arm:~a try to search object edge." arm)
                 (setq init-tof (send *ri* :get-averaged-tof arm :palm-bottom
                                      :after-stamp (ros::time-now)))
@@ -1226,9 +1226,15 @@
                   "[:try-to-pick-edge] arm:~a Init proximity: ~a, ToF: ~a"
                   arm palm-i-prox init-tof)
                 (setq prev-av (send *baxter* :angle-vector))
-                (setq av (send *baxter* arm :move-end-pos (scale edge-dir #f(100 0 0)) :local))
+                (setq move-dist (min 100.0 (/ (x-of-cube obj-cube) 2.0)))
+                (setq av (send *baxter* arm :move-end-pos
+                               (scale edge-dir (float-vector move-dist 0 0)) :local))
+                (setq move-tm (max 2000 (* 5000 (/ move-dist 100))))
                 (unless av
-                  (setq av (send *baxter* arm :move-end-pos (scale edge-dir #f(50 0 0)) :local)))
+                  (setq move-dist (min 50.0 (/ (x-of-cube obj-cube) 2.0)))
+                  (setq av (send *baxter* arm :move-end-pos
+                                 (scale edge-dir (float-vector move-dist 0 0)) :local))
+                  (setq move-tm (max 2000 (* 5000 (/ move-dist 100)))))
                 (if (null av)
                   (progn
                     (ros::ros-error "[:try-to-pick-edge] arm:~a IK failed. Abort searching edge."
@@ -1236,7 +1242,7 @@
                     (setq edge-dir 0))
                   (while detect-cnt
                     (send *ri* :calib-proximity-threshold arm)
-                    (send *ri* :angle-vector-raw av 5000 (send *ri* :get-arm-controller arm) 0)
+                    (send *ri* :angle-vector-raw av move-tm (send *ri* :get-arm-controller arm) 0)
                     ;; TODO: fix hard-coded value
                     (send *ri* :wait-interpolation-until arm :palm-i-prox :palm-tof
                           :palm-i-prox-range (if (= edge-dir -1) (list -15 15) (list -15 15))
