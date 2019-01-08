@@ -1343,7 +1343,9 @@
               2000 (send *ri* :get-arm-controller arm) 0)
         (send *ri* :wait-interpolation)
         (setq graspingp (send *ri* :graspingp arm :suction))
-        (ros::ros-info "[:try-to-pick-edge] arm:~a graspingp: ~a" arm graspingp)
+        (ros::ros-info
+          "[:try-to-pick-edge] arm:~a graspingp before checking palm ToF: ~a"
+          arm graspingp)
         (unless graspingp
           (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 220) :local)
                 1000 (send *ri* :get-arm-controller arm) 0)
@@ -1351,6 +1353,15 @@
           (return-from :try-to-pick-edge :grasp-failed))
         (setq palm-top-tof (send *ri* :get-averaged-tof arm :palm-top
                                  :after-stamp (ros::time-now)))
+        (setq graspingp (send *ri* :graspingp arm :suction))
+        (ros::ros-info
+          "[:try-to-pick-edge] arm:~a graspingp after checking palm ToF: ~a"
+          arm graspingp)
+        (unless graspingp
+          (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 220) :local)
+                1000 (send *ri* :get-arm-controller arm) 0)
+          (send *ri* :wait-interpolation)
+          (return-from :try-to-pick-edge :grasp-failed))
         (ros::ros-info "[:try-to-pick-edge] arm:~a palm ToF: Init: ~a, Now: ~a"
                        arm init-tof palm-top-tof)
         ;; TODO: fix hard-coded value
