@@ -1367,7 +1367,8 @@
           (return-from :try-to-pick-edge :support-failed)))
       (let (finger-obj-x finger-obj-y finger-obj-d finger-yaw lr-tof lt-tof rr-tof rt-tof)
         (setq finger-obj-x (+ (/ (x-of-cube obj-cube) 2.0)
-                              (gethash arm (gethash :palm-to-finger gripper-dims-))))
+                              (gethash arm (gethash :palm-to-finger gripper-dims-))
+                              25))  ;; finger center to ToF in opened finger
         (setq finger-obj-y (/ (gethash arm (gethash :finger-to-finger gripper-dims-)) 2))
         (setq finger-obj-d (sqrt (+ (expt finger-obj-x 2) (expt finger-obj-y 2))))
         (setq finger-yaw (rad2deg (atan (/ finger-obj-x finger-obj-y))))
@@ -1386,9 +1387,10 @@
         (setq rr-tof (- (elt tofs 2) 3))
         (setq rt-tof (elt tofs 3))
         ;; TODO: fix hard-coded value
-        (if (or (and (> (- lt-tof lr-tof) 10) (< (/ (+ lt-tof lr-tof) 2.0) (+ finger-obj-d 5)))
-                (and (> (- rt-tof rr-tof) 10) (< (/ (+ rt-tof rr-tof) 2.0) (+ finger-obj-d 5))))
-          (progn
+        (if (or (and (> (- lt-tof lr-tof) 10) (< (/ (+ lt-tof lr-tof) 2.0) finger-obj-d))
+                (and (> (- rt-tof rr-tof) 10) (< (/ (+ rt-tof rr-tof) 2.0) finger-obj-d)))
+          (let (command-av gripper-x)
+            ;; pinch object
             (send *ri* :move-hand arm
                   (send *baxter* :hand-grasp-pose arm :cylindrical :angle 100) 1000)
             (send *ri* :angle-vector-raw (send *baxter* :slide-gripper arm 0 :relative nil)
