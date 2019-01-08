@@ -1119,7 +1119,7 @@
   (:try-to-pick-edge
     (arm obj-coords obj-cube rotation-axis &key (offset #f(0 0 0)))
     "Return value: :ik-failed, :grasp-failed, :support-failed or :support-succeeded"
-    (let (graspingp prev-av av avs palm-i-prox palm-bottom-tof palm-top-tof tofs stamp
+    (let (graspingp prev-av av avs palm-i-prox palm-bottom-tof palm-top-tof tofs stamp lift-h
           (coords-before-approach (send *baxter* arm :end-coords :copy-worldcoords)))
       ;; start the vacuum gripper before approaching to the object
       (ros::ros-info "[:try-to-pick-edge] arm:~a start vacuum gripper" arm)
@@ -1327,8 +1327,9 @@
             (send *ri* :wait-interpolation-until arm :grasp)
             (send *baxter* :angle-vector
                   (send *ri* :state :potentio-vector :wait-until-update t))
+            (setq lift-h (min 70 (- (x-of-cube obj-cube) 30)))
             (let ((ec (send *baxter* arm :end-coords :copy-worldcoords)))
-              (send *baxter* :slide-gripper arm 50 :relative nil)
+              (send *baxter* :slide-gripper arm (- 110 lift-h) :relative nil)
               (send *baxter* arm :inverse-kinematics ec))
             (send *ri* :angle-vector-raw (send *baxter* :angle-vector) 1000)
             (send *ri* :wait-interpolation))))
@@ -1337,8 +1338,9 @@
       (let (init-tof)
         (setq init-tof (send *ri* :get-averaged-tof arm :palm-top
                              :after-stamp (ros::time-now)))
-        (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 55) :local)
-              1000 (send *ri* :get-arm-controller arm) 0)
+        (send *ri* :angle-vector-raw
+              (send *baxter* arm :move-end-pos (float-vector 0 0 lift-h) :local)
+              2000 (send *ri* :get-arm-controller arm) 0)
         (send *ri* :wait-interpolation)
         (setq graspingp (send *ri* :graspingp arm :suction))
         (ros::ros-info "[:try-to-pick-edge] arm:~a graspingp: ~a" arm graspingp)
