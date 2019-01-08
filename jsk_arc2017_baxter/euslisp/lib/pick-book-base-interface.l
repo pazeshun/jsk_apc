@@ -1464,30 +1464,13 @@
       ;; start the vacuum gripper before approaching to the object
       (ros::ros-info "[:try-to-suction-front-object] arm:~a start vacuum gripper" arm)
       (send *ri* :start-grasp arm)
-      ;; suction: prismatic-based approach
-      (send *baxter* :slide-gripper arm (send (send *baxter* arm :gripper-x) :max-angle) :relative nil)
       (send *baxter* arm :inverse-kinematics
             (send (send obj-coords :copy-worldcoords) :locate offset :local)
-            :use-gripper t
+            :use-gripper nil
             :rotation-axis rotation-axis)
-      (let ((prismatic-angle (send *baxter* arm :gripper-x :joint-angle)))
-        (send *baxter* :slide-gripper arm 0 :relative nil)
-        (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
-              3000 (send *ri* :get-arm-controller arm) 0)
-        (send *ri* :wait-interpolation)  ;; move down only the hand palm
-
-        (send *baxter* :slide-gripper arm prismatic-angle :relative nil)
-        (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
-              3000 (send *ri* :get-arm-controller arm) 0)
-        ;; FIXME: :wait-interpolation-until using :prismatic-loaded sometimes ends too fast,
-        ;; so currently we only check :grasp (suction pressure).
-        (send *ri* :wait-interpolation-until arm :grasp)
-
-        (send *baxter* :slide-gripper arm (send (send *baxter* arm :gripper-x) :max-angle) :relative nil)  ;; maximum angle of prismatic joint
-        (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
-              3000 (send *ri* :get-arm-controller arm) 0)
-        (send *ri* :wait-interpolation-until arm :grasp :prismatic-loaded)
-        )
+      (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
+            3000 (send *ri* :get-arm-controller arm) 0)
+      (send *ri* :wait-interpolation-until arm :grasp)
       (setq graspingp (send *ri* :graspingp arm :suction))
       (ros::ros-info "[:try-to-suction-front-object] arm:~a graspingp: ~a" arm graspingp)
       (unless graspingp
@@ -1510,10 +1493,6 @@
       (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 30) :world)
             1000 (send *ri* :get-arm-controller arm) 0)
       (send *ri* :wait-interpolation)
-      ;; suction: prismatic-based approach
-      (send *baxter* :slide-gripper arm 0 :relative nil)
-      (send *baxter* :rotate-gripper arm 0 :relative nil)
-      ;; suction: prismatic-based approach
       ;; lift object
       (ros::ros-info "[:try-to-suction-front-object] arm:~a lift the object" arm)
       (send *ri* :gripper-servo-off arm)
