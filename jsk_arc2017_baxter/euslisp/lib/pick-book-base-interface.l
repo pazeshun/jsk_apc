@@ -1396,6 +1396,24 @@
             (send *ri* :angle-vector-raw (send *baxter* :slide-gripper arm 0 :relative nil)
                   1000 (send *ri* :get-arm-controller arm) 0)
             (send *ri* :wait-interpolation)
+            ;; check if gripper correctly shrinks
+            (setq command-av (send *baxter* :angle-vector))
+            (send *baxter* :angle-vector
+                  (send *ri* :state :potentio-vector :wait-until-update t))
+            (setq gripper-x (send *baxter* arm :gripper-x :joint-angle))
+            (when (> gripper-x 20)
+              ;; wait more when gripper movement is slow
+              (ros::ros-info
+                "[:try-to-pick-edge] arm:~a wait more for gripper. gripper-x: ~a"
+                arm gripper-x)
+              (unix::sleep 1)
+              (send *baxter* :angle-vector
+                    (send *ri* :state :potentio-vector :wait-until-update t))
+              (setq gripper-x (send *baxter* arm :gripper-x :joint-angle)))
+            (ros::ros-info
+              "[:try-to-pick-edge] arm:~a gripper-x before pinch: ~a"
+              arm gripper-x)
+            (send *baxter* :angle-vector command-av)
             (send *ri* :move-hand arm
                   (send *baxter* :hand-grasp-pose arm :cylindrical) 1000)
             (ros::ros-info
