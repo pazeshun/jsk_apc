@@ -49,7 +49,9 @@
                            (list #f(0 1 0) #f(-1 0 0) #f(0 -1 0))
                            (list #f(1 0 0) #f(-1 0 0) #f(0 -1 0))
                            (list #f(1 0 0) #f(0 1 0) #f(0 -1 0))
-                           (list #f(1 0 0) #f(0 1 0) #f(-1 0 0)))))
+                           ;; enable this when suction point can be ignored
+                           ;; (list #f(1 0 0) #f(0 1 0) #f(-1 0 0))
+                           )))
                  (ros::ros-info "start ~a picking" (arm2str *arm*))
                  t))
             (:recognize-bboxes
@@ -91,7 +93,9 @@
             (:pick-object
               '(lambda (userdata)
                  (send *ti* :update-state *arm* :pick-object)
-                 (when (= (length *skip-dirs*) 4)
+                 ;; enable this when suction point can be ignored
+                 ;; (when (= (length *skip-dirs*) 4)
+                 (when (= (length *skip-dirs*) 3)
                    (send *ti* :set-val 'tried-directions- (pop *skip-dirs*)))
                  (send *ti* :pick-object *arm*)))
             (:return-from-pick-object
