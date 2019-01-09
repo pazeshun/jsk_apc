@@ -592,7 +592,7 @@
       pick-result))
   (:get-object-coords-cube
     (arm &key (object-index 0) tried-directions (grasp-style :edge))
-    (let (obj-cube sides cube-coords obj-coords obj-offset)
+    (let (obj-cube temp-obj-cube sides cube-coords obj-coords obj-offset)
       (setq obj-cube (send self :bbox->cube (elt (gethash arm object-boxes-) object-index)))
       (ros::ros-info "[:get-object-coords-cube] original obj-cube: ~a" obj-cube)
       ;; set proper z axis and x axis to obj-cube
@@ -672,7 +672,7 @@
       (ros::ros-info "[:get-object-coords-cube] rotated obj-coords: ~a" obj-coords)
       (dotimes (i 4)
         (case i
-          (0 t)
+          (0 (setq temp-obj-cube (copy-object obj-cube)))
           ;; rotate obj-coords
           (1
            (setq obj-coords (send obj-cube :copy-worldcoords))
@@ -682,7 +682,9 @@
            (if (< obj-offset 0) (setq obj-offset 0))  ;; not to offset obj-coords overly
            (send obj-coords :translate
                  (float-vector obj-offset 0 0) :local)
-           (send obj-coords :rotate pi :z :local))
+           (send obj-coords :rotate pi :z :local)
+           (setq temp-obj-cube (copy-object obj-cube))
+           (send temp-obj-cube :rotate pi :z :local))
           (2
            (setq obj-coords (send obj-cube :copy-worldcoords))
            ;; TODO: fix hard-coded value
@@ -691,7 +693,11 @@
            (if (< obj-offset 0) (setq obj-offset 0))  ;; not to offset obj-coords overly
            (send obj-coords :translate
                  (float-vector 0 obj-offset 0) :local)
-           (send obj-coords :rotate -pi/2 :z :local))
+           (send obj-coords :rotate -pi/2 :z :local)
+           (setq temp-obj-cube
+                 (make-cube (y-of-cube obj-cube) (x-of-cube obj-cube) (z-of-cube obj-cube)))
+           (send temp-obj-cube :move-to (send obj-cube :copy-worldcoords) :world)
+           (send temp-obj-cube :rotate -pi/2 :z :local))
           (3
            (setq obj-coords (send obj-cube :copy-worldcoords))
            ;; TODO: fix hard-coded value
@@ -700,7 +706,11 @@
            (if (> obj-offset 0) (setq obj-offset 0))  ;; not to offset obj-coords overly
            (send obj-coords :translate
                  (float-vector 0 obj-offset 0) :local)
-           (send obj-coords :rotate pi/2 :z :local)))
+           (send obj-coords :rotate pi/2 :z :local)
+           (setq temp-obj-cube
+                 (make-cube (y-of-cube obj-cube) (x-of-cube obj-cube) (z-of-cube obj-cube)))
+           (send temp-obj-cube :move-to (send obj-cube :copy-worldcoords) :world)
+           (send temp-obj-cube :rotate pi/2 :z :local)))
         (when (or (eq grasp-style :suction)
                   (null
                     (remove nil
@@ -710,7 +720,8 @@
                                      (/ pi 4)))
                               tried-directions))))
           (ros::ros-info "[:get-object-coords-cube] position changed obj-coords: ~a" obj-coords)
-          (return-from :get-object-coords-cube (list obj-coords obj-cube))))
+          (ros::ros-info "[:get-object-coords-cube] obj-cube: ~a" temp-obj-cube)
+          (return-from :get-object-coords-cube (list obj-coords temp-obj-cube))))
       (ros::ros-error "[:get-object-coords-cube] every obj-coords candidates were already tried")
       nil))
   (:check-near-walls
