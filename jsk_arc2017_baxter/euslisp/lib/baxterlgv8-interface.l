@@ -681,7 +681,7 @@
                 nil))
           conds))
       ;; wait for :interpolatingp
-      (dotimes (x 100)
+      (dotimes (x 300)
         (if (if (member :hand args)
               (send self :hand-interpolatingp arm)
               (send self :interpolatingp))
