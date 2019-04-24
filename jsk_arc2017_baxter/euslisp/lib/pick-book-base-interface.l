@@ -1132,6 +1132,28 @@
     "Return value: :ik-failed, :grasp-failed, :support-failed or :support-succeeded"
     (let (graspingp prev-av av avs palm-i-prox palm-bottom-tof palm-top-tof tofs stamp lift-h
           (coords-before-approach (send *baxter* arm :end-coords :copy-worldcoords)))
+      (let ((coeff-mat (make-matrix 4 3))
+            (const-vec (make-matrix 4 1))
+            (tof-w 17.5) (tof-d 36.1) eq-coeff norm theta-pitch theta-roll)
+        (setf (matrix-row coeff-mat 0) (float-vector (/ tof-w 2) 0 1))
+        (setf (matrix-row coeff-mat 1) (float-vector 0 (/ tof-d 2) 1))
+        (setf (matrix-row coeff-mat 2) (float-vector (/ tof-w -2) 0 1))
+        (setf (matrix-row coeff-mat 3) (float-vector 0 (/ tof-d -2) 1))
+        (setf (matrix-column const-vec 0)
+              (mapcar #'- (send *ri* :get-averaged-tof arm
+                                (list :palm-top :palm-left :palm-bottom :palm-right)
+                                :after-stamp (ros::time-now))))
+        (setq eq-coeff (m* (pseudo-inverse coeff-mat) const-vec))
+        (setq norm (float-vector (- (aref (matrix-column eq-coeff 0) 0))
+                                 (- (aref (matrix-column eq-coeff 0) 1)) 1))
+        (setq theta-pitch (atan (aref norm 0) (aref norm 2)))
+        (setq theta-roll (atan (- (aref norm 1)) (sqrt (+ (expt (aref norm 0) 2) (expt (aref norm 2) 2)))))
+        (send *baxter* arm :move-end-rot (rad2deg theta-pitch) :y :local)
+        (send *baxter* arm :move-end-rot (rad2deg theta-roll) :x :local)
+        ;; when checking plane parallel to palm, const-vec becomes #2f((-147.0) (-132.6) (-152.0) (-142.4)) and (rad2deg theta-pitch) becomes -15.9454.
+        ;; even when replacing -132.6 to -142.6, (rad2deg theta-pitch) is -12.2512.
+        ;; 5 mm diff is too big...
+        )
       ;; start the vacuum gripper before approaching to the object
       (ros::ros-info "[:try-to-pick-edge] arm:~a start vacuum gripper" arm)
       (send *ri* :start-grasp arm)
