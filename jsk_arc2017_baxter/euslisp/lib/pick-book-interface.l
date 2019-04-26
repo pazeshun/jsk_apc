@@ -350,7 +350,11 @@
       ;;       4000 (send *ri* :get-arm-controller arm) 0
       ;;       :path-constraints path-constraints)
       (setq tried-directions- nil)
-      (let (avs (offsets (list #f(-50 0 500) #f(-50 0 500) #f(-50 0 500) #f(-50 0 250)))
+      (let (avs (offsets
+                  (cond ((equal place-target-label- "cardboard_A")
+                         (list #f(-50 0 400) #f(-50 0 400) #f(-50 0 400) #f(-50 0 150)))
+                        ((equal place-target-label- "cardboard_B")
+                         (list #f(-50 0 335) #f(-50 0 335) #f(-50 0 335) #f(-50 0 85)))))
                 (rpys (list (float-vector pi/2 0 -pi/2) (float-vector pi/2 0 (/ (* pi 2) -3))
                             (float-vector pi/2 0 -pi/2) (float-vector pi/2 0 -pi/2))))
         (dotimes (i (length offsets))
