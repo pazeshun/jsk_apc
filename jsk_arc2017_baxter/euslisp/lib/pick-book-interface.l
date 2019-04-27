@@ -400,12 +400,13 @@
                   2000 (send *ri* :get-arm-controller arm) 0)
             (send *ri* :wait-interpolation))
           ;; push object to container
-          (send *ri* :angle-vector-raw
-                (send *baxter* arm :move-end-pos (float-vector 0 70 0)
-                      (send place-target-cube- :worldcoords)
-                      :rotation-axis t)
-                1000 (send *ri* :get-arm-controller arm) 0)
-          (send *ri* :wait-interpolation)
+          (when (equal place-target-label- "cardboard_B")
+            (send *ri* :angle-vector-raw
+                  (send *baxter* arm :move-end-pos (float-vector 0 70 0)
+                        (send place-target-cube- :worldcoords)
+                        :rotation-axis t)
+                  1000 (send *ri* :get-arm-controller arm) 0)
+            (send *ri* :wait-interpolation))
           (send *ri* :stop-grasp arm) ;; release object
           (send *ri* :stop-grasp arm :pinch)
           (unix::sleep 2)
