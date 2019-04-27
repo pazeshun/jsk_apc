@@ -364,7 +364,7 @@
                   :rpy (elt rpys i)
                   :rotation-axis t
                   :use-gripper nil
-                  :use-rotate-wrist-ik t)
+                  :use-rotate-wrist-ik (if (= i 0) t nil))
             avs))
         (setq avs (cdr avs))
         (setq avs (remove nil avs))
