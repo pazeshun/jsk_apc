@@ -8,4 +8,4 @@ boxes:
   frame_id: base
   name: cardboard_B
   orientation: [0.0, 0.0, 0.0, 1.0]
-  position: [1.138, 0.24, -0.2425]
+  position: [1.083, 0.361, -0.279]
