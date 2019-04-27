@@ -352,7 +352,7 @@
       (setq tried-directions- nil)
       (let (avs (offsets
                   (cond ((equal place-target-label- "cardboard_A")
-                         (list #f(-50 0 400) #f(-50 0 400) #f(-50 0 400) #f(-50 0 150)))
+                         (list #f(-2 -1 431) #f(-2 -1 431) #f(-2 -1 431) #f(-2 -1 181)))
                         ((equal place-target-label- "cardboard_B")
                          (list #f(5 -121 372) #f(5 -121 372) #f(5 -121 372) #f(5 -121 122)))))
                 (rpys (list (float-vector pi/2 0 -pi/2) (float-vector pi/2 0 (/ (* pi 2) -3))
