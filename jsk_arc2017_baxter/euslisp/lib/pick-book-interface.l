@@ -411,7 +411,11 @@
           (send *ri* :stop-grasp arm :pinch)
           (unix::sleep 2)
           (send *ri* :angle-vector-raw
-                (send *baxter* arm :move-end-pos (float-vector 10 0 0)
+                (send *baxter* arm :move-end-pos
+                      (float-vector (cond ((equal place-target-label- "cardboard_A")
+                                           (/ (x-of-cube place-target-cube-) -2))
+                                          ((equal place-target-label- "cardboard_B") 10))
+                                    0 0)
                       (send place-target-cube- :worldcoords)
                       :rotation-axis t)
                 1000 (send *ri* :get-arm-controller arm) 0)
