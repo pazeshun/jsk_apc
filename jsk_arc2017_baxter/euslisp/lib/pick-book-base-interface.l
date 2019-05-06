@@ -1241,7 +1241,7 @@
               ;; TODO: fix hard-coded value
               (setq wait-start-tm (ros::time-now))
               (send *ri* :wait-interpolation-until arm :palm-i-prox :palm-tof
-                    :palm-i-prox-range (if (= edge-dir -1) (list -15 15) (list -15 15))
+                    :palm-i-prox-range (if (= edge-dir -1) (list -8 8) (list -8 8))
                     :palm-tof-range (if (= edge-dir -1)
                                       (list 10 (+ init-tof 15))
                                       (list (- init-tof 15) 110)))
