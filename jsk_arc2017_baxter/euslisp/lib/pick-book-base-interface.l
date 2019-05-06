@@ -1318,8 +1318,10 @@
         (ros::ros-info "[:try-to-pick-edge] arm:~a grasp again" arm)
         (send *ri* :start-grasp arm)
         (unix::sleep 1)
-        (send *ri* :angle-vector-raw
-              (send *baxter* arm :move-end-pos #f(0 0 -55) :local) 1000)
+        (send *ri* :angle-vector-sequence-raw
+              (list (send *baxter* arm :move-end-pos #f(0 0 -30) :local)
+                    (send *baxter* arm :move-end-pos #f(0 0 -25) :local))
+              (list 1000 1000))
         (send *ri* :wait-interpolation-until arm :grasp)
         (send *baxter* :angle-vector
               (send *ri* :state :potentio-vector :wait-until-update t))
