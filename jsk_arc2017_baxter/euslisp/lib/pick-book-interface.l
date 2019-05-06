@@ -354,7 +354,7 @@
                   (cond ((equal place-target-label- "cardboard_A")
                          (list #f(-2 -1 431) #f(-2 -1 431) #f(-2 -1 431) #f(-2 -1 181)))
                         ((equal place-target-label- "cardboard_B")
-                         (list #f(5 -121 372) #f(5 -121 372) #f(5 -121 372) #f(5 -121 122)))))
+                         (list #f(5 -151 372) #f(5 -151 372) #f(5 -151 372) #f(5 -151 122)))))
                 (rpys (list (float-vector pi/2 0 -pi/2) (float-vector pi/2 0 (/ (* pi 2) -3))
                             (float-vector pi/2 0 -pi/2) (float-vector pi/2 0 -pi/2))))
         (dotimes (i (length offsets))
@@ -402,7 +402,7 @@
           ;; push object to container
           (when (equal place-target-label- "cardboard_B")
             (send *ri* :angle-vector-raw
-                  (send *baxter* arm :move-end-pos (float-vector 0 70 0)
+                  (send *baxter* arm :move-end-pos (float-vector 0 100 0)
                         (send place-target-cube- :worldcoords)
                         :rotation-axis t)
                   1000 (send *ri* :get-arm-controller arm) 0)
