@@ -1177,7 +1177,7 @@
         ;; swing off object
         (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 -20) :local) 500)
         (send *ri* :wait-interpolation)
-        (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 10) :local) 500)
+        (send *ri* :angle-vector-raw (send *baxter* arm :move-end-pos #f(0 0 25) :local) 500)
         (send *ri* :wait-interpolation)
         ;; Turn off unused proximities. Don't forget to turn on afterwords
         (send *ri* :turn-off-proximity :intensity arm (list :palm-top :palm-right :palm-left))
@@ -1212,7 +1212,7 @@
               (ros::ros-info
                 "[:try-to-pick-edge] arm:~a move to final pose to check if edge exists"
                 arm)
-              (send *ri* :angle-vector-raw av 1000 (send *ri* :get-arm-controller arm) 0)
+              (send *ri* :angle-vector-raw av move-tm (send *ri* :get-arm-controller arm) 0)
               (send *ri* :wait-interpolation)
               (unix::sleep 1)
               (setq palm-bottom-tof (send *ri* :get-averaged-tof arm :palm-bottom
@@ -1232,10 +1232,10 @@
               (ros::ros-info
                 "[:try-to-pick-edge] arm:~a back to previous pose."
                 arm)
-              (send *ri* :angle-vector-raw prev-av 1000)
+              (send *ri* :angle-vector-raw prev-av move-tm)
               (send *ri* :wait-interpolation))
             (while searchingp
-              (if (= edge-dir 1) (unix::sleep 2))
+              (if (= edge-dir 1) (unix::sleep 1))
               (send *ri* :calib-proximity-threshold arm)
               (send *ri* :angle-vector-raw av move-tm (send *ri* :get-arm-controller arm) 0)
               ;; TODO: fix hard-coded value
@@ -1286,7 +1286,7 @@
                             "[:try-to-pick-edge] arm:~a back to previous pose."
                             arm)
                           (send *ri* :angle-vector-raw
-                                (send *baxter* :angle-vector prev-av) 1000)
+                                (send *baxter* :angle-vector prev-av) move-tm)
                           (send *ri* :wait-interpolation))))
                 (progn
                   (ros::ros-info "[:try-to-pick-edge] arm:~a edge is detected." arm)
@@ -1319,7 +1319,7 @@
         (send *ri* :start-grasp arm)
         (unix::sleep 1)
         (send *ri* :angle-vector-raw
-              (send *baxter* arm :move-end-pos #f(0 0 -40) :local) 1000)
+              (send *baxter* arm :move-end-pos #f(0 0 -55) :local) 1000)
         (send *ri* :wait-interpolation-until arm :grasp)
         (send *baxter* :angle-vector
               (send *ri* :state :potentio-vector :wait-until-update t))
