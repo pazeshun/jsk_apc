@@ -1325,7 +1325,7 @@
         (send *ri* :wait-interpolation-until arm :grasp)
         (send *baxter* :angle-vector
               (send *ri* :state :potentio-vector :wait-until-update t))
-        (setq lift-h (min 70 (- (min (x-of-cube obj-cube) (y-of-cube obj-cube)) 30)))
+        (setq lift-h (max 50 (min 70 (- (min (x-of-cube obj-cube) (y-of-cube obj-cube)) 30))))
         (let ((ec (send *baxter* arm :end-coords :copy-worldcoords)))
           (send *baxter* :slide-gripper arm (- 110 lift-h) :relative nil)
           (send *baxter* arm :inverse-kinematics ec))
