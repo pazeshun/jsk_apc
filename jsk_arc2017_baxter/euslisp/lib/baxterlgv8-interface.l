@@ -729,6 +729,55 @@
                 (ros::ros-error "[:wait-interpolation-until] interpolatingp becomes nil too early")
                 (ros::ros-error "[:wait-interpolation-until] strange behavior, waiting again"))
               (setq finish-p t)))))))
+  (:wait-interpolation-until-funcs
+    (arm funcs &rest args)
+    (when (send self :simulation-modep)
+      (return-from :wait-interpolation-until-funcs (send self :wait-interpolation)))
+    (unless (or (eq arm :rarm) (eq arm :larm))
+      (error ":wait-interpolation-until-funcs set arm for first arg~%"))
+    (flet ((check-interpolatingp
+             ()
+             (if (member :hand args)
+               (send self :hand-interpolatingp arm)
+               (send self :interpolatingp))))
+      ;; wait for :interpolatingp
+      (let ((finish-p nil) (in-dotimes-p nil) ready-tm)
+        (while (not finish-p)
+          (ros::ros-info "[:wait-interpolation-until-funcs] Waiting for interpolatingp")
+          (dotimes (x 300)
+            (when (setq in-dotimes-p (check-interpolatingp))
+              (ros::ros-info "[:wait-interpolation-until-funcs] interpolatingp becomes t")
+              (return))
+            (unix::usleep 1000))
+          (if (not (member :inf-wait-interpolatingp args))
+            (unless in-dotimes-p
+              (ros::ros-info "[:wait-interpolation-until-funcs] interpolatingp remains nil")
+              (return-from :wait-interpolation-until-funcs nil))
+            (unless in-dotimes-p
+              (ros::ros-error "[:wait-interpolation-until-funcs] interpolatingp is nil in dotimes")
+              (ros::ros-error "[:wait-interpolation-until-funcs] Escalate to while")
+              (while t
+                (when (check-interpolatingp)
+                  (ros::ros-info "[:wait-interpolation-until-funcs] interpolatingp becomes t")
+                  (return))
+                (unix::usleep 1000))))
+          (setq ready-tm (ros::time-now))
+          (while (check-interpolatingp)
+            (when (reduce #'(lambda (x y) (or x y)) (mapcar #'funcall funcs))
+              (ros::ros-info "[:wait-interpolation-until-funcs] Cancel angle vector: ~a" arm)
+              (if (member :hand args)
+                (send self :cancel-move-hand arm)
+                (send self :cancel-angle-vector
+                      :controller-type (send self :get-arm-controller arm)))
+              (setq finish-p t))
+            (unix::usleep 1000))
+          (if (and (not finish-p)
+                   (< (send (ros::time- (ros::time-now) ready-tm) :to-sec) 0.1))
+            (progn
+              (ros::ros-error
+                "[:wait-interpolation-until-funcs] interpolatingp becomes nil too early")
+              (ros::ros-error "[:wait-interpolation-until-funcs] strange behavior, waiting again"))
+            (setq finish-p t))))))
   (:calib-pressure-threshold
     (&optional (arm :arms))
     (send self :start-grasp arm)
