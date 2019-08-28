@@ -824,6 +824,16 @@
                                          :sensor_ids ids)))
       (unless (send res :success)
         (ros::ros-error "~a" (send res :message)))))
+  (:enable-flex-reflex
+    (arm enable-p)
+    (let ((service-name
+            (format nil "/gripper_front/limb/~a/enable_flex_reflex" (arm2str arm))))
+      (ros::wait-for-service service-name)
+      (setq res
+            (ros::service-call service-name
+                               (instance std_srvs::SetBoolRequest :init :data enable-p)))
+      (unless (send res :success)
+        (ros::ros-error "~a" (send res :message)))))
   )
 
 (defclass jsk_arc2017_baxter::baxterlgv8-moveit-environment
