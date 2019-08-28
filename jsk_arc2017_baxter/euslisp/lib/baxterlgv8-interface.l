@@ -811,6 +811,19 @@
       ;; TODO: decide proper threshold 100 -> ???
       (setq proximity-threshold- 100))
     (send self :spin-once))
+  (:reset-i-prox-calib
+    (&optional (arm :arms))
+    (dolist (l/r (if (eq arm :arms) (list :rarm :larm) (list arm)))
+      (if (eq l/r :larm)
+        (let ((service-name
+                (format nil "/gripper_front/limb/~a/intensity_prox_calibrator/reset_i_prop_const"
+                        (arm2str l/r))) res)
+          (ros::wait-for-service service-name)
+          (setq res (ros::service-call service-name (instance std_srvs::TriggerRequest :init)))
+          (unless (send res :success)
+            (ros::ros-error "~a" (send res :message))))
+        (ros::ros-error "Cannot use proximities on right hand")))
+    (send self :spin-once))
   (:turn-off-proximity
     (ptype arm sides)
     (let ((service-name
