@@ -90,7 +90,7 @@
       <rosparam>
         min_size: 10
         max_size: 25000
-        tolerance: 0.05
+        tolerance: 0.005
       </rosparam>
     </node>
     <node name="cluster_indices_decomposer_paper"
