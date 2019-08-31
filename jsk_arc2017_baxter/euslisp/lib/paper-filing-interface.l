@@ -286,7 +286,7 @@
           (send *baxter* :hand-grasp-pre-pose :larm :cylindrical) 1000)
     (send *ri* :angle-vector-raw
           (send *baxter* :larm :move-end-pos #f(0 0 200) :local)
-          :fast (send *ri* :get-arm-controller :larm) 0 :scale 3.0)
+          :fast (send *ri* :get-arm-controller :larm) 0 :scale 10.0)
     (send *ri* :wait-interpolation)
     ;; Turn on flex reflex
     (send *ri* :enable-flex-reflex :larm t)
