@@ -72,11 +72,21 @@
         i_limit_min: 200
       </rosparam>
     </node>
+    <node name="resize_points_publisher_paper"
+          pkg="nodelet" type="nodelet"
+          args="load jsk_pcl/ResizePointsPublisher $(arg LEFT_MANAGER)"
+          respawn="true">
+      <remap from="~input" to="hsi_filter_paper/output" />
+      <rosparam>
+        step_x: 2
+        step_y: 2
+      </rosparam>
+    </node>
     <node name="euclidean_clustering_paper"
           pkg="nodelet" type="nodelet"
           args="load jsk_pcl/EuclideanClustering $(arg LEFT_MANAGER)"
           respawn="true">
-      <remap from="~input" to="hsi_filter_paper/output" />
+      <remap from="~input" to="resize_points_publisher_paper/output" />
       <rosparam>
         min_size: 10
         max_size: 25000
@@ -87,7 +97,7 @@
           pkg="nodelet" type="nodelet"
           args="load jsk_pcl/ClusterPointIndicesDecomposer $(arg LEFT_MANAGER)"
           respawn="true">
-      <remap from="~input" to="hsi_filter_paper/output" />
+      <remap from="~input" to="resize_points_publisher_paper/output" />
       <remap from="~target" to="euclidean_clustering_paper/output" />
       <rosparam subst_value="true">
         approximate_sync: false
