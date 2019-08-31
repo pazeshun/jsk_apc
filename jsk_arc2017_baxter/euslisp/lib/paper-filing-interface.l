@@ -72,7 +72,7 @@
     (send *baxter* :reset-pose :larm)
     (send *baxter* :rotate-gripper :larm -90 :relative nil)
     (send self :ik->cube-center :larm table-cube-
-          :offset #f(30 280 250) :rpy (float-vector 0 -pi/2 pi/2)
+          :offset #f(30 290 250) :rpy (float-vector 0 -pi/2 pi/2)
           :use-gripper nil :use-rotate-wrist-ik t)
     (send *ri* :angle-vector-raw (send *baxter* :angle-vector) 3000
           (send *ri* :get-arm-controller :larm) 0))
