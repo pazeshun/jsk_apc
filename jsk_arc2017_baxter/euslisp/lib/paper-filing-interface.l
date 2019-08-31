@@ -27,7 +27,7 @@
     (sethash :rarm (gethash :pad-r gripper-dims-) 15)
     (setq paper-boxes- nil)
     (setq paper-coords- nil)
-    (setq paper-thre-l- 20 paper-thre-r- 20))
+    (setq paper-thre-l- 25 paper-thre-r- 25))
   (:bbox->cube (bbox)
     (let* ((dims (ros::tf-point->pos (send bbox :dimensions)))
            (bx (make-cube (elt dims 0) (elt dims 1) (elt dims 2))))
@@ -192,15 +192,21 @@
       (send *ri* :angle-vector-sequence-raw avs
             :fast (send *ri* :get-arm-controller :larm) 0 :scale 20.0)
       (send *ri* :wait-interpolation)))
-  (:grasp-paper ()
+  (:grasp-paper (&key (init t))
     (ros::ros-info "[:grasp-paper] Grasping paper...")
-    ;; Turn off flex reflex
-    (send *ri* :enable-flex-reflex :larm nil)
+    (when init
+      ;; Turn off flex reflex
+      (send *ri* :enable-flex-reflex :larm nil)
+      (send *ri* :reset-i-prox-calib :larm)
+      (send *ri* :move-hand :larm
+            (send *baxter* :hand :larm :angle-vector #f(77 90 110)) 2000))
     ;; Close finger until sensing paper
+    ;; 160 is too far and 2000 is too fast to cancel.
+    ;; After wait-interpolation, sensor values drop under threshold.
+    ;; (send *ri* :move-hand :larm
+    ;;       (send *baxter* :hand :larm :angle-vector #f(77 90 160)) 2000 :wait nil)
     (send *ri* :move-hand :larm
-          (send *baxter* :hand :larm :angle-vector #f(77 90 110)) 2000)
-    (send *ri* :move-hand :larm
-          (send *baxter* :hand :larm :angle-vector #f(77 90 150)) 2000 :wait nil)
+          (send *baxter* :hand :larm :angle-vector #f(77 90 180)) 3000 :wait nil)
     (let (l-dist r-dist)
       (send *ri* :wait-interpolation-until-funcs :larm
             (list #'(lambda ()
