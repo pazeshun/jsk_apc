@@ -106,6 +106,7 @@
         align_boxes: true
         align_boxes_with_plane: false
         target_frame_id: table_bottom_right_frame
+        force_to_flip_z_axis: false
       </rosparam>
     </node>
   </group>  <!-- ns="left_hand_camera" -->
