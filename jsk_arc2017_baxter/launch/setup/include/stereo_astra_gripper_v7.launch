@@ -16,6 +16,7 @@
   <!-- ************************************************************************************* -->
   <!-- left hand camera                                                                      -->
   <!-- ************************************************************************************* -->
+  <!-- FIXME: As "Bond broken" occurs too frequently, respawn is added to all nodelet nodes -->
 
   <group if="$(arg launch_left_hand_stereo)">
     <group ns="left_hand_camera">
@@ -24,19 +25,22 @@
       <group ns="left/rgb">
         <node name="relay_camera_info"
               pkg="nodelet" type="nodelet"
-              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)">
+              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)"
+              respawn="true">
           <remap from="~input" to="$(arg LEFT_INPUT)/rgb/camera_info" />
           <remap from="~output" to="camera_info" />
         </node>
         <node name="relay_img"
               pkg="nodelet" type="nodelet"
-              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)">
+              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)"
+              respawn="true">
           <remap from="~input" to="$(arg LEFT_INPUT)/rgb/image_raw" />
           <remap from="~output" to="image_raw" />
         </node>
         <node name="relay_img_compressed"
               pkg="nodelet" type="nodelet"
-              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)">
+              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)"
+              respawn="true">
           <remap from="~input" to="$(arg LEFT_INPUT)/rgb/image_raw/compressed" />
           <remap from="~output" to="image_raw/compressed" />
         </node>
@@ -44,19 +48,22 @@
       <group ns="left/depth">
         <node name="relay_camera_info"
               pkg="nodelet" type="nodelet"
-              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)">
+              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)"
+              respawn="true">
           <remap from="~input" to="$(arg LEFT_INPUT)/depth/camera_info" />
           <remap from="~output" to="camera_info" />
         </node>
         <node name="relay_img"
               pkg="nodelet" type="nodelet"
-              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)">
+              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)"
+              respawn="true">
           <remap from="~input" to="$(arg LEFT_INPUT)/depth/image_raw" />
           <remap from="~output" to="image_raw" />
         </node>
         <node name="relay_img_compressed"
               pkg="nodelet" type="nodelet"
-              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)">
+              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)"
+              respawn="true">
           <remap from="~input" to="$(arg LEFT_INPUT)/depth/image_raw/compressedDepth" />
           <remap from="~output" to="image_raw/compressedDepth" />
         </node>
@@ -122,19 +129,22 @@
       <group ns="right/rgb">
         <node name="relay_camera_info"
               pkg="nodelet" type="nodelet"
-              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)">
+              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)"
+              respawn="true">
           <remap from="~input" to="$(arg RIGHT_INPUT)/rgb/camera_info" />
           <remap from="~output" to="camera_info" />
         </node>
         <node name="relay_img"
               pkg="nodelet" type="nodelet"
-              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)">
+              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)"
+              respawn="true">
           <remap from="~input" to="$(arg RIGHT_INPUT)/rgb/image_raw" />
           <remap from="~output" to="image_raw" />
         </node>
         <node name="relay_img_compressed"
               pkg="nodelet" type="nodelet"
-              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)">
+              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)"
+              respawn="true">
           <remap from="~input" to="$(arg RIGHT_INPUT)/rgb/image_raw/compressed" />
           <remap from="~output" to="image_raw/compressed" />
         </node>
@@ -142,19 +152,22 @@
       <group ns="right/depth">
         <node name="relay_camera_info"
               pkg="nodelet" type="nodelet"
-              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)">
+              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)"
+              respawn="true">
           <remap from="~input" to="$(arg RIGHT_INPUT)/depth/camera_info" />
           <remap from="~output" to="camera_info" />
         </node>
         <node name="relay_img"
               pkg="nodelet" type="nodelet"
-              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)">
+              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)"
+              respawn="true">
           <remap from="~input" to="$(arg RIGHT_INPUT)/depth/image_raw" />
           <remap from="~output" to="image_raw" />
         </node>
         <node name="relay_img_compressed"
               pkg="nodelet" type="nodelet"
-              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)">
+              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)"
+              respawn="true">
           <remap from="~input" to="$(arg RIGHT_INPUT)/depth/image_raw/compressedDepth" />
           <remap from="~output" to="image_raw/compressedDepth" />
         </node>
@@ -187,7 +200,8 @@
       <group ns="stereo">
         <node name="relay_rgb_camera_info"
               pkg="nodelet" type="nodelet"
-              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)">
+              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)"
+              respawn="true">
           <remap from="~input" to="/left_hand_camera/left/rgb/camera_info" />
           <remap from="~output" to="rgb/camera_info" />
         </node>
@@ -205,7 +219,7 @@
         <node name="depth_image_creator"
               pkg="nodelet" type="nodelet"
               args="load jsk_pcl/DepthImageCreator /$(arg LEFT_NODELET_MANAGER)"
-              output="screen" >
+              output="screen" respawn="true">
           <remap from="~input" to="depth_registered/points" />
           <remap from="~info" to="/left_hand_camera/left/rgb/camera_info" />
           <remap from="~output" to="depth_registered/image_rect" />
@@ -236,14 +250,15 @@
       <group ns="right_registered">
         <node name="relay_rgb_camera_info"
               pkg="nodelet" type="nodelet"
-              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)">
+              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)"
+              respawn="true">
           <remap from="~input" to="/left_hand_camera/left/rgb/camera_info" />
           <remap from="~output" to="rgb/camera_info" />
         </node>
         <node name="depth_image_creator"
               pkg="nodelet" type="nodelet"
               args="load jsk_pcl/DepthImageCreator /$(arg LEFT_NODELET_MANAGER)"
-              output="screen" >
+              output="screen" respawn="true">
           <remap from="~input" to="/left_hand_camera/right/depth_registered/points" />
           <remap from="~info" to="rgb/camera_info" />
           <remap from="~output" to="depth_registered/image_rect" />
@@ -271,14 +286,15 @@
       <group ns="fused" if="$(arg fuse)">
         <node name="relay_rgb_camera_info"
               pkg="nodelet" type="nodelet"
-              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)">
+              args="load jsk_topic_tools/Relay /$(arg LEFT_NODELET_MANAGER)"
+              respawn="true">
           <remap from="~input" to="/left_hand_camera/left/rgb/camera_info" />
           <remap from="~output" to="rgb/camera_info" />
         </node>
         <node name="fuse_rgb_images"
               pkg="nodelet" type="nodelet"
               args="load jsk_pcl/FuseRGBImages /$(arg LEFT_NODELET_MANAGER)"
-              output="screen" >
+              output="screen" respawn="true">
           <remap from="~output" to="rgb/image_rect_color" />
           <rosparam>
             approximate_sync: true
@@ -293,7 +309,7 @@
         <node name="fuse_depth_images"
               pkg="nodelet" type="nodelet"
               args="load jsk_pcl/FuseDepthImages /$(arg LEFT_NODELET_MANAGER)"
-              output="screen" >
+              output="screen" respawn="true">
           <remap from="~output" to="depth_registered/image_rect" />
           <rosparam>
             approximate_sync: true
@@ -321,7 +337,7 @@
         <node name="point_cloud_xyzrgb"
               pkg="nodelet" type="nodelet"
               args="load depth_image_proc/point_cloud_xyzrgb /$(arg LEFT_NODELET_MANAGER)"
-              output="screen" >
+              output="screen" respawn="true">
           <remap from="rgb/camera_info" to="rgb/camera_info" />
           <remap from="rgb/image_rect_color" to="rgb/image_rect_color" />
           <remap from="depth_registered/image_rect" to="depth_registered/image_rect" />
