@@ -6,10 +6,11 @@
 
 (defun paper-filing-init (&key (ctype :default-controller) (moveit nil))
   (jsk_arc2017_baxter::paper-filing-init :ctype ctype :moveit moveit)
-  (when moveit
-    (send *ti* :wipe-all-scene)
-    (send *ti* :add-workspace-scene)
-    )
+  ;; Currently, moveit env is set but not used.
+  ;; (when moveit
+  ;;   (send *ti* :wipe-all-scene)
+  ;;   (send *ti* :add-workspace-scene)
+  ;;   )
   ;; initialize fingers
   (send *ri* :move-hand :rarm
         (send *baxter* :hand-grasp-pre-pose :rarm :cylindrical) 1000 :wait nil)
