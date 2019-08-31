@@ -104,10 +104,10 @@
           object_x: 0.1
           object_y: 0.1
           object_z: 0.1
-          initial_x: 0.088
-          initial_y: 0.067
-          initial_z: 0.016
-          initial_orientation: [0.007, 0.006, -0.714, 0.700]
+          initial_x: 0.081
+          initial_y: 0.062
+          initial_z: 0.015
+          initial_orientation: [0.009, 0.005, -0.713, 0.701]
         </rosparam>
       </node>
       <group ns="left/depth_registered">
