@@ -241,45 +241,44 @@
     (ros::ros-info "[:file-paper] Filing paper...")
     (send *ri* :angle-vector-raw
           (send *baxter* :larm :move-end-pos #f(0 0 150) :local)
-          :fast (send *ri* :get-arm-controller :larm) 0 :scale 5.0)
+          :fast (send *ri* :get-arm-controller :larm) 0 :scale 6.0)
     (send *ri* :wait-interpolation)
     (assert (send *baxter* :larm :move-end-pos #f(320 0 0) :local))
-    (let (l-dist r-dist)
+    (let (l-dist r-dist (thre-l (+ paper-thre-l- 10)) (thre-r (+ paper-thre-r- 10)))
       (while
         (progn
           (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
-                :fast (send *ri* :get-arm-controller :larm) 0 :scale 5.0)
+                :fast (send *ri* :get-arm-controller :larm) 0 :scale 6.0)
           (ros::ros-info "[:file-paper] Now you can pull out paper")
           (send *ri* :wait-interpolation-until-funcs :larm
                 (list #'(lambda ()
                           (or
                             (>= (setq l-dist (send *ri* :get-i-prox-distance :larm :left-tip))
-                                paper-thre-l-)
+                                thre-l)
                             (>= (setq r-dist (send *ri* :get-i-prox-distance :larm :right-tip))
-                                paper-thre-r-)))))
-          (if (or (>= l-dist paper-thre-l-) (>= r-dist paper-thre-r-))
+                                thre-r)))))
+          (if (or (>= l-dist thre-l) (>= r-dist thre-r))
             (progn
               (ros::ros-error "[:file-paper] Paper is pulled out")
               (while
                 (progn
                   ;; Slightly open finger
                   (send *ri* :move-hand :larm
-                        (send *baxter* :hand :larm :angle-vector #f(77 90 110)) 1000)
+                        (send *baxter* :hand :larm :angle-vector #f(77 90 140)) 1000)
                   (ros::ros-info "[:file-paper] Waiting for paper to be inserted...")
                   (while (or (>= (send *ri* :get-i-prox-distance :larm :left-tip) 70)
                              (>= (send *ri* :get-i-prox-distance :larm :right-tip) 70))
                          (unix::usleep (* 50 1000)))
-                  (unix::sleep 3)
                   (ros::ros-info "[:file-paper] Paper is inserted")
-                  (not (send self :grasp-paper))))
+                  (not (send self :grasp-paper :init nil))))
               t)
             nil))))
     (ros::ros-info "[:file-paper] Now you cannot pull out paper")
     (let (avs)
-      (setq avs (list (send *baxter* :larm :move-end-pos #f(0 0 -120) :local)
+      (setq avs (list (send *baxter* :larm :move-end-pos #f(0 0 -100) :local)
                       (send *baxter* :larm :move-end-pos #f(30 0 0) :local)))
       (send *ri* :angle-vector-sequence-raw avs
-            :fast (send *ri* :get-arm-controller :larm) 0 :scale 5.0)
+            :fast (send *ri* :get-arm-controller :larm) 0 :scale 20.0)
       (send *ri* :wait-interpolation)))
   (:return-from-file-paper ()
     (ros::ros-info "[:return-from-file-paper] Returning from :file-paper...")
