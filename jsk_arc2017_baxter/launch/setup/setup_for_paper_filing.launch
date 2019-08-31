@@ -64,12 +64,12 @@
       <rosparam>
         use_indices: false
         keep_organized: true
-        h_limit_max: 10
-        h_limit_min: -10
-        s_limit_max: 10
-        s_limit_min: -10
-        i_limit_max: 105
-        i_limit_min: 85
+        h_limit_max: -108
+        h_limit_min: -128
+        s_limit_max: 50
+        s_limit_min: 0
+        i_limit_max: 255
+        i_limit_min: 200
       </rosparam>
     </node>
     <node name="euclidean_clustering_paper"
