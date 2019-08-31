@@ -145,7 +145,7 @@
       ;; Rotate to match end-coords
       (send contact-coords :rotate (deg2rad -90) :z)
       (setq above-coords (copy-object contact-coords))
-      (send above-coords :trasnlate #f(0 0 150))
+      (send above-coords :translate #f(0 0 150))
       (setq slide-l
             (- (+ (elt (send table-cube- :worldpos) 1) (/ (y-of-cube table-cube-) 2))
                (elt (send contact-coords :worldpos) 1) 15))
