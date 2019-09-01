@@ -192,22 +192,26 @@
       (send *ri* :angle-vector-sequence-raw avs
             :fast (send *ri* :get-arm-controller :larm) 0 :scale 20.0)
       (send *ri* :wait-interpolation)))
-  (:grasp-paper (&key (init t))
+  (:grasp-paper ()
     (ros::ros-info "[:grasp-paper] Grasping paper...")
-    (when init
-      ;; Turn off flex reflex
-      (send *ri* :enable-flex-reflex :larm nil)
-      (send *ri* :reset-i-prox-calib :larm)
+    (let ((roll-jt-b (aref (send *ri* :get-real-finger-av :larm) 2)) tm-to-grasp l-dist r-dist)
+      (when (< roll-jt-b 110.0)
+        (ros::ros-info "[:grasp-paper] roll-jt-b is ~a < 110, so initialize finger" roll-jt-b)
+        ;; Turn off flex reflex
+        (send *ri* :enable-flex-reflex :larm nil)
+        (send *ri* :reset-i-prox-calib :larm)
+        (send *ri* :move-hand :larm
+              (send *baxter* :hand :larm :angle-vector #f(77 90 110)) 2000)
+        (setq roll-jt-b 110.0))
+      (setq tm-to-grasp (* 3000 (/ (- 180.0 roll-jt-b) 70)))  ;; Default value is 3000
+      (ros::ros-info "[:grasp-paper] tm-to-grasp: ~a" tm-to-grasp)
+      ;; Close finger until sensing paper
+      ;; 160 is too far and 2000 is too fast to cancel.
+      ;; After wait-interpolation, sensor values drop under threshold.
+      ;; (send *ri* :move-hand :larm
+      ;;       (send *baxter* :hand :larm :angle-vector #f(77 90 160)) 2000 :wait nil)
       (send *ri* :move-hand :larm
-            (send *baxter* :hand :larm :angle-vector #f(77 90 110)) 2000))
-    ;; Close finger until sensing paper
-    ;; 160 is too far and 2000 is too fast to cancel.
-    ;; After wait-interpolation, sensor values drop under threshold.
-    ;; (send *ri* :move-hand :larm
-    ;;       (send *baxter* :hand :larm :angle-vector #f(77 90 160)) 2000 :wait nil)
-    (send *ri* :move-hand :larm
-          (send *baxter* :hand :larm :angle-vector #f(77 90 180)) 3000 :wait nil)
-    (let (l-dist r-dist)
+            (send *baxter* :hand :larm :angle-vector #f(77 90 180)) tm-to-grasp :wait nil)
       (send *ri* :wait-interpolation-until-funcs :larm
             (list #'(lambda ()
                       (and
@@ -270,7 +274,7 @@
                              (>= (send *ri* :get-i-prox-distance :larm :right-tip) 70))
                          (unix::usleep (* 50 1000)))
                   (ros::ros-info "[:file-paper] Paper is inserted")
-                  (not (send self :grasp-paper :init nil))))
+                  (not (send self :grasp-paper))))
               t)
             nil))))
     (ros::ros-info "[:file-paper] Now you cannot pull out paper")
