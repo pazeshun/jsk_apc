@@ -231,7 +231,7 @@
   (:return-from-grasp-paper ()
     (ros::ros-info "[:return-from-grasp-paper] Returning from :grasp-paper...")
     (send *ri* :move-hand :larm
-          (send *baxter* :hand-grasp-pre-pose :larm :cylindrical) 1000 :wait nil)
+          (send *baxter* :hand-grasp-pre-pose :larm :cylindrical) 1000 :wait t)
     (send *ri* :angle-vector-raw
           (send *baxter* :larm :move-end-pos #f(0 0 200) :local)
           :fast (send *ri* :get-arm-controller :larm) 0 :scale 6.0)
