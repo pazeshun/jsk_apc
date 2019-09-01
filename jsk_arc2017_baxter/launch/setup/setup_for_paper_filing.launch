@@ -68,7 +68,7 @@
         h_limit_max: -108
         h_limit_min: -128
         s_limit_max: 50
-        s_limit_min: 0
+        s_limit_min: 10
         i_limit_max: 255
         i_limit_min: 200
       </rosparam>
@@ -91,7 +91,7 @@
       <rosparam>
         min_size: 10
         max_size: 25000
-        tolerance: 0.005
+        tolerance: 0.01
       </rosparam>
     </node>
     <node name="cluster_indices_decomposer_paper"
