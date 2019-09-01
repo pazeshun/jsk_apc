@@ -453,7 +453,7 @@ Visualization Manager:
       line width: 0.00499999989
       only edge: true
       show coords: false
-    - Buffer length: 100
+    - Buffer length: 20
       Class: jsk_rviz_plugin/Plotter2D
       Enabled: true
       Name: LeftFingerDistance
@@ -478,7 +478,7 @@ Visualization Manager:
       top: 470
       update interval: 0.0399999991
       width: 160
-    - Buffer length: 100
+    - Buffer length: 20
       Class: jsk_rviz_plugin/Plotter2D
       Enabled: true
       Name: RightFingerDistance
