@@ -247,12 +247,12 @@
           (send *baxter* :larm :move-end-pos #f(0 0 150) :local)
           :fast (send *ri* :get-arm-controller :larm) 0 :scale 6.0)
     (send *ri* :wait-interpolation)
-    (assert (send *baxter* :larm :move-end-pos #f(320 0 0) :local))
+    (assert (send *baxter* :larm :move-end-pos #f(450 0 0) :local))
     (let (l-dist r-dist (thre-l (+ paper-thre-l- 10)) (thre-r (+ paper-thre-r- 10)))
       (while
         (progn
           (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
-                :fast (send *ri* :get-arm-controller :larm) 0 :scale 6.0)
+                :fast (send *ri* :get-arm-controller :larm) 0 :scale 7.0)
           (ros::ros-info "[:file-paper] Now you can pull out paper")
           (send *ri* :wait-interpolation-until-funcs :larm
                 (list #'(lambda ()
@@ -279,15 +279,21 @@
             nil))))
     (ros::ros-info "[:file-paper] Now you cannot pull out paper")
     (let (avs)
-      (setq avs (list (send *baxter* :larm :move-end-pos #f(0 0 -100) :local)
-                      (send *baxter* :larm :move-end-pos #f(30 0 0) :local)))
+      (setq avs (list (send *baxter* :larm :move-end-pos #f(0 0 -95) :local)
+                      (send *baxter* :larm :move-end-pos #f(50 0 0) :local)))
       (send *ri* :angle-vector-sequence-raw avs
             :fast (send *ri* :get-arm-controller :larm) 0 :scale 20.0)
       (send *ri* :wait-interpolation)))
   (:return-from-file-paper ()
     (ros::ros-info "[:return-from-file-paper] Returning from :file-paper...")
     (send *ri* :move-hand :larm
+          (send *baxter* :hand :larm :angle-vector #f(77 90 110)) 1000 :wait nil)
+    (send *ri* :angle-vector-raw (send *baxter* :larm :move-end-rot 10 :y :local)
+          :fast (send *ri* :get-arm-controller :larm) 0 :scale 4.0)
+    (send *ri* :wait-interpolation)
+    (send *ri* :move-hand :larm
           (send *baxter* :hand-grasp-pre-pose :larm :cylindrical) 1000)
+    (send *baxter* :larm :move-end-rot -10 :y :local)
     (send *ri* :angle-vector-raw
           (send *baxter* :larm :move-end-pos #f(0 0 200) :local)
           :fast (send *ri* :get-arm-controller :larm) 0 :scale 10.0)
