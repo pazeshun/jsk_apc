@@ -1,6 +1,7 @@
 <launch>
 
   <arg name="load_driver" default="true" />
+  <arg name="rviz" default="true" />
 
   <!-- get machine tag -->
   <include file="$(find jsk_arc2017_baxter)/launch/setup/include/baxter.machine" />
@@ -110,5 +111,19 @@
       </rosparam>
     </node>
   </group>  <!-- ns="left_hand_camera" -->
+
+  <!-- Visualization -->
+  <group if="$(arg rviz)">
+    <node name="rviz"
+          pkg="rviz" type="rviz"
+          args="-d $(find jsk_arc2017_baxter)/rvizconfig/paper_filing.rviz">
+    </node>
+    <node name="relay_left_finger_dist"
+          pkg="topic_tools" type="relay_field"
+          args="/gripper_front/limb/left/intensity_prox_calibrator/output /viz/left_finger_dist std_msgs/Float32 'data: m.data[1].distance'" />
+    <node name="relay_right_finger_dist"
+          pkg="topic_tools" type="relay_field"
+          args="/gripper_front/limb/left/intensity_prox_calibrator/output /viz/right_finger_dist std_msgs/Float32 'data: m.data[3].distance'" />
+  </group>
 
 </launch>
