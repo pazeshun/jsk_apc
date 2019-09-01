@@ -188,7 +188,7 @@
       (setq avs
             (list (send *baxter* :larm :move-end-pos
                         (float-vector (- 10 target-protrusion) 0 0) :local)
-                  (send *baxter* :larm :move-end-pos (float-vector 0 0 (- 5 gripper-l)) :local)))
+                  (send *baxter* :larm :move-end-pos (float-vector 0 0 (- 10 gripper-l)) :local)))
       (send *ri* :angle-vector-sequence-raw avs
             :fast (send *ri* :get-arm-controller :larm) 0 :scale 20.0)
       (send *ri* :wait-interpolation)))
