@@ -50,8 +50,9 @@
 
 ;; Evaluation of picking paper
 (setq *pick-paper-av*
-      #f(-67.6978 47.3957 -29.272 -83.5225 71.1338 60.2944 93.7255 -158.034 0.0 0.0
+      #f(-67.6978 41.4426 -37.7332 -86.1363 51.8456 56.9123 109.642 30.028 0.0 0.0
                   -81.3647 4.96582 -4.13086 79.8706 -137.791 -10.459 -67.5439 0.552233 0.357853))
+;; Finger is far from table enough
 (defun pick-paper-init ()
   (send *ri* :angle-vector (send *baxter* :angle-vector *pick-paper-av*) 5000)
   (send *ri* :move-hand :larm
@@ -62,13 +63,13 @@
 (defun pick-paper (&key (intensity nil))
   (send *ri* :calib-proximity-threshold :larm)
   (send *ri* :reset-i-prox-calib :larm)
-  (send *ri* :angle-vector (send *baxter* :larm :move-end-pos #f(0 0 -90) :world) 3000)
+  (send *ri* :angle-vector (send *baxter* :larm :move-end-pos #f(0 0 -200) :world) 3000)
   (send *ri* :wait-interpolation)
   (unix::sleep 1)
   (send *ri* :move-hand :larm
-        (send *baxter* :hand :larm :angle-vector (float-vector 5 72 72)) 2000)
+        (send *baxter* :hand :larm :angle-vector (float-vector 0 72 72)) 1500)
   (send *ri* :move-hand :larm
-        (send *baxter* :hand :larm :angle-vector (float-vector 5 90 90)) 2000 :wait nil)
+        (send *baxter* :hand :larm :angle-vector (float-vector 0 90 90)) 1500 :wait nil)
   (let (cancel-func paper-p l-prox r-prox l-thre r-thre)
     (if intensity
       (progn
@@ -98,7 +99,8 @@
         (ros::ros-info "Paper is grasped. Shift to lifting")
         (unix::sleep 1)
         (send *ri* :angle-vector
-              (send *baxter* :larm :move-end-pos #f(0 0 90) :world) 2000)
+              (send *baxter* :larm :move-end-pos #f(0 0 110) :world)
+              3000 :larm-controller 0 :end-coords-interpolation t)
         (send *ri* :wait-interpolation))
       (progn
         (ros::ros-error "Nothing is grasped")))))
