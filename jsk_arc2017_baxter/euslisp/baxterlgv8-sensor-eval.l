@@ -60,7 +60,7 @@
   (send *ri* :wait-interpolation)
   (send *ri* :enable-flex-reflex :larm nil)
   (turn-off-needless-sensors))
-(defun pick-paper (&key (intensity nil))
+(defun pick-paper (&key (intensity nil) (calib-to-black nil))
   (send *ri* :calib-proximity-threshold :larm)
   (send *ri* :reset-i-prox-calib :larm)
   (send *ri* :angle-vector (send *baxter* :larm :move-end-pos #f(0 0 -200) :world) 3000)
@@ -73,7 +73,9 @@
   (let (cancel-func paper-p l-prox r-prox l-thre r-thre)
     (if intensity
       (progn
-        (setq l-thre 1600 r-thre 800)
+        (if calib-to-black
+          (setq l-thre 300 r-thre 150)
+          (setq l-thre 1600 r-thre 800))
         (setq cancel-func
               #'(lambda ()
                   (setq paper-p
