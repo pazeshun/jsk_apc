@@ -62,6 +62,8 @@
 (defun pick-paper (&key (intensity nil))
   (send *ri* :calib-proximity-threshold :larm)
   (send *ri* :reset-i-prox-calib :larm)
+  (send *ri* :angle-vector (send *baxter* :larm :move-end-pos #f(0 0 -90) :world) 3000)
+  (send *ri* :wait-interpolation)
   (unix::sleep 1)
   (send *ri* :move-hand :larm
         (send *baxter* :hand :larm :angle-vector (float-vector 5 72 72)) 2000)
