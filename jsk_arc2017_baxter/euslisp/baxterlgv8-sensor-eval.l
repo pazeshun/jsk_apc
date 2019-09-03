@@ -73,7 +73,7 @@
   (let (cancel-func paper-p l-prox r-prox l-thre r-thre)
     (if intensity
       (progn
-        (setq l-thre 7000 r-thre 3500)
+        (setq l-thre 1600 r-thre 800)
         (setq cancel-func
               #'(lambda ()
                   (setq paper-p
