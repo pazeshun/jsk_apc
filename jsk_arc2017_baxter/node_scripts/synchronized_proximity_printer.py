@@ -23,7 +23,7 @@ from vl53l0x_mraa_ros.msg import RangingMeasurementDataStampedArray
 class SynchronizedProximityPrinter(object):
 
     def __init__(self):
-        self.print_num = rospy.get_param('~print_num', 5)
+        self.print_num = rospy.get_param('~print_num', 10)
         # Default target is right tip sensor
         self.target_idx = rospy.get_param('~target_index', 3)
         self.current_num = 0

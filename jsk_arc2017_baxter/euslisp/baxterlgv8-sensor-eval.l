@@ -18,12 +18,13 @@
 
 ;; Evaluation of measured distance
 (setq *dist-eval-av*
-      #f(-67.6978 47.3957 -29.272 -83.5225 71.1338 60.2944 93.7255 -158.034 0.0 0.0
+      #f(-67.6978 17.5106 4.38164 -40.3046 67.7708 -11.1113 78.9584 53.8298 0.429515 -0.62069
                   -81.3647 4.96582 -4.13086 79.8706 -137.791 -10.459 -67.5439 0.552233 0.357853))
 (defun dist-eval-init ()
-  (send *ri* :angle-vector (send *baxter* :angle-vector *dist-eval-av*) 5000)
+  (send *baxter* :angle-vector *dist-eval-av*)
+  (send *ri* :angle-vector (send *baxter* :larm :move-end-pos #f(0 0 200) :world) 5000)
   (send *ri* :move-hand :larm
-        (send *baxter* :hand :larm :angle-vector (float-vector 90 45 45)) 1000)
+        (send *baxter* :hand :larm :angle-vector (float-vector 0 45 45)) 1000)
   (send *ri* :wait-interpolation)
   (send *ri* :enable-flex-reflex :larm nil)
   (turn-off-needless-sensors))
@@ -32,10 +33,11 @@
   (send *ri* :reset-i-prox-calib :larm)
   (unix::sleep 1)
   ;; Enter calib zone
-  (send *baxter* :larm :move-end-pos #f(0 0 -90) :world)
-  (send *ri* :angle-vector (send *baxter* :angle-vector) 10000)
+  (send *ri* :angle-vector (send *baxter* :angle-vector *dist-eval-av*) 10000)
   (send *ri* :wait-interpolation)
-  (let ((loop-num 7) (service-name "/synchronized_proximity_printer/start_printing"))
+  (print "Distance between fingertip and scale should be 80mm. If correct, enter")
+  (read-line)
+  (let ((loop-num 9) (service-name "/synchronized_proximity_printer/start_printing"))
     (ros::wait-for-service service-name)
     (dotimes (i loop-num)
       (unix::sleep 3)
@@ -44,7 +46,7 @@
       (unix::sleep 3)
       (format t "Stable end time: ~a~%" (ros::time-now))
       (when (< i (1- loop-num))
-        (send *baxter* :larm :move-end-pos #f(0 0 -10) :world)
+        (send *baxter* :larm :move-end-pos #f(0 0 -10.1) :world)
         (send *ri* :angle-vector (send *baxter* :angle-vector) 2000)
         (send *ri* :wait-interpolation)))))
 
