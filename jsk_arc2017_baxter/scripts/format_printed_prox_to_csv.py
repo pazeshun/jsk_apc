@@ -32,9 +32,10 @@ def main():
             if 'diff_from_init' in line:
                 diff = yaml.load(line,
                                  Loader=yaml.SafeLoader)['diff_from_init']
-            elif 'init_value' in line:
-                init = yaml.load(line, Loader=yaml.SafeLoader)['init_value']
-                print(init + diff)
+            # elif 'init_value' in line:
+            #     init = yaml.load(line, Loader=yaml.SafeLoader)['init_value']
+            #     print(init + diff)
+                print(diff)
                 cnt = 0
         line = f.readline()
     f.close()
