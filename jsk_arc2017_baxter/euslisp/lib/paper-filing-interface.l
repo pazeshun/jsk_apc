@@ -194,7 +194,8 @@
       (send *ri* :wait-interpolation)))
   (:grasp-paper ()
     (ros::ros-info "[:grasp-paper] Grasping paper...")
-    (let ((roll-jt-b (aref (send *ri* :get-real-finger-av :larm) 2)) tm-to-grasp l-dist r-dist)
+    (let ((roll-jt-b (aref (send *ri* :get-real-finger-av :larm) 2)) tm-to-grasp l-dist r-dist
+                                                                     paper-p)
       (when (< roll-jt-b 110.0)
         (ros::ros-info "[:grasp-paper] roll-jt-b is ~a < 110, so initialize finger" roll-jt-b)
         ;; Turn off flex reflex
@@ -210,18 +211,22 @@
       ;; After wait-interpolation, sensor values drop under threshold.
       ;; (send *ri* :move-hand :larm
       ;;       (send *baxter* :hand :larm :angle-vector #f(77 90 160)) 2000 :wait nil)
-      (send *ri* :move-hand :larm
-            (send *baxter* :hand :larm :angle-vector #f(77 90 180)) tm-to-grasp :wait nil)
-      (send *ri* :wait-interpolation-until-funcs :larm
-            (list #'(lambda ()
-                      (and
-                        (< (setq l-dist (send *ri* :get-i-prox-distance :larm :left-tip))
-                           paper-thre-l-)
-                        (< (setq r-dist (send *ri* :get-i-prox-distance :larm :right-tip))
-                           paper-thre-r-))))
-            :hand)
-      (ros::ros-info "[:grasp-paper] Final dist: l: ~a r: ~a" l-dist r-dist)
-      (if (and (< l-dist paper-thre-l-) (< r-dist paper-thre-r-))
+      (setq paper-p nil)
+      (handler-bind ((fingers-touch-paper
+                       #'(lambda (c)
+                           (handler-bind ((fingers-touch-paper #'(lambda (c) nil)))
+                             (ros::ros-info "[:grasp-paper] dist: l: ~a r: ~a"
+                                            (send c :l-dist) (send c :r-dist))
+                             (ros::ros-info "[:grasp-paper] Cancel :move-hand")
+                             (send *ri* :cancel-move-hand :larm)
+                             (setq paper-p t)))))
+        (send *ri* :move-hand :larm
+              (send *baxter* :hand :larm :angle-vector #f(77 90 180)) tm-to-grasp :wait t))
+      ;; For logging
+      (setq l-dist (send *ri* :get-i-prox-distance :larm :left-tip)
+            r-dist (send *ri* :get-i-prox-distance :larm :right-tip))
+      (ros::ros-info "[:grasp-paper] Final dist (only for log): l: ~a r: ~a" l-dist r-dist)
+      (if paper-p
         (progn
           (ros::ros-info "[:grasp-paper] Paper is grasped")
           t)
@@ -243,40 +248,35 @@
     (send *ri* :turn-off-proximity :tof :larm nil))
   (:file-paper ()
     (ros::ros-info "[:file-paper] Filing paper...")
+    (install-handler
+      fingers-detach-paper
+      #'(lambda (c)
+          (handler-bind ((fingers-detach-paper #'(lambda (c) nil)))
+            (ros::ros-info "[:file-paper] Cancel :larm angle vector")
+            (send *ri* :cancel-angle-vector
+                  :controller-type (send *ri* :get-arm-controller :larm))
+            (ros::ros-error "[:file-paper] Paper is pulled out")
+            (while
+              (progn
+                ;; Slightly open finger
+                (send *ri* :move-hand :larm
+                      (send *baxter* :hand :larm :angle-vector #f(77 90 140)) 1000)
+                (ros::ros-info "[:file-paper] Waiting for paper to be inserted...")
+                (handler-case (while t (unix::usleep (* 50 1000)))
+                  (fingers-see-paper () (progn
+                                          (ros::ros-info "[:file-paper] Paper is inserted")
+                                          (not (send self :grasp-paper)))))))
+            (send *ri* :resume-angle-vector))))
+    (ros::ros-info "[:file-paper] Now you can pull out paper")
     (send *ri* :angle-vector-raw
           (send *baxter* :larm :move-end-pos #f(0 0 150) :local)
           :fast (send *ri* :get-arm-controller :larm) 0 :scale 6.0)
     (send *ri* :wait-interpolation)
     (assert (send *baxter* :larm :move-end-pos #f(450 0 0) :local))
-    (let (l-dist r-dist (thre-l (+ paper-thre-l- 10)) (thre-r (+ paper-thre-r- 10)))
-      (while
-        (progn
-          (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
-                :fast (send *ri* :get-arm-controller :larm) 0 :scale 7.0)
-          (ros::ros-info "[:file-paper] Now you can pull out paper")
-          (send *ri* :wait-interpolation-until-funcs :larm
-                (list #'(lambda ()
-                          (or
-                            (>= (setq l-dist (send *ri* :get-i-prox-distance :larm :left-tip))
-                                thre-l)
-                            (>= (setq r-dist (send *ri* :get-i-prox-distance :larm :right-tip))
-                                thre-r)))))
-          (if (or (>= l-dist thre-l) (>= r-dist thre-r))
-            (progn
-              (ros::ros-error "[:file-paper] Paper is pulled out")
-              (while
-                (progn
-                  ;; Slightly open finger
-                  (send *ri* :move-hand :larm
-                        (send *baxter* :hand :larm :angle-vector #f(77 90 140)) 1000)
-                  (ros::ros-info "[:file-paper] Waiting for paper to be inserted...")
-                  (while (or (>= (send *ri* :get-i-prox-distance :larm :left-tip) 70)
-                             (>= (send *ri* :get-i-prox-distance :larm :right-tip) 70))
-                         (unix::usleep (* 50 1000)))
-                  (ros::ros-info "[:file-paper] Paper is inserted")
-                  (not (send self :grasp-paper))))
-              t)
-            nil))))
+    (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
+          :fast (send *ri* :get-arm-controller :larm) 0 :scale 7.0)
+    (send *ri* :wait-interpolation)
+    (remove-handler fingers-detach-paper)
     (ros::ros-info "[:file-paper] Now you cannot pull out paper")
     (let (avs)
       (setq avs (list (send *baxter* :larm :move-end-pos #f(0 0 -95) :local)
@@ -332,7 +332,25 @@
     (unless (boundp '*ri*)
       (setq *ri* (instance jsk_arc2017_baxter::baxterlgv8-interface :init :type ctype
                            :moveit-environment mvit-env
-                           :moveit-robot mvit-rb)))
+                           :moveit-robot mvit-rb))
+      (load "package://roseus_resume/euslisp/interruption-handler.l")
+      (roseus_resume:install-interruption-handler *ri*)
+      (defcondition fingers-paper-event :slots (l-dist r-dist))
+      (defcondition fingers-see-paper :super fingers-paper-event)
+      (defcondition fingers-touch-paper :super fingers-paper-event)
+      (defcondition fingers-detach-paper :super fingers-paper-event)
+      (roseus_resume:register-callable-intervention
+        (:intensity-prox-for-intervention (msg) sphand_driver_msgs::IntensityProxCalibInfoArray
+          (handler-bind ((roseus_resume::intensity-prox-for-intervention #'(lambda (c) nil)))
+            (let (l-dist r-dist)
+              (setq l-dist (send *ri* :get-i-prox-distance :larm :left-tip))
+              (setq r-dist (send *ri* :get-i-prox-distance :larm :right-tip))
+              (when (and (< l-dist 70) (< r-dist 70))
+                (signals fingers-see-paper :l-dist l-dist :r-dist r-dist))
+              (when (and (< l-dist 25) (< r-dist 25))
+                (signals fingers-touch-paper :l-dist l-dist :r-dist r-dist))
+              (when (or (>= l-dist 35) (>= r-dist 35))
+                (signals fingers-detach-paper :l-dist l-dist :r-dist r-dist)))))))
     (unless (boundp '*baxter*)
       (setq *baxter* (instance jsk_arc2017_baxter::baxterlgv8-robot :init)))
     (unless (boundp '*co*)
