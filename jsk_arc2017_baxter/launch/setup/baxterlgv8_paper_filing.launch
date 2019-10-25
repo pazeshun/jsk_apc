@@ -19,6 +19,11 @@
   <!-- right gripper-v6 and vacuum cleaners -->
   <include file="$(find jsk_arc2017_baxter)/launch/setup/include/setup_gripper_baxterlgv7.launch" />
 
+  <!-- roseus_resume -->
+  <node name="relay_to_roseus_resume"
+        pkg="topic_tools" type="relay"
+        args="/gripper_front/limb/left/intensity_prox_calibrator/output /roseus_resume/intensity_prox_for_intervention" />
+
   <!-- voice -->
   <include file="$(find jsk_arc2017_baxter)/launch/setup/include/sound_play.launch" />
 
