@@ -16,6 +16,12 @@
           paper-thre-r-
           ))
 
+;; conditions of finger sensors
+(defcondition fingers-paper-event :slots (l-dist r-dist))
+(defcondition fingers-see-paper :super fingers-paper-event)
+(defcondition fingers-touch-paper :super fingers-paper-event)
+(defcondition fingers-detach-paper :super fingers-paper-event)
+
 (defmethod jsk_arc2017_baxter::paper-filing-interface
   (:init (&key (moveit nil))
     (setq moveit-p- moveit)
@@ -335,10 +341,6 @@
                            :moveit-robot mvit-rb))
       (load "package://roseus_resume/euslisp/interruption-handler.l")
       (roseus_resume:install-interruption-handler *ri*)
-      (defcondition fingers-paper-event :slots (l-dist r-dist))
-      (defcondition fingers-see-paper :super fingers-paper-event)
-      (defcondition fingers-touch-paper :super fingers-paper-event)
-      (defcondition fingers-detach-paper :super fingers-paper-event)
       (roseus_resume:register-callable-intervention
         (:intensity-prox-for-intervention (msg) sphand_driver_msgs::IntensityProxCalibInfoArray
           (handler-bind ((roseus_resume::intensity-prox-for-intervention #'(lambda (c) nil)))
