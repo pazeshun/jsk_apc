@@ -218,14 +218,14 @@
       ;; (send *ri* :move-hand :larm
       ;;       (send *baxter* :hand :larm :angle-vector #f(77 90 160)) 2000 :wait nil)
       (setq paper-p nil)
+      ;; handler-bind includes :recursive nil
       (handler-bind ((fingers-touch-paper
                        #'(lambda (c)
-                           (handler-bind ((fingers-touch-paper #'(lambda (c) nil)))
-                             (ros::ros-info "[:grasp-paper] dist: l: ~a r: ~a"
-                                            (send c :l-dist) (send c :r-dist))
-                             (ros::ros-info "[:grasp-paper] Cancel :move-hand")
-                             (send *ri* :cancel-move-hand :larm)
-                             (setq paper-p t)))))
+                           (ros::ros-info "[:grasp-paper] dist: l: ~a r: ~a"
+                                          (send c :l-dist) (send c :r-dist))
+                           (ros::ros-info "[:grasp-paper] Cancel :move-hand")
+                           (send *ri* :cancel-move-hand :larm)
+                           (setq paper-p t))))
         (send *ri* :move-hand :larm
               (send *baxter* :hand :larm :angle-vector #f(77 90 180)) tm-to-grasp :wait t))
       ;; For logging
