@@ -257,22 +257,22 @@
     (install-handler
       fingers-detach-paper
       #'(lambda (c)
-          (handler-bind ((fingers-detach-paper #'(lambda (c) nil)))
-            (ros::ros-info "[:file-paper] Cancel :larm angle vector")
-            (send *ri* :cancel-angle-vector
-                  :controller-type (send *ri* :get-arm-controller :larm))
-            (ros::ros-error "[:file-paper] Paper is pulled out")
-            (while
-              (progn
-                ;; Slightly open finger
-                (send *ri* :move-hand :larm
-                      (send *baxter* :hand :larm :angle-vector #f(77 90 140)) 1000)
-                (ros::ros-info "[:file-paper] Waiting for paper to be inserted...")
-                (handler-case (while t (unix::usleep (* 50 1000)))
-                  (fingers-see-paper () (progn
-                                          (ros::ros-info "[:file-paper] Paper is inserted")
-                                          (not (send self :grasp-paper)))))))
-            (send *ri* :resume-angle-vector))))
+          (ros::ros-info "[:file-paper] Cancel :larm angle vector")
+          (send *ri* :cancel-angle-vector
+                :controller-type (send *ri* :get-arm-controller :larm))
+          (ros::ros-error "[:file-paper] Paper is pulled out")
+          (while
+            (progn
+              ;; Slightly open finger
+              (send *ri* :move-hand :larm
+                    (send *baxter* :hand :larm :angle-vector #f(77 90 140)) 1000)
+              (ros::ros-info "[:file-paper] Waiting for paper to be inserted...")
+              (handler-case (while t (unix::usleep (* 50 1000)))
+                (fingers-see-paper () (progn
+                                        (ros::ros-info "[:file-paper] Paper is inserted")
+                                        (not (send self :grasp-paper)))))))
+          (send *ri* :resume-angle-vector))
+      :recursive nil)
     (ros::ros-info "[:file-paper] Now you can pull out paper")
     (send *ri* :angle-vector-raw
           (send *baxter* :larm :move-end-pos #f(0 0 150) :local)
