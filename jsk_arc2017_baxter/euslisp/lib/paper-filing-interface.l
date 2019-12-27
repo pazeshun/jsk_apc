@@ -1,6 +1,7 @@
 ;; -*- mode: lisp;-*-
 
 (require "package://jsk_arc2017_baxter/euslisp/lib/baxterlgv8-interface.l")
+(load "package://roseus_resume/euslisp/interruption-handler.l")
 
 (unless (find-package "JSK_ARC2017_BAXTER")
   (make-package "JSK_ARC2017_BAXTER"))
@@ -339,7 +340,6 @@
       (setq *ri* (instance jsk_arc2017_baxter::baxterlgv8-interface :init :type ctype
                            :moveit-environment mvit-env
                            :moveit-robot mvit-rb))
-      (load "package://roseus_resume/euslisp/interruption-handler.l")
       (roseus_resume:install-interruption-handler *ri*)
       (roseus_resume:register-callable-intervention
         (:intensity-prox-for-intervention (msg) sphand_driver_msgs::IntensityProxCalibInfoArray
