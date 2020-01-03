@@ -272,7 +272,9 @@
                 (handler-case (while t (unix::usleep (* 50 1000)))
                   (fingers-see-paper () (progn
                                           (ros::ros-info "[:file-paper] Paper is inserted")
-                                          (not (send self :grasp-paper)))))))
+                                          ;; self cannot be used instead of *ti*,
+                                          ;; because handler introduced by install-handler is global scope
+                                          (not (send *ti* :grasp-paper)))))))
             (send *ri* :resume-angle-vector action-status)))
       :recursive nil)
     (ros::ros-info "[:file-paper] Now you can pull out paper")
