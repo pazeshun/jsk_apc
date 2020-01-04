@@ -255,38 +255,35 @@
     (send *ri* :turn-off-proximity :tof :larm nil))
   (:file-paper ()
     (ros::ros-info "[:file-paper] Filing paper...")
-    (install-handler
-      fingers-detach-paper
-      #'(lambda (c)
-          (let ((action-status (send *ri* :get-action-status)))
-            (ros::ros-info "[:file-paper] Cancel :larm angle vector")
-            (send *ri* :cancel-angle-vector
-                  :controller-type (send *ri* :get-arm-controller :larm))
-            (ros::ros-error "[:file-paper] Paper is pulled out")
-            (while
-              (progn
-                ;; Slightly open finger
-                (send *ri* :move-hand :larm
-                      (send *baxter* :hand :larm :angle-vector #f(77 90 140)) 1000)
-                (ros::ros-info "[:file-paper] Waiting for paper to be inserted...")
-                (handler-case (while t (unix::usleep (* 50 1000)))
-                  (fingers-see-paper () (progn
-                                          (ros::ros-info "[:file-paper] Paper is inserted")
-                                          ;; self cannot be used instead of *ti*,
-                                          ;; because handler introduced by install-handler is global scope
-                                          (not (send *ti* :grasp-paper)))))))
-            (send *ri* :resume-angle-vector action-status)))
-      :recursive nil)
-    (ros::ros-info "[:file-paper] Now you can pull out paper")
-    (send *ri* :angle-vector-raw
-          (send *baxter* :larm :move-end-pos #f(0 0 150) :local)
-          :fast (send *ri* :get-arm-controller :larm) 0 :scale 6.0)
-    (send *ri* :wait-interpolation)
-    (assert (send *baxter* :larm :move-end-pos #f(450 0 0) :local))
-    (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
-          :fast (send *ri* :get-arm-controller :larm) 0 :scale 7.0)
-    (send *ri* :wait-interpolation)
-    (remove-handler fingers-detach-paper)
+    ;; install-handler remains installed even after Ctrl-C & reset, so use handler-bind
+    (handler-bind
+      ((fingers-detach-paper
+         #'(lambda (c)
+             (let ((action-status (send *ri* :get-action-status)))
+               (ros::ros-info "[:file-paper] Cancel :larm angle vector")
+               (send *ri* :cancel-angle-vector
+                     :controller-type (send *ri* :get-arm-controller :larm))
+               (ros::ros-error "[:file-paper] Paper is pulled out")
+               (while
+                 (progn
+                   ;; Slightly open finger
+                   (send *ri* :move-hand :larm
+                         (send *baxter* :hand :larm :angle-vector #f(77 90 140)) 1000)
+                   (ros::ros-info "[:file-paper] Waiting for paper to be inserted...")
+                   (handler-case (while t (unix::usleep (* 50 1000)))
+                     (fingers-see-paper () (progn
+                                             (ros::ros-info "[:file-paper] Paper is inserted")
+                                             (not (send self :grasp-paper)))))))
+               (send *ri* :resume-angle-vector action-status)))))
+      (ros::ros-info "[:file-paper] Now you can pull out paper")
+      (send *ri* :angle-vector-raw
+            (send *baxter* :larm :move-end-pos #f(0 0 150) :local)
+            :fast (send *ri* :get-arm-controller :larm) 0 :scale 6.0)
+      (send *ri* :wait-interpolation)
+      (assert (send *baxter* :larm :move-end-pos #f(450 0 0) :local))
+      (send *ri* :angle-vector-raw (send *baxter* :angle-vector)
+            :fast (send *ri* :get-arm-controller :larm) 0 :scale 7.0)
+      (send *ri* :wait-interpolation))
     (ros::ros-info "[:file-paper] Now you cannot pull out paper")
     (let (avs)
       (setq avs (list (send *baxter* :larm :move-end-pos #f(0 0 -95) :local)
