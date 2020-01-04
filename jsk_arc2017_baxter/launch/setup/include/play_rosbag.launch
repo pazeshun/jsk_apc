@@ -6,8 +6,44 @@
         args="$(arg filename) --clock --loop">
   </node>
 
+  <!-- custom baxter params -->
+  <param name="/robot_description"
+         command="$(find xacro)/xacro.py $(find jsk_arc2017_baxter)/robots/baxterlgv7.xacro" />
+
+  <!-- table location -->
+  <node name="marker_6dof_table"
+        pkg="jsk_interactive_marker" type="marker_6dof">
+    <rosparam>
+      object_type: cube
+      frame_id: base
+      publish_tf: true
+      tf_frame: table_bottom_right_frame
+      object_x: 0.01
+      object_y: 0.01
+      object_z: 0.01
+      initial_x: 0.443
+      initial_y: 0.005
+      initial_z: -0.181
+      initial_orientation: [0.0, 0.0, 0.0, 1.0]
+    </rosparam>
+  </node>
+  <node name="publish_table_boxes"
+        pkg="jsk_recognition_utils" type="bounding_box_array_publisher.py">
+    <rosparam>
+      frame_id: table_bottom_right_frame
+      boxes:
+        # table box
+        - position: [0.25, 0.175, 0.0175]
+          dimension: [0.5, 0.35, 0.035]
+        # recognition region
+        - position: [0.25, 0.21, 0.025]
+          dimension: [0.5, 0.42, 0.05]
+    </rosparam>
+  </node>
+
   <!-- cameras >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> -->
 
+  <!--
   <arg name="pick" default="true" />
   <group if="$(arg pick)">
     <include file="$(find jsk_arc2017_baxter)/launch/setup/setup_for_pick.launch">
@@ -19,6 +55,7 @@
       <arg name="load_driver" value="false" />
     </include>
   </group>
+  -->
 
   <!-- left_hand_camera -->
   <group ns="/left_hand_camera/left/rgb">
