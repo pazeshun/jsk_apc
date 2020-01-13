@@ -111,7 +111,7 @@ rosrun grasp_prediction_arc2017 install_hasegawa_iros2018
 ```bash
 roslaunch grasp_prediction_arc2017 baxterlgv7.launch project:=hasegawa_iros2018
 roslaunch grasp_prediction_arc2017 setup_for_book_picking.launch hasegawa_iros2018:=true
-roslaunch grasp_prediction_arc2017 book_picking.launch json_dir:=`rospack find grasp_prediction_arc2017`/json_dirs/hasegawa_iros2018/ForItemDataBooks6/layout1
+roslaunch grasp_prediction_arc2017 book_picking.launch project:=hasegawa_iros2018 json_dir:=`rospack find grasp_prediction_arc2017`/json_dirs/hasegawa_iros2018/ForItemDataBooks6/layout1
 ```
 
 ### Video (Click Below)
@@ -159,4 +159,21 @@ roseus `rospack find grasp_prediction_arc2017`/euslisp/hasegawa_mthesis/pick-boo
 (pick-book-eval-init :ctype :larm-head-controller :moveit t)
 (pick-book-eval-mainloop :larm)
 ## Please see warn messages and source codes for optional settings
+```
+
+
+## Hasegawa RAS Demo: Pick and Insert Books with Low Lifting
+
+### Setup
+
+```bash
+rosrun grasp_prediction_arc2017 install_hasegawa_mthesis
+```
+
+### Execution
+
+```bash
+roslaunch grasp_prediction_arc2017 baxterlgv7.launch project:=hasegawa_ras2020
+roslaunch grasp_prediction_arc2017 setup_for_book_picking.launch hasegawa_mthesis:=true
+roslaunch grasp_prediction_arc2017 book_picking.launch project:=hasegawa_ras2020 json_dir:=`rospack find grasp_prediction_arc2017`/json_dirs/hasegawa_ras2020/layout1
 ```
