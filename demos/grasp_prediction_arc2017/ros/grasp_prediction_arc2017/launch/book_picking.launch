@@ -114,7 +114,8 @@
 
   <!-- robot main -->
   <group if="$(arg main)">
-    <node if="$(arg moveit)" pkg="grasp_prediction_arc2017" type="hasegawa-iros2018-main.l" name="left_hand_main"
+    <arg name="project" doc="Candidates: hasegawa_iros2018, hasegawa_ras2020" />
+    <node if="$(arg moveit)" pkg="grasp_prediction_arc2017" type="$(arg project)-main.l" name="left_hand_main"
           args="&quot;(progn (pick-book-init :ctype :larm-head-controller :moveit t) (pick-book-mainloop :larm))&quot;"
           respawn="true" output="screen">
       <env name="DISPLAY" value="" />
@@ -122,7 +123,7 @@
         data_collection: $(arg data_collection)
       </rosparam>
     </node>
-    <node unless="$(arg moveit)" pkg="grasp_prediction_arc2017" type="hasegawa-iros2018-main.l" name="left_hand_main"
+    <node unless="$(arg moveit)" pkg="grasp_prediction_arc2017" type="$(arg project)-main.l" name="left_hand_main"
           args="&quot;(progn (pick-book-init :ctype :larm-head-controller :moveit nil) (pick-book-mainloop :larm))&quot;"
           respawn="true" output="screen">
       <env name="DISPLAY" value="" />
