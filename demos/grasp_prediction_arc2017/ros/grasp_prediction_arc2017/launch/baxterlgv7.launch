@@ -1,7 +1,11 @@
 <launch>
 
+  <arg name="project" doc="Candidates: hasegawa_iros2018, hasegawa_ras2020" />
+
   <include file="$(find sphand_driver)/launch/baxterlgv7_common.launch" />
 
-  <include file="$(find grasp_prediction_arc2017)/launch/include/setup_book_picking_location.xml" />
+  <include file="$(find grasp_prediction_arc2017)/launch/include/setup_book_picking_location.xml">
+    <arg name="project" value="$(arg project)" />
+  </include>
 
 </launch>

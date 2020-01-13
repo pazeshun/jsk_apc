@@ -1,0 +1,19 @@
+{
+    "orders": [
+        {
+            "contents": [
+                "nexus_2013_with_cover",
+                "cherokee_easy_tee_shirt"
+            ],
+            "size_id": "1AD"
+        },
+        {
+            "contents": [
+                "nikkei_newspaper",
+                "jsme_journal",
+                "motion_planning_book"
+            ],
+            "size_id": "1A5"
+        }
+    ]
+}

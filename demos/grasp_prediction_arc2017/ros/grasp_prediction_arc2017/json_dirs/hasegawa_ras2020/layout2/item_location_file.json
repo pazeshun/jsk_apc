@@ -1,0 +1,27 @@
+{
+    "bins": [
+        {
+            "bin_id": "A",
+            "contents": [
+                "nexus_2013_with_cover",
+                "cherokee_easy_tee_shirt",
+                "jsme_journal",
+                "nikkei_newspaper",
+                "motion_planning_book"
+            ]
+        }
+    ],
+    "boxes": [
+        {
+            "size_id": "1AD",
+            "contents": []
+        },
+        {
+            "size_id": "1A5",
+            "contents": []
+        }
+    ],
+    "tote": {
+        "contents": []
+    }
+}

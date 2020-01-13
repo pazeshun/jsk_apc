@@ -25,7 +25,10 @@
            command="$(find xacro)/xacro.py $(find jsk_arc2017_baxter)/robots/baxterlgv7.xacro" />
   </group>
   <arg name="setup_source_location" default="true" />
-  <include file="$(find grasp_prediction_arc2017)/launch/include/setup_book_picking_location.xml" if="$(arg setup_source_location)" />
+  <arg name="project" doc="Candidates: hasegawa_iros2018, hasegawa_ras2020" />
+  <include file="$(find grasp_prediction_arc2017)/launch/include/setup_book_picking_location.xml" if="$(arg setup_source_location)">
+    <arg name="project" value="$(arg project)" />
+  </include>
 
   <!-- cameras >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> -->
 

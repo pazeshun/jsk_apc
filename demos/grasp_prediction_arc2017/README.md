@@ -109,7 +109,7 @@ rosrun grasp_prediction_arc2017 install_hasegawa_iros2018
 ### Execution
 
 ```bash
-roslaunch grasp_prediction_arc2017 baxterlgv7.launch
+roslaunch grasp_prediction_arc2017 baxterlgv7.launch project:=hasegawa_iros2018
 roslaunch grasp_prediction_arc2017 setup_for_book_picking.launch hasegawa_iros2018:=true
 roslaunch grasp_prediction_arc2017 book_picking.launch json_dir:=`rospack find grasp_prediction_arc2017`/json_dirs/hasegawa_iros2018/ForItemDataBooks6/layout1
 ```
@@ -150,7 +150,7 @@ rosrun grasp_prediction_arc2017 install_hasegawa_mthesis
 
 ```bash
 # Experiments of Grasp Stability
-roslaunch grasp_prediction_arc2017 baxterlgv7.launch
+roslaunch grasp_prediction_arc2017 baxterlgv7.launch project:=hasegawa_iros2018
 roslaunch grasp_prediction_arc2017 setup_for_book_picking.launch hasegawa_mthesis:=true
 roslaunch grasp_prediction_arc2017 book_picking.launch main:=false json_dir:=`rospack find grasp_prediction_arc2017`/json_dirs/hasegawa_mthesis/ForItemDataBooks8/each_obj/alpha_cubic_sport_wallet
 roseus `rospack find grasp_prediction_arc2017`/euslisp/hasegawa_mthesis/pick-book-eval.l
