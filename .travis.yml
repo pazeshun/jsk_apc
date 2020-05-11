@@ -9,6 +9,7 @@ language: c++ # to avoid using /opt/python from travis
 
 # for Travis {{{
 cache:
+  timeout: 3600  # https://docs.travis-ci.com/user/caching/#setting-the-timeout
   directories:
     - $HOME/.ccache
     - $HOME/.cache/pip
