@@ -12,7 +12,10 @@ cache:
   directories:
     - $HOME/.ccache
     - $HOME/.cache/pip
-    - $HOME/.ros/data
+    # - $HOME/.ros/data  # Specify each directory to reduce cache size
+    - $HOME/.ros/data/jsk_2016_01_baxter_apc
+    - $HOME/.ros/data/jsk_apc2016_common
+    - $HOME/.ros/data/jsk_arc2017_common
 # }}}
 
 env:
